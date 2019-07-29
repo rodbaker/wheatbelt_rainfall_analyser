@@ -5,7 +5,7 @@
 #################################################################################
 
 PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-BUCKET = s3://auswheatdata
+BUCKET = auswheatdata
 PROFILE = default
 PROJECT_NAME = wheatbelt_rainfall_analyser
 PYTHON_INTERPRETER = python3
