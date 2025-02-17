@@ -1,65 +1,81 @@
-#  import packages
 import pandas as pd
 import numpy as np
 import requests
-import csv
-import json
-from pandas.io.json import json_normalize
-import re
 import time
 import os
+import re
+import io
 from dotenv import load_dotenv, find_dotenv
 
-# find .env automagically by walking up directories until it's found
+# Load environment variables
 dotenv_path = find_dotenv()
-
-# load up the entries as environment variables
 load_dotenv(dotenv_path)
 
-silo_username = os.environ.get("SILO_USERNAME")
-silo_password = os.environ.get("SILO_PASSWORD")
-silo_email = os.environ.get("SILO_EMAIL")
+silo_username = os.getenv("SILO_USERNAME")
+silo_password = os.getenv("SILO_PASSWORD")
+silo_email = os.getenv("SILO_EMAIL")
 
 def random_wait():
-    """fn: randomly choose a wait time based on
-    probability"""
+    """Returns a random wait time based on predefined probabilities."""
     wait_times = [0.2, 0.5, 1, 2]
     probs = [0.3, 0.4, 0.2, 0.1]
-    choice = np.random.choice(wait_times, size = 1, p = probs)
-    return choice
+    return np.random.choice(wait_times, p=probs)
 
 def url_list(station_list, start_date, finish_date):
-    """fn: create list of URL's with different 
-    station numbers and corresponding start date"""
-    url_list = []
-    for stat in station_list:
-        url = "https://www.longpaddock.qld.gov.au/cgi-bin/silo/PatchedPointDataset.php?start={0}&finish={1}&station={2}&format=Monthly&username={3}".format(start_date, finish_date,stat, silo_email)
-        url_list.append(url)
-    return url_list
+    """Creates a list of SILO API URLs for downloading weather data."""
+    return [
+        f"https://www.longpaddock.qld.gov.au/cgi-bin/silo/PatchedPointDataset.php?"
+        f"start={start_date}&finish={finish_date}&station={stat}&format=Monthly&username={silo_email}"
+        for stat in station_list
+    ]
 
+def fetch_data(url):
+    """Fetches weather data from the SILO API, handling errors and retries."""
+    try:
+        response = requests.get(url, timeout=10)  # ✅ Set timeout to prevent long hangs
+        response.raise_for_status()  # ✅ Raise an error for bad responses (e.g., 404, 500)
+        
+        colnames = ['date', 'max_temp', 'min_temp', 'rain', 'evap', 'radiation', 'vp']
+        df = pd.read_csv(io.StringIO(response.text), skiprows=26, sep=r'\s+', header=None, names=colnames)
+        
+        match = re.search(r"station=(\d+)", url)
+        df['station'] = int(match.group(1)) if match else None
+
+        return df
+    except requests.RequestException as e:
+        print(f"⚠ HTTP error fetching {url}: {e}")
+    except Exception as e:
+        print(f"⚠ Error processing data from {url}: {e}")
+    
+    return None
 
 def download_weather_data(station_list, start_date, finish_date):
-    """fn: downloads weather data from SILO api"""
-    colnames = ['date', 'max_temp', 'min_temp', 'rain', 'evap', 'radiation', 'vp']
+    """Downloads weather data for a list of stations and returns a DataFrame list."""
     df_list = []
-    for url in url_list(station_list, start_date, finish_date):
-        df_stat = pd.read_csv(url, skiprows = 26,sep = r'\s+', header = None, names = colnames)
-        df_stat['station'] = int(re.findall("station=(\\d+)",url)[0]) #regex finds station number
-        df_list.append(df_stat)
+    urls = url_list(station_list, start_date, finish_date)
+
+    for url in urls:
+        df = fetch_data(url)
+        if df is not None:
+            df_list.append(df)
+
+        # Apply random wait to avoid hitting API rate limits
         time.sleep(random_wait())
+
     return df_list
 
 def create_df(station_list, start_date, finish_date):
-    """fn: Creates a pandas dataframe from the weather data downloaded from SILO Api"""
-    # concatenate list of dfs into one
-    df_concat = pd.concat(download_weather_data(station_list, start_date, finish_date))
-    # make string version of original column
+    """Creates a pandas DataFrame from downloaded weather data."""
+    df_list = download_weather_data(station_list, start_date, finish_date)
+
+    if not df_list:  
+        print("⚠ Warning: No data downloaded. Returning an empty DataFrame.")
+        return pd.DataFrame()
+
+    df_concat = pd.concat(df_list, ignore_index=True)
     df_concat['date'] = df_concat['date'].astype(str)
-    # make the new columns using string indexing
-    df_concat['year'] = df_concat['date'].str[0:4].astype('int64')
-    df_concat['month'] = df_concat['date'].str[4:6].astype('int64')
-    # get rid of the extra variable (if you want)
-    df_concat.drop('date', axis=1, inplace=True)
+    df_concat['year'] = df_concat['date'].str[:4].astype(int)
+    df_concat['month'] = df_concat['date'].str[4:6].astype(int)
+    df_concat.drop(columns=['date'], inplace=True)
+
     return df_concat
-
-
