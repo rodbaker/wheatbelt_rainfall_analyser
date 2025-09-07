@@ -1,1 +1,75 @@
-node_modules/
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# CropForecaster operational outputs (3-agent system)
+logs/*.jsonl
+data/obs/*.csv
+data/derived/*.csv  
+data/exports/*.csv
+reports/daily/*.md
+reports/weekly/*.md
+
+# Local configuration overrides
+config/*.local.yaml
+.env.local
+
+# Environment files
+.env
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python virtual environments
+venv/
+env/
+ENV/
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+
+# Documentation builds
+docs/_build/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Large data files
+*.nc
+*.zip
+*.gz
+data/meta/*.nc
+
+# Temporary files
+tmp/
+temp/
+*.tmp

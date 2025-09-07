@@ -1,0 +1,1377 @@
+Station number,Lat,Lon,Station name,SA2_5DIG16,SA2_NAME16,STE_CODE16,STE_NAME16,2010_11_area
+8002,-30.6,116.77,BALLIDU,51238,Dowerin,5,Western Australia,409182
+8005,-30.73,116.02,BARBERTON,51241,Moora,5,Western Australia,407510
+8007,-28.9,115.81,PINDAWA,51291,Morawa,5,Western Australia,480419
+8008,-30.58,116.14,BERKSHIRE VALLEY,51241,Moora,5,Western Australia,407510
+8009,-30.63,116.39,BINDI BINDI EAST,51241,Moora,5,Western Australia,407510
+8013,-29.33,116.14,BOWGADA,51291,Morawa,5,Western Australia,480419
+8014,-30.22,116.78,DALWALLINU NORTH,51241,Moora,5,Western Australia,407510
+8028,-28.5,114.79,NABAWA,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8037,-29.88,116.02,COOROW,51291,Morawa,5,Western Australia,480419
+8050,-28.78,114.61,GERALDTON TOWN,51285,Geraldton,5,Western Australia,4480
+8052,-28.17,114.76,GLENEVA,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8060,-29.04,115.55,SOUTH HOLMWOOD,51291,Morawa,5,Western Australia,480419
+8061,-30.28,116.63,HYDE PARK,51241,Moora,5,Western Australia,407510
+8065,-28.43,114.65,ISSEKA,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8066,-30.7,117.06,KOKARDINE,51238,Dowerin,5,Western Australia,409182
+8067,-29.94,116.2,KOOBABBIE,51291,Morawa,5,Western Australia,480419
+8072,-29.76,116.44,LATHAM,51291,Morawa,5,Western Australia,480419
+8075,-28.21,114.31,LYNTON,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8077,-29.6,115.94,HIGHFIELDS,51291,Morawa,5,Western Australia,480419
+8085,-30.49,116.36,MILING,51241,Moora,5,Western Australia,407510
+8087,-30.42,116.46,MINDALLA,51241,Moora,5,Western Australia,407510
+8095,-28.54,115.51,MULLEWA,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8100,-28.35,114.64,NORTHAMPTON,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8107,-29.44,116.29,PERENJORI,51291,Morawa,5,Western Australia,480419
+8113,-27.83,114.74,RIVERSIDE,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8121,-29.53,115.76,THREE SPRINGS,51291,Morawa,5,Western Australia,480419
+8137,-30.89,116.72,WONGAN HILLS,51238,Dowerin,5,Western Australia,409182
+8139,-30.11,116.63,WUBIN,51241,Moora,5,Western Australia,407510
+8143,-29.29,115.63,YANDANOOKA,51291,Morawa,5,Western Australia,480419
+8147,-28.33,114.96,YUNA,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8157,-28.9,115.86,CANNA,51291,Morawa,5,Western Australia,480419
+8168,-28.55,114.62,HOWATHARRA,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8179,-30.66,116.93,EAST KONDUT,51238,Dowerin,5,Western Australia,409182
+8200,-28.69,115.04,ERADU,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8202,-30.62,116.38,BINDI BINDI NORTH,51241,Moora,5,Western Australia,407510
+8237,-28.69,115.28,TENINDEWA,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8240,-28.89,115.45,COOLANGATTA,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8254,-30.71,116.77,KONDUT,51238,Dowerin,5,Western Australia,409182
+8273,-29.36,115.45,ARENA,51291,Morawa,5,Western Australia,480419
+8274,-28.42,114.82,NARALING,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8275,-30.37,116.27,ANRO,51241,Moora,5,Western Australia,407510
+8280,-27.57,114.67,EURARDY,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8283,-30.15,116.38,KARAWA,51241,Moora,5,Western Australia,407510
+8286,-28.28,114.68,WUNDI,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8294,-28.21,115.29,WANDANA,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8295,-29.21,115.26,STRAWBERRY,51291,Morawa,5,Western Australia,480419
+8296,-29.2,116.02,MORAWA AIRPORT,51291,Morawa,5,Western Australia,480419
+8297,-30.28,116.67,DALWALLINU,51241,Moora,5,Western Australia,407510
+8298,-28.76,114.94,TIBRADDEN,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8299,-29.11,115.32,ARRADALE,51291,Morawa,5,Western Australia,480419
+8300,-29.07,115.09,TABLETOP,51289,Irwin,5,Western Australia,19021
+8301,-30.75,116.13,BARBERTON EAST,51241,Moora,5,Western Australia,407510
+8302,-30.85,116.72,WONGAN HILLS NORTH,51238,Dowerin,5,Western Australia,409182
+8304,-28.96,114.95,MOASCAR,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8306,-28.06,115.19,DARTMOOR SOUTH,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8307,-28.89,115.44,COOLANGATTA ALERT,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8308,-28.8,115.76,TARDUN HILL,51292,Northampton - Mullewa - Greenough,5,Western Australia,423223
+8309,-29.3,115.66,BELLENDAINE,51291,Morawa,5,Western Australia,480419
+8310,-29.03,115.55,SOUTH HOLMWOOD ALERT,51291,Morawa,5,Western Australia,480419
+8315,-28.8,114.7,GERALDTON AIRPORT,51285,Geraldton,5,Western Australia,4480
+8316,-30.38,115.85,YALLALIE BASIN,51239,Gingin - Dandaragan,5,Western Australia,23234
+8317,-30.36,116.29,ANRO TBRG,51241,Moora,5,Western Australia,407510
+8318,-30.42,116.46,MINDALLA TBRG,51241,Moora,5,Western Australia,407510
+9014,-30.7,115.58,DANDARAGAN WEST,51239,Gingin - Dandaragan,5,Western Australia,23234
+9018,-31.35,115.9,GINGIN,51239,Gingin - Dandaragan,5,Western Australia,23234
+9033,-30.97,116.22,NEW NORCIA,51241,Moora,5,Western Australia,407510
+9037,-30.34,115.54,BADGINGARRA RESEARCH STN,51239,Gingin - Dandaragan,5,Western Australia,23234
+9210,-30.89,115.58,LAKE NAMMEN,51239,Gingin - Dandaragan,5,Western Australia,23234
+9248,-31.33,115.95,MOONDAH BROOK,51239,Gingin - Dandaragan,5,Western Australia,23234
+9268,-31.46,116.37,JULIMAR FOREST,51244,Toodyay,5,Western Australia,11970
+9274,-31.26,116.13,MINSTON PARK,51236,Chittering,5,Western Australia,5408
+9279,-31,116.23,CANTERBURY,51241,Moora,5,Western Australia,407510
+9504,-33.83,116.39,BOYUP BROOK,51017,Bridgetown - Boyup Brook,5,Western Australia,2430
+9507,-32.68,116.52,BANNISTER,51246,Brookton,5,Western Australia,132769
+9542,-33.68,121.83,ESPERANCE AERO,51275,Esperance Region,5,Western Australia,381876
+9561,-34.49,117.63,KENDENUP,51234,Plantagenet,5,Western Australia,8628
+9579,-33.76,122.07,OAKE MARSH FARM,51275,Esperance Region,5,Western Australia,381876
+9581,-34.63,117.64,MOUNT BARKER,51234,Plantagenet,5,Western Australia,8628
+9584,-33.74,122,MYRUP,51275,Esperance Region,5,Western Australia,381876
+9587,-34,116.43,NEWBICUP,51017,Bridgetown - Boyup Brook,5,Western Australia,2430
+9607,-34.55,117.94,WHITE GUMS,51234,Plantagenet,5,Western Australia,8628
+9626,-33.71,121.56,PLEASANT VALLEY,51275,Esperance Region,5,Western Australia,381876
+9631,-33.6,121.78,ESPERANCE DOWNS RESEARCH STN,51275,Esperance Region,5,Western Australia,381876
+9635,-34.36,117.08,FRANKLAND,51231,Kojonup,5,Western Australia,73119
+9739,-33.68,122.33,TELINA DOWNS,51275,Esperance Region,5,Western Australia,381876
+9772,-33.76,121.22,ERINAIR,51275,Esperance Region,5,Western Australia,381876
+9804,-33.88,122.22,ADINA,51275,Esperance Region,5,Western Australia,381876
+9815,-33.88,122.57,THE DUKE,51275,Esperance Region,5,Western Australia,381876
+9822,-33.78,121.56,DALYUP PARK,51275,Esperance Region,5,Western Australia,381876
+9843,-34.44,116.99,FRANKLAND VINEYARDS,51231,Kojonup,5,Western Australia,73119
+9850,-34.54,117.72,CARBARUP,51234,Plantagenet,5,Western Australia,8628
+9865,-34.4,118.89,WARRA JARRA,51229,Gnowangerup,5,Western Australia,260192
+9867,-33.65,122.02,LORINNA,51275,Esperance Region,5,Western Australia,381876
+9868,-33.71,120.87,MUNGLINUP,51275,Esperance Region,5,Western Australia,381876
+9914,-33.32,116.65,VALERN,51250,Wagin,5,Western Australia,67450
+9922,-33.65,121.2,WEST LORT RIVER,51275,Esperance Region,5,Western Australia,381876
+9954,-33.81,122.08,MERIVALE FARM,51275,Esperance Region,5,Western Australia,381876
+9967,-34.78,117.65,NARRIKUP WEST,51234,Plantagenet,5,Western Australia,8628
+10000,-31.17,117.07,AMERY ACRES,51238,Dowerin,5,Western Australia,409182
+10006,-31.73,118.11,BELKA,51240,Merredin,5,Western Australia,393786
+10007,-30.81,117.86,BENCUBBIN,51242,Mukinbudin,5,Western Australia,561694
+10009,-31.27,116.51,BOLGART,51241,Moora,5,Western Australia,407510
+10011,-30.47,118.38,BONNIE ROCK,51242,Mukinbudin,5,Western Australia,561694
+10012,-31.53,117.41,BOODJERAKINE,51237,Cunderdin,5,Western Australia,243976
+10016,-31.88,118.15,BRUCE ROCK,51240,Merredin,5,Western Australia,393786
+10019,-31.4,118.48,BURRACOPPIN,51240,Merredin,5,Western Australia,393786
+10026,-30.06,117.14,GOODLANDS,51241,Moora,5,Western Australia,407510
+10031,-31.37,117.59,YORKRAKINE TBRG,51237,Cunderdin,5,Western Australia,243976
+10032,-31,117.4,COWCOWING,51238,Dowerin,5,Western Australia,409182
+10036,-31.8,117.36,YOUNDEGIN,51237,Cunderdin,5,Western Australia,243976
+10040,-31.61,117.88,DOODLAKINE,51237,Cunderdin,5,Western Australia,243976
+10041,-31.62,117.44,DOONGIN PEAK,51237,Cunderdin,5,Western Australia,243976
+10043,-31.77,116.92,CALJIE,51245,York - Beverley,5,Western Australia,56837
+10044,-31.62,117.54,BUNGULLA,51237,Cunderdin,5,Western Australia,243976
+10045,-31.01,117.13,EJANDING,51238,Dowerin,5,Western Australia,409182
+10052,-31.45,117.22,ALEPPO,51237,Cunderdin,5,Western Australia,243976
+10053,-31.72,118.44,FRIARS WELL,51240,Merredin,5,Western Australia,393786
+10055,-30.8,117.68,GABBIN,51242,Mukinbudin,5,Western Australia,561694
+10058,-31.3,116.83,GOOMALLING,51238,Dowerin,5,Western Australia,409182
+10061,-31.14,116.96,HAPPY VALLEY,51238,Dowerin,5,Western Australia,409182
+10064,-31.27,116.51,BOLGART BIN,51241,Moora,5,Western Australia,407510
+10073,-31.62,117.72,KELLERBERRIN,51237,Cunderdin,5,Western Australia,243976
+10076,-31.06,116.73,KONNONGORRING,51238,Dowerin,5,Western Australia,409182
+10077,-30.83,117.48,KOORDA,51238,Dowerin,5,Western Australia,409182
+10089,-31.35,116.65,LONG FOREST,51238,Dowerin,5,Western Australia,409182
+10092,-31.48,118.28,MERREDIN,51240,Merredin,5,Western Australia,393786
+10097,-30.66,117.26,MONINGARIN,51238,Dowerin,5,Western Australia,409182
+10102,-30.92,118.21,MUKINBUDIN,51242,Mukinbudin,5,Western Australia,561694
+10104,-31.4,117.72,NANYANINE,51237,Cunderdin,5,Western Australia,243976
+10108,-31.33,118.25,NOKANING,51240,Merredin,5,Western Australia,393786
+10111,-31.65,116.66,NORTHAM,51243,Northam,5,Western Australia,21542
+10112,-31.18,118.1,NUNGARIN,51242,Mukinbudin,5,Western Australia,561694
+10119,-31.8,118.39,KITLANE,51240,Merredin,5,Western Australia,393786
+10121,-31.64,117.49,TAMMIN,51237,Cunderdin,5,Western Australia,243976
+10122,-31.83,117.49,TELENNING HILL,51237,Cunderdin,5,Western Australia,243976
+10123,-31.99,117.93,THE GRANITES,51240,Merredin,5,Western Australia,393786
+10124,-31.52,118.17,NANGEENAN,51240,Merredin,5,Western Australia,393786
+10125,-31.55,116.47,TOODYAY,51244,Toodyay,5,Western Australia,11970
+10126,-31.12,117.79,TRAYNING,51242,Mukinbudin,5,Western Australia,561694
+10129,-31.59,116.89,MOUNT NODDY,51243,Northam,5,Western Australia,21542
+10132,-31.92,116.82,MOUNT HARDEY,51245,York - Beverley,5,Western Australia,56837
+10134,-31.31,116.52,WATTENING,51244,Toodyay,5,Western Australia,11970
+10135,-30.49,118.13,WIALKI,51242,Mukinbudin,5,Western Australia,561694
+10136,-30.59,118.15,WIALKI SOUTH,51242,Mukinbudin,5,Western Australia,561694
+10140,-31.18,117.38,WYALKATCHEM,51238,Dowerin,5,Western Australia,409182
+10141,-30.29,117.01,XANTIPPE,51241,Moora,5,Western Australia,407510
+10143,-31.42,117.27,YGNATTERING,51237,Cunderdin,5,Western Australia,243976
+10145,-31.38,117.59,YORKRAKINE,51237,Cunderdin,5,Western Australia,243976
+10149,-31.34,117.82,CODG CODGEN,51242,Mukinbudin,5,Western Australia,561694
+10151,-31.53,118.1,HINES HILL,51240,Merredin,5,Western Australia,393786
+10152,-31.75,116.68,MURESK INSTITUTE,51243,Northam,5,Western Australia,21542
+10158,-30.41,118.28,BERIA,51242,Mukinbudin,5,Western Australia,561694
+10192,-30.55,118.28,JOURERDINE,51242,Mukinbudin,5,Western Australia,561694
+10230,-31.62,117.06,WAEEL,51237,Cunderdin,5,Western Australia,243976
+10244,-31.75,116.46,BAKERS HILL,51243,Northam,5,Western Australia,21542
+10245,-31.3,116.9,BERRING,51238,Dowerin,5,Western Australia,409182
+10250,-31.14,116.92,REDWING,51238,Dowerin,5,Western Australia,409182
+10257,-31.51,117.77,SPRING VALLEY,51237,Cunderdin,5,Western Australia,243976
+10283,-31.93,117.84,SHACKLETON,51240,Merredin,5,Western Australia,393786
+10286,-31.62,117.22,CUNDERDIN AIRFIELD,51237,Cunderdin,5,Western Australia,243976
+10294,-31.57,117.51,COODERNUPPIN,51237,Cunderdin,5,Western Australia,243976
+10304,-31.49,116.54,NUNILE,51244,Toodyay,5,Western Australia,11970
+10307,-31.79,116.63,QUADNEY,51245,York - Beverley,5,Western Australia,56837
+10308,-31.55,116.49,TOODYAY EAST,51244,Toodyay,5,Western Australia,11970
+10311,-31.9,116.77,YORK,51245,York - Beverley,5,Western Australia,56837
+10502,-34.26,118.22,AMELUP,51229,Gnowangerup,5,Western Australia,260192
+10503,-32.03,118.09,ARDATH,51240,Merredin,5,Western Australia,393786
+10505,-33.34,117.04,ARTHUR RIVER,51250,Wagin,5,Western Australia,67450
+10508,-33.64,117.93,BADGEBUP,51230,Katanning,5,Western Australia,38442
+10510,-33.16,116.8,BAROOGA,51250,Wagin,5,Western Australia,67450
+10513,-32.39,118.26,BENDERING,51247,Kulin,5,Western Australia,586531
+10515,-32.11,116.92,BEVERLEY,51245,York - Beverley,5,Western Australia,56837
+10519,-34.07,118.26,BORDEN,51229,Gnowangerup,5,Western Australia,260192
+10520,-33.66,117.05,BOSCABEL,51231,Kojonup,5,Western Australia,73119
+10524,-32.37,117.01,BROOKTON,51246,Brookton,5,Western Australia,132769
+10525,-33.85,117.64,BROOMEHILL,51231,Kojonup,5,Western Australia,73119
+10527,-32.37,117.52,BULYEE,51246,Brookton,5,Western Australia,132769
+10530,-33.91,117.1,CHAMINGUP,51231,Kojonup,5,Western Australia,73119
+10531,-33.71,117.24,CHERRY TREE,51231,Kojonup,5,Western Australia,73119
+10534,-32.48,117.56,COLORADO,51246,Brookton,5,Western Australia,132769
+10537,-34.3,117.55,CRANBROOK,51231,Kojonup,5,Western Australia,73119
+10541,-33.86,118.82,NYERILUP,51229,Gnowangerup,5,Western Australia,260192
+10542,-33.34,116.74,DARKAN,51250,Wagin,5,Western Australia,67450
+10544,-33.4,117.09,DELLYANINE,51250,Wagin,5,Western Australia,67450
+10546,-33.31,117.74,DUMBLEYUNG,51247,Kulin,5,Western Australia,586531
+10556,-32.48,116.81,COONDEE,51246,Brookton,5,Western Australia,132769
+10558,-33.94,118.01,GNOWANGERUP,51229,Gnowangerup,5,Western Australia,260192
+10560,-32.54,119.11,GRAHAM ROCK,51247,Kulin,5,Western Australia,586531
+10564,-32.35,116.86,HILLCROFT,51246,Brookton,5,Western Australia,132769
+10565,-32.67,119.41,HOLT ROCK,51247,Kulin,5,Western Australia,586531
+10566,-33.57,117.2,HORSESHOE,51230,Katanning,5,Western Australia,38442
+10568,-32.44,118.9,HYDEN,51247,Kulin,5,Western Australia,586531
+10571,-32.38,116.83,JALNA,51246,Brookton,5,Western Australia,132769
+10581,-32.29,119.14,KING ROCKS,51247,Kulin,5,Western Australia,586531
+10582,-33.83,117.16,KOJONUP,51231,Kojonup,5,Western Australia,73119
+10583,-32.49,118.27,KONDININ,51247,Kulin,5,Western Australia,586531
+10584,-32.67,118.15,KULIN,51247,Kulin,5,Western Australia,586531
+10595,-33.65,118.55,PINGRUP SOUTH,51229,Gnowangerup,5,Western Australia,260192
+10603,-32.42,118.2,HARTWOOD,51247,Kulin,5,Western Australia,586531
+10611,-33.28,119.78,MOUNT MADDEN,51247,Kulin,5,Western Australia,586531
+10612,-32.07,118.4,NAREMBEEN,51240,Merredin,5,Western Australia,393786
+10614,-32.93,117.18,NARROGIN,51249,Narrogin,5,Western Australia,8621
+10619,-33.54,118.15,NYABING,51229,Gnowangerup,5,Western Australia,260192
+10622,-33.96,118.49,ONGERUP,51229,Gnowangerup,5,Western Australia,260192
+10625,-32.75,118.63,PINGARING,51247,Kulin,5,Western Australia,586531
+10626,-32.53,117.08,PINGELLY,51246,Brookton,5,Western Australia,132769
+10627,-33.53,118.51,PINGRUP,51229,Gnowangerup,5,Western Australia,260192
+10628,-32.01,117.4,QUAIRADING,51237,Cunderdin,5,Western Australia,243976
+10634,-32.31,116.77,REDLANDS,51245,York - Beverley,5,Western Australia,56837
+10635,-33.79,116.91,RIVERDALE,51231,Kojonup,5,Western Australia,73119
+10638,-32.52,118.3,ST ALBANS,51247,Kulin,5,Western Australia,586531
+10643,-34.04,117.64,TAMBELLUP,51231,Kojonup,5,Western Australia,73119
+10644,-33.13,118.2,BATHURST,51247,Kulin,5,Western Australia,586531
+10647,-33.31,117.34,WAGIN,51250,Wagin,5,Western Australia,67450
+10655,-33.03,116.88,WILLIAMS,51250,Wagin,5,Western Australia,67450
+10659,-33.56,117.43,WOODANILLING,51230,Katanning,5,Western Australia,38442
+10662,-32.59,117.62,YEALERING,51247,Kulin,5,Western Australia,586531
+10665,-33.19,118.08,KUKERIN,51247,Kulin,5,Western Australia,586531
+10666,-32.04,118.9,LOCHNAGAR,51240,Merredin,5,Western Australia,393786
+10670,-32.48,119.36,LAKE CARMODY,51247,Kulin,5,Western Australia,586531
+10692,-33.11,118.84,NEWDEGATE RESEARCH STATION,51247,Kulin,5,Western Australia,586531
+10694,-34,117.92,TWOLGANUP,51229,Gnowangerup,5,Western Australia,260192
+10696,-32.66,118.63,AMRISTA PARK,51247,Kulin,5,Western Australia,586531
+10700,-33.5,117.31,KOJONOLOKAN HILLS,51230,Katanning,5,Western Australia,38442
+10702,-32.1,118.81,MOUNT WALKER,51240,Merredin,5,Western Australia,393786
+10707,-33.94,118.92,JERRAMUNGUP,51229,Gnowangerup,5,Western Australia,260192
+10715,-34.18,117.83,YONGERUP,51231,Kojonup,5,Western Australia,73119
+10725,-33.45,117.66,CONGEE,51230,Katanning,5,Western Australia,38442
+10729,-34.34,118.63,CHILLINUP,51229,Gnowangerup,5,Western Australia,260192
+10792,-34.17,118.94,GAIRDNER,51229,Gnowangerup,5,Western Australia,260192
+10799,-32.63,118.01,WEST KULIN,51247,Kulin,5,Western Australia,586531
+10811,-33.18,120.09,NTH RAVENSTHORPE,51275,Esperance Region,5,Western Australia,381876
+10816,-33.21,117.7,BEAUMONT,51247,Kulin,5,Western Australia,586531
+10831,-33.48,117.61,GLENROSE,51230,Katanning,5,Western Australia,38442
+10866,-33.93,117.33,CRANHAM,51231,Kojonup,5,Western Australia,73119
+10869,-33.59,120.18,CARLINGUP,51275,Esperance Region,5,Western Australia,381876
+10870,-33.69,119.66,MAINNERUP,51275,Esperance Region,5,Western Australia,381876
+10872,-33.17,118.25,DUNELM,51247,Kulin,5,Western Australia,586531
+10878,-33.54,119.66,CHESALON,51275,Esperance Region,5,Western Australia,381876
+10881,-32.13,119.03,GIBB ROCK,51240,Merredin,5,Western Australia,393786
+10889,-32.89,118.63,MORDETTA,51247,Kulin,5,Western Australia,586531
+10893,-34.31,117.43,THE WARRIUPS,51231,Kojonup,5,Western Australia,73119
+10894,-32.63,119.1,ALLAN ROCKS,51247,Kulin,5,Western Australia,586531
+10897,-34.22,118.5,NALYERLUP,51229,Gnowangerup,5,Western Australia,260192
+10900,-32.93,119.84,DESERT FRINGE,51247,Kulin,5,Western Australia,586531
+10904,-32.17,118.61,SWANARA,51240,Merredin,5,Western Australia,393786
+10908,-32.03,116.87,YANGEDINE,51245,York - Beverley,5,Western Australia,56837
+10910,-32.68,117.27,WYONNING,51250,Wagin,5,Western Australia,67450
+10911,-33.1,118.46,LAKE GRACE,51247,Kulin,5,Western Australia,586531
+10912,-32.59,117.64,YEALERING EAST,51246,Brookton,5,Western Australia,132769
+10916,-33.69,117.61,KATANNING,51230,Katanning,5,Western Australia,38442
+10917,-32.67,116.67,WANDERING,51246,Brookton,5,Western Australia,132769
+10919,-32.69,116.61,WILGARRA,51246,Brookton,5,Western Australia,132769
+10921,-34.24,118.22,INGLEBOURNE,51229,Gnowangerup,5,Western Australia,260192
+10923,-33,116.85,WILLIAMS NORTH,51250,Wagin,5,Western Australia,67450
+12011,-30.99,119.11,BULLFINCH,51242,Mukinbudin,5,Western Australia,561694
+12026,-31.64,118.9,BODALLIN SOUTH,51242,Mukinbudin,5,Western Australia,561694
+12028,-33.04,121.66,GORYA VALLEY,51275,Esperance Region,5,Western Australia,381876
+12064,-31.33,118.97,NOONGAAR,51242,Mukinbudin,5,Western Australia,561694
+12071,-32.99,121.62,SALMON GUMS RES.STN.,51275,Esperance Region,5,Western Australia,381876
+12077,-32.86,121.71,I DUNNO,51275,Esperance Region,5,Western Australia,381876
+12079,-31.04,119.31,TURKEY HILL NORTH,51242,Mukinbudin,5,Western Australia,561694
+12083,-31.3,118.69,WESTONIA,51242,Mukinbudin,5,Western Australia,561694
+12101,-31.32,118.55,SEVEN OAKS,51242,Mukinbudin,5,Western Australia,561694
+12140,-33.36,121.06,KANGA DOWNS,51275,Esperance Region,5,Western Australia,381876
+12223,-33.22,121.35,LORT RIVER,51275,Esperance Region,5,Western Australia,381876
+12291,-33.46,120.92,RIVER PLAINS,51275,Esperance Region,5,Western Australia,381876
+12297,-33.49,122.59,BEAUMONT WEST,51275,Esperance Region,5,Western Australia,381876
+12306,-33.52,122.95,SPARKLE HILL,51275,Esperance Region,5,Western Australia,381876
+12308,-33.34,122.07,MOUNT RIDLEY,51275,Esperance Region,5,Western Australia,381876
+12311,-33.47,122.4,HILL PLAINS,51275,Esperance Region,5,Western Australia,381876
+12312,-33.59,122.45,KATTA BAREGA,51275,Esperance Region,5,Western Australia,381876
+12320,-31.24,119.36,SOUTHERN CROSS AIRFIELD,51242,Mukinbudin,5,Western Australia,561694
+18001,-33.91,136.57,ARNO BAY,41131,Kimba - Cleve - Franklin Harbour,4,South Australia,379374
+18012,-32.13,133.7,CEDUNA AMO,41129,Ceduna,4,South Australia,46965
+18014,-33.7,136.49,CLEVE,41131,Kimba - Cleve - Franklin Harbour,4,South Australia,379374
+18019,-34.39,135.47,COULTA,41130,Eyre Peninsula,4,South Australia,151954
+18022,-33.68,136.91,COWELL,41131,Kimba - Cleve - Franklin Harbour,4,South Australia,379374
+18023,-34.26,135.73,CUMMINS,41130,Eyre Peninsula,4,South Australia,151954
+18024,-33.47,136.21,DARKE PEAK,41131,Kimba - Cleve - Franklin Harbour,4,South Australia,379374
+18040,-33.14,136.41,KIMBA,41131,Kimba - Cleve - Franklin Harbour,4,South Australia,379374
+18044,-33.13,135.55,KYANCUTTA,41132,Le Hunte - Elliston,4,South Australia,227622
+18046,-33.57,135.76,LOCK,41132,Le Hunte - Elliston,4,South Australia,227622
+18047,-32.07,133.94,CEDUNA (MALTEE),41134,West Coast (SA),4,South Australia,237015
+18049,-34.12,136.16,BUTLER TANKS (NORTH PARNDA),41130,Eyre Peninsula,4,South Australia,151954
+18054,-33.03,134.7,PORT KENNY (MOUNT COOPER),41134,West Coast (SA),4,South Australia,237015
+18060,-31.78,132.2,NUNDROO,41134,West Coast (SA),4,South Australia,237015
+18063,-31.93,133.01,PENONG,41134,West Coast (SA),4,South Australia,237015
+18069,-33.65,134.89,ELLISTON,41132,Le Hunte - Elliston,4,South Australia,227622
+18079,-32.8,134.21,STREAKY BAY,41134,West Coast (SA),4,South Australia,237015
+18083,-33.04,135.45,WUDINNA AERO,41132,Le Hunte - Elliston,4,South Australia,227622
+18086,-34.38,136.1,TUMBY BAY,41130,Eyre Peninsula,4,South Australia,151954
+18088,-34.18,136.05,UNGARRA,41130,Eyre Peninsula,4,South Australia,151954
+18094,-32.4,134.53,WIRRULLA,41134,West Coast (SA),4,South Australia,237015
+18096,-33.68,136.68,CLEVE (PINEVIEW),41131,Kimba - Cleve - Franklin Harbour,4,South Australia,379374
+18107,-34.59,135.76,PORT LINCOLN (WOOLGA),41130,Eyre Peninsula,4,South Australia,151954
+18113,-33.97,136.25,WHARMINDA,41131,Kimba - Cleve - Franklin Harbour,4,South Australia,379374
+18116,-33.71,136.5,CLEVE AERODROME,41131,Kimba - Cleve - Franklin Harbour,4,South Australia,379374
+18137,-34.83,135.7,PORT LINCOLN (WESTMERE),41130,Eyre Peninsula,4,South Australia,151954
+18165,-33.57,135.6,LOCK (TERRAH WINDS),41132,Le Hunte - Elliston,4,South Australia,227622
+18166,-32.28,134.47,WIRRULLA (PIMBENA),41134,West Coast (SA),4,South Australia,237015
+18170,-33.14,135.73,KYANCUTTA (KYANBRAE),41132,Le Hunte - Elliston,4,South Australia,227622
+18171,-34.14,135.33,MOUNT HOPE (FAIRVIEW),41130,Eyre Peninsula,4,South Australia,151954
+18174,-33.72,136.15,RUDALL (SWAFFPRO),41131,Kimba - Cleve - Franklin Harbour,4,South Australia,379374
+18176,-33.34,136.75,COWELL (WINTER SPRINGS),41131,Kimba - Cleve - Franklin Harbour,4,South Australia,379374
+18188,-34.63,135.47,COFFIN BAY,41130,Eyre Peninsula,4,South Australia,151954
+18190,-32.9,136.19,BUCKLEBOO (KARINYA),41131,Kimba - Cleve - Franklin Harbour,4,South Australia,379374
+18191,-34.37,135.37,COULTA (COLES POINT),41130,Eyre Peninsula,4,South Australia,151954
+18192,-34.6,135.88,NORTH SHIELDS (PORT LINCOLN AWS),41130,Eyre Peninsula,4,South Australia,151954
+18195,-32.84,135.15,MINNIPA PIRSA,41132,Le Hunte - Elliston,4,South Australia,227622
+18204,-33.59,134.89,ELLISTON (THREE LAKES),41132,Le Hunte - Elliston,4,South Australia,227622
+18205,-34.74,135.86,PORT LINCOLN,41133,Port Lincoln,4,South Australia,1799
+18208,-33.23,135.41,KYANCUTTA (BILLABOWIE),41132,Le Hunte - Elliston,4,South Australia,227622
+18209,-33.82,135.49,OAKDALE,41132,Le Hunte - Elliston,4,South Australia,227622
+18214,-32.92,136.48,KIMBA (BOTENELLA HILLS),41131,Kimba - Cleve - Franklin Harbour,4,South Australia,379374
+18217,-34.25,135.71,CUMMINS AERO,41130,Eyre Peninsula,4,South Australia,151954
+18219,-32.25,134.13,PUNTABIE (EAGLE VIEW),41134,West Coast (SA),4,South Australia,237015
+19001,-33.05,138.43,APPILA,41121,Peterborough - Mount Remarkable,4,South Australia,90646
+19005,-32.82,138.69,ORROROO (BLACK ROCK),41121,Peterborough - Mount Remarkable,4,South Australia,90646
+19006,-32.88,138.35,BOOLEROO CENTRE,41121,Peterborough - Mount Remarkable,4,South Australia,90646
+19008,-32.46,138.2,BRUCE,41121,Peterborough - Mount Remarkable,4,South Australia,90646
+19024,-32.83,138.19,MELROSE,41121,Peterborough - Mount Remarkable,4,South Australia,90646
+19032,-32.73,138.61,ORROROO,41121,Peterborough - Mount Remarkable,4,South Australia,90646
+19037,-33.02,138,PORT GERMEIN,41121,Peterborough - Mount Remarkable,4,South Australia,90646
+19047,-32.69,138.32,BOOLEROO CENTRE (WILLOWIE),41121,Peterborough - Mount Remarkable,4,South Australia,90646
+19048,-32.65,138.1,WILMINGTON,41121,Peterborough - Mount Remarkable,4,South Australia,90646
+19052,-33.03,138.27,WIRRABARA,41121,Peterborough - Mount Remarkable,4,South Australia,90646
+19053,-33.09,138.21,WIRRABARA FOREST,41120,Jamestown,4,South Australia,84249
+19062,-33.03,138.76,YONGALA,41121,Peterborough - Mount Remarkable,4,South Australia,90646
+19103,-32.67,138.16,WILMINGTON (STONEHAVEN),41121,Peterborough - Mount Remarkable,4,South Australia,90646
+19115,-33.02,138.62,MANNANARIE,41120,Jamestown,4,South Australia,84249
+19116,-32.77,138.3,BOOLEROO WHIM (CALLUM BRAE),41121,Peterborough - Mount Remarkable,4,South Australia,90646
+19118,-32.96,138.94,PETERBOROUGH (AMELIA PARK),41121,Peterborough - Mount Remarkable,4,South Australia,90646
+19120,-32.85,138,MAMBRAY CREEK (BERNIE'S BLOCK),41121,Peterborough - Mount Remarkable,4,South Australia,90646
+21001,-34.03,138.68,AUBURN,41117,Gilbert Valley,4,South Australia,49753
+21002,-34.14,138.42,BALAKLAVA,41119,Wakefield - Barunga West,4,South Australia,175794
+21003,-33.85,138.49,BLYTH,41119,Wakefield - Barunga West,4,South Australia,175794
+21004,-33.56,138.76,BOOBOROWIE,41118,Goyder,4,South Australia,68097
+21010,-33.75,138.56,BRINKWORTH (BUNGAREE),41117,Gilbert Valley,4,South Australia,49753
+21012,-33.86,138.01,BUTE,41119,Wakefield - Barunga West,4,South Australia,175794
+21013,-33.19,138.47,CALTOWIE,41120,Jamestown,4,South Australia,84249
+21016,-33.35,138.21,CRYSTAL BROOK,41123,Port Pirie Region,4,South Australia,38222
+21019,-33.83,138.79,FARRELL FLAT,41118,Goyder,4,South Australia,68097
+21020,-33.36,138.39,GEORGETOWN,41120,Jamestown,4,South Australia,84249
+21021,-33.27,138.36,GLADSTONE,41120,Jamestown,4,South Australia,84249
+21022,-33.47,138.44,GULNARE,41120,Jamestown,4,South Australia,84249
+21027,-33.2,138.61,JAMESTOWN,41120,Jamestown,4,South Australia,84249
+21029,-33.59,138.33,KOOLUNGA,41123,Port Pirie Region,4,South Australia,38222
+21031,-33.19,138.3,LAURA,41120,Jamestown,4,South Australia,84249
+21033,-33.91,138.72,MINTARO,41117,Gilbert Valley,4,South Australia,49753
+21034,-33.56,138.9,MOUNT BRYAN,41118,Goyder,4,South Australia,68097
+21042,-33.6,137.93,PORT BROUGHTON,41119,Wakefield - Barunga West,4,South Australia,175794
+21044,-34.18,138.15,PORT WAKEFIELD,41119,Wakefield - Barunga West,4,South Australia,175794
+21045,-33.54,138.22,REDHILL,41123,Port Pirie Region,4,South Australia,38222
+21047,-33.5,138.61,SPALDING,41120,Jamestown,4,South Australia,84249
+21054,-33.96,138.64,WATERVALE,41117,Gilbert Valley,4,South Australia,49753
+21055,-33.23,138.88,WHYTE YARCOWIE,41118,Goyder,4,South Australia,68097
+21057,-33.57,138.45,YACKA,41120,Jamestown,4,South Australia,84249
+21059,-33.69,138.64,HILLTOWN,41117,Gilbert Valley,4,South Australia,49753
+21060,-33.2,138.6,JAMESTOWN PIRSA,41120,Jamestown,4,South Australia,84249
+21062,-33.3,138.76,HALLETT (OLD CANOWIE),41120,Jamestown,4,South Australia,84249
+21063,-34.16,138.18,PORT WAKEFIELD (PAREORA),41119,Wakefield - Barunga West,4,South Australia,175794
+21072,-33.33,138.32,HUDDLESTON (WILLOW PONDS),41120,Jamestown,4,South Australia,84249
+21076,-33.93,138.81,MANOORA (COOINDA),41117,Gilbert Valley,4,South Australia,49753
+21077,-33.68,138.94,BURRA COMMUNITY SCHOOL,41118,Goyder,4,South Australia,68097
+21102,-33.35,138.1,NUROM (RIVERSIDE FARM),41123,Port Pirie Region,4,South Australia,38222
+21110,-33.79,137.71,TICKERA,41119,Wakefield - Barunga West,4,South Australia,175794
+21120,-33.25,138.79,WHYTE-YARCOWIE (GUM PARK),41118,Goyder,4,South Australia,68097
+21123,-33.94,138.72,MINTARO (MARTINDALE),41117,Gilbert Valley,4,South Australia,49753
+21127,-33.88,138.64,SEVENHILL,41117,Gilbert Valley,4,South Australia,49753
+21130,-34.1,138.63,RHYNIE,41117,Gilbert Valley,4,South Australia,49753
+21131,-33.82,138.59,CLARE HIGH SCHOOL,41116,Clare,4,South Australia,4713
+21133,-33.77,138.22,SNOWTOWN (RAYVILLE PARK),41119,Wakefield - Barunga West,4,South Australia,175794
+21135,-33.84,138.61,CLARE (NEAGLES ROCK),41116,Clare,4,South Australia,4713
+21137,-34,138.57,HOYLETON (ROCKLEIGH),41119,Wakefield - Barunga West,4,South Australia,175794
+21139,-33.24,138,PORT PIRIE AERODROME AWS,41123,Port Pirie Region,4,South Australia,38222
+22000,-34.42,137.92,ARDROSSAN,41127,Yorke Peninsula - North,4,South Australia,91440
+22002,-34.92,137.06,CORNY POINT,41128,Yorke Peninsula - South,4,South Australia,32112
+22003,-34.7,137.71,CURRAMULKA,41127,Yorke Peninsula - North,4,South Australia,91440
+22008,-34.37,137.67,MAITLAND,41127,Yorke Peninsula - North,4,South Australia,91440
+22009,-34.77,137.6,MINLATON,41127,Yorke Peninsula - North,4,South Australia,91440
+22011,-34.07,137.59,MOONTA,41125,Moonta,4,South Australia,6102
+22012,-34.04,137.9,PASKEVILLE,41124,Kadina,4,South Australia,23998
+22014,-34.78,137.86,PORT VINCENT,41127,Yorke Peninsula - North,4,South Australia,91440
+22015,-34.3,138,PRICE,41127,Yorke Peninsula - North,4,South Australia,91440
+22017,-34.91,137.8,STANSBURY,41128,Yorke Peninsula - South,4,South Australia,32112
+22018,-34.99,137.4,WAROOKA,41128,Yorke Peninsula - South,4,South Australia,32112
+22020,-33.93,137.64,WALLAROO,41126,Wallaroo,4,South Australia,4598
+22022,-34.14,138.01,PORT CLINTON (YARAROO),41127,Yorke Peninsula - North,4,South Australia,91440
+22023,-35.02,137.6,YORKETOWN,41128,Yorke Peninsula - South,4,South Australia,32112
+22031,-34.75,137.53,MINLATON AERO,41127,Yorke Peninsula - North,4,South Australia,91440
+22036,-34.75,137.63,MINLATON (EVERSLEY),41127,Yorke Peninsula - North,4,South Australia,91440
+22037,-34.37,137.8,PETERSVILLE,41127,Yorke Peninsula - North,4,South Australia,91440
+22039,-34.3,137.71,ARTHURTON (LOWANDALE),41127,Yorke Peninsula - North,4,South Australia,91440
+22046,-35.11,137.74,EDITHBURGH,41128,Yorke Peninsula - South,4,South Australia,32112
+22049,-35.28,136.94,STENHOUSE BAY,41128,Yorke Peninsula - South,4,South Australia,32112
+22050,-33.97,137.66,KADINA AWS,41124,Kadina,4,South Australia,23998
+22054,-34.56,137.86,PINE POINT (AMELIA DOWNS),41127,Yorke Peninsula - North,4,South Australia,91440
+22055,-34.65,137.73,CURRAMULKA NORTH,41127,Yorke Peninsula - North,4,South Australia,91440
+22056,-34.4,137.72,MAITLAND (CARINYA),41127,Yorke Peninsula - North,4,South Australia,91440
+22800,-35.78,137.77,AMERICAN RIVER,41145,Kangaroo Island,4,South Australia,4885
+22809,-35.72,137.93,PENNESHAW,41145,Kangaroo Island,4,South Australia,4885
+22817,-35.95,136.74,FLINDERS CHASE (ROCKY RIVER),41145,Kangaroo Island,4,South Australia,4885
+22823,-35.75,136.6,CAPE BORDA,41145,Kangaroo Island,4,South Australia,4885
+22835,-35.73,137.12,PARNDANA (TURKEY LANE),41145,Kangaroo Island,4,South Australia,4885
+22841,-35.71,137.52,KINGSCOTE AERO,41145,Kangaroo Island,4,South Australia,4885
+22843,-35.79,137.25,PARNDANA CFS AWS,41145,Kangaroo Island,4,South Australia,4885
+23009,-34.44,138.51,MALLALA,41113,Mallala,4,South Australia,24702
+23012,-34.27,138.55,OWEN,41119,Wakefield - Barunga West,4,South Australia,175794
+23021,-34.54,138.74,ROSEWORTHY,41025,Gawler - North,4,South Australia,2741
+23028,-34.6,138.52,TWO WELLS,41027,Lewiston - Two Wells,4,South Australia,1039
+23076,-34.43,138.26,PORT PARHAM,41113,Mallala,4,South Australia,24702
+23095,-34.36,138.68,HAMLEY BRIDGE,41119,Wakefield - Barunga West,4,South Australia,175794
+23122,-34.51,138.68,ROSEWORTHY AWS,41111,Light,4,South Australia,25312
+23128,-34.2,138.6,BALAKLAVA (DONALEEN),41119,Wakefield - Barunga West,4,South Australia,175794
+23129,-34.46,138.56,MALLALA (DOLAGHANS CROSSING),41113,Mallala,4,South Australia,24702
+23135,-34.37,138.66,HAMLEY BRIDGE,41119,Wakefield - Barunga West,4,South Australia,175794
+23147,-33.93,138.68,MINTARO (MOUNT HORROCKS),41117,Gilbert Valley,4,South Australia,49753
+23307,-34.34,138.92,KAPUNDA,41111,Light,4,South Australia,25312
+23310,-34,138.82,MANOORA,41117,Gilbert Valley,4,South Australia,49753
+23311,-34.14,138.88,MARRABEL,41117,Gilbert Valley,4,South Australia,49753
+23318,-34.51,138.96,TANUNDA,41111,Light,4,South Australia,25312
+23319,-34.28,138.77,TARLEE,41117,Gilbert Valley,4,South Australia,49753
+23323,-34.2,138.94,TARNMA,41111,Light,4,South Australia,25312
+23325,-34.46,138.81,FREELING,41111,Light,4,South Australia,25312
+23343,-34.55,138.83,ROSEDALE (TURRETFIELD RESEARCH CENTRE),41111,Light,4,South Australia,25312
+23348,-34.51,138.84,SHEA-OAK LOG (GREENOCK CREEK),41111,Light,4,South Australia,25312
+23349,-34.09,138.8,SADDLEWORTH,41117,Gilbert Valley,4,South Australia,49753
+23365,-34.23,138.7,TARLEE (HAZELTON),41117,Gilbert Valley,4,South Australia,49753
+23369,-34.46,138.92,GREENOCK,41111,Light,4,South Australia,25312
+23370,-34.31,138.73,STOCKPORT (CLIFTON),41117,Gilbert Valley,4,South Australia,49753
+23372,-34.45,139.06,BAROSSA VALLEY (DUCKPONDS CREEK),41110,Barossa - Angaston,4,South Australia,2975
+23374,-34.25,139.02,HANSBOROUGH,41111,Light,4,South Australia,25312
+23714,-35.37,138.81,FINNISS,41147,Strathalbyn Region,4,South Australia,7589
+23725,-34.56,139.13,KEYNETON,41164,Mannum,4,South Australia,40112
+23737,-34.77,139.05,MOUNT PLEASANT,41110,Barossa - Angaston,4,South Australia,2975
+23747,-35.26,138.89,STRATHALBYN,41147,Strathalbyn Region,4,South Australia,7589
+23822,-35.18,139.02,HARTLEY (PINE HILL),41147,Strathalbyn Region,4,South Australia,7589
+23864,-35.14,138.97,RED CREEK (BURWOOD),41147,Strathalbyn Region,4,South Australia,7589
+23878,-34.73,138.93,MOUNT CRAWFORD AWS,41110,Barossa - Angaston,4,South Australia,2975
+23881,-34.77,139.01,CROMER ROAD,41110,Barossa - Angaston,4,South Australia,2975
+23902,-34.64,139.02,EDEN VALLEY (MT ADAM),41110,Barossa - Angaston,4,South Australia,2975
+24001,-34.26,140.47,BARMERA,41159,Barmera,4,South Australia,2639
+24003,-34.17,140.75,RENMARK IRRIGATION,41168,Renmark Region,4,South Australia,26966
+24008,-34.26,140.65,LYRUP,41168,Renmark Region,4,South Australia,26966
+24010,-34.29,140.36,MOOROOK,41163,Loxton Region,4,South Australia,155761
+24012,-34.15,140.33,OVERLAND CORNER,41159,Barmera,4,South Australia,2639
+24024,-34.44,140.6,LOXTON RESEARCH CENTRE,41163,Loxton Region,4,South Australia,155761
+24048,-34.2,140.68,RENMARK AERO,41168,Renmark Region,4,South Australia,26966
+24501,-34.1,139.16,AUSTRALIA PLAINS,41118,Goyder,4,South Australia,68097
+24504,-34.12,139.36,BOWER,41170,Waikerie,4,South Australia,72667
+24508,-35.13,139.04,CALLINGTON,41166,Murray Bridge Region,4,South Australia,11831
+24511,-34.18,139.08,EUDUNDA,41118,Goyder,4,South Australia,68097
+24515,-35.3,139.03,LANGHORNE CREEK,41147,Strathalbyn Region,4,South Australia,7589
+24517,-34.91,139.3,MANNUM COUNCIL DEPOT,41164,Mannum,4,South Australia,40112
+24518,-35.69,139.34,MENINGIE,41169,The Coorong,4,South Australia,42437
+24519,-35.41,138.97,MILANG,41147,Strathalbyn Region,4,South Australia,7589
+24521,-35.12,139.26,MURRAY BRIDGE COMPARISON,41166,Murray Bridge Region,4,South Australia,11831
+24525,-34.85,139.16,PALMER,41164,Mannum,4,South Australia,40112
+24526,-34.08,139.05,POINT PASS,41118,Goyder,4,South Australia,68097
+24528,-33.99,139.08,ROBERTSTOWN,41118,Goyder,4,South Australia,68097
+24530,-34.46,139.36,SEDAN (SANDLETON),41170,Waikerie,4,South Australia,72667
+24531,-34.57,139.3,SEDAN,41164,Mannum,4,South Australia,40112
+24534,-34.16,139.23,SUTHERLANDS,41118,Goyder,4,South Australia,68097
+24535,-34.57,139.6,SWAN REACH,41164,Mannum,4,South Australia,40112
+24536,-35.25,139.45,TAILEM BEND,41169,The Coorong,4,South Australia,42437
+24547,-34.68,139.65,NILDOTTIE,41164,Mannum,4,South Australia,40112
+24550,-35.49,138.99,MILANG (POINT STURT),41147,Strathalbyn Region,4,South Australia,7589
+24554,-35.2,139.59,TAILEM BEND (RIVER DOWNS (NATURI)),41169,The Coorong,4,South Australia,42437
+24564,-34.35,139.62,BLANCHETOWN LOCK 1,41170,Waikerie,4,South Australia,72667
+24571,-34.71,139.58,NILDOTTIE (KROEHNS),41164,Mannum,4,South Australia,40112
+24572,-35.28,139.2,WELLINGTON (BRINKLEY SOUTH),41166,Murray Bridge Region,4,South Australia,11831
+24573,-34.41,139.13,TRURO,41170,Waikerie,4,South Australia,72667
+24575,-34.54,139.19,KEYNETON (SEDAN HILL),41164,Mannum,4,South Australia,40112
+24576,-35.35,138.98,MILANG (NAVARINO),41147,Strathalbyn Region,4,South Australia,7589
+24577,-35.73,139.27,MENINGIE (EGRETTA),41169,The Coorong,4,South Australia,42437
+24578,-34.06,139.66,MORGAN (BRENDA PARK STATION),41170,Waikerie,4,South Australia,72667
+24580,-35.28,138.89,STRATHALBYN RACECOURSE,41147,Strathalbyn Region,4,South Australia,7589
+24584,-35.07,139.23,MURRAY BRIDGE (PALLAMANA AERODROME),41166,Murray Bridge Region,4,South Australia,11831
+24585,-34.51,139.53,SWAN REACH (PONDEROSA),41164,Mannum,4,South Australia,40112
+24586,-34.13,139.42,MOUNT MARY,41170,Waikerie,4,South Australia,72667
+24589,-35.13,139.11,MONARTO SOUTH (MONARTO SECTION 307),41166,Murray Bridge Region,4,South Australia,11831
+24590,-34.8,139.05,MOUNT PLEASANT WTP,41110,Barossa - Angaston,4,South Australia,2975
+25002,-34.83,139.67,PURNONG (CLAYPANS),41164,Mannum,4,South Australia,40112
+25006,-35.09,139.9,KAROONDA,41161,Karoonda - Lameroo,4,South Australia,139179
+25010,-34.81,140.22,MINDARIE,41161,Karoonda - Lameroo,4,South Australia,139179
+25014,-34.72,140.74,PARUNA,41163,Loxton Region,4,South Australia,155761
+25039,-35.05,139.98,LOWALDIE,41161,Karoonda - Lameroo,4,South Australia,139179
+25042,-35.24,139.83,SHERLOCK (WARRANA),41169,The Coorong,4,South Australia,42437
+25048,-34.73,140.86,MERIBAH (MERALLEN),41163,Loxton Region,4,South Australia,155761
+25050,-34.63,140.24,CALIPH,41163,Loxton Region,4,South Australia,155761
+25051,-34.59,140.08,MANTUNG,41161,Karoonda - Lameroo,4,South Australia,139179
+25057,-34.8,139.89,COPEVILLE (FILSELL FLAT),41161,Karoonda - Lameroo,4,South Australia,139179
+25058,-35,140.17,SANDALWOOD (280 GOWLING ROAD),41161,Karoonda - Lameroo,4,South Australia,139179
+25502,-35.38,139.56,COOKE PLAINS,41169,The Coorong,4,South Australia,42437
+25503,-35.47,139.7,COOMANDOOK,41169,The Coorong,4,South Australia,42437
+25504,-35.7,139.86,COONALPYN,41169,The Coorong,4,South Australia,42437
+25506,-35.38,140.16,GERANIUM,41161,Karoonda - Lameroo,4,South Australia,139179
+25507,-36.1,140.36,KEITH,41157,Tatiara,4,South Australia,32984
+25512,-35.38,140.25,PARRAKIE,41161,Karoonda - Lameroo,4,South Australia,139179
+25513,-35.36,139.95,PEAKE,41169,The Coorong,4,South Australia,42437
+25514,-35.88,140.06,TINTINARA,41169,The Coorong,4,South Australia,42437
+25519,-36.37,140.91,WOLSELEY,41157,Tatiara,4,South Australia,32984
+25557,-36.11,140.33,KEITH (MUNKORA),41157,Tatiara,4,South Australia,32984
+25560,-36.31,140.74,BORDERTOWN (INDUSTRIAL ESTATE),41157,Tatiara,4,South Australia,32984
+25561,-36.4,140.84,WOLSELEY (HONITON),41157,Tatiara,4,South Australia,32984
+25562,-35.38,140.54,LAMEROO (AUSTIN PLAINS),41161,Karoonda - Lameroo,4,South Australia,139179
+26007,-36.71,140.96,FRANCES,41155,Naracoorte Region,4,South Australia,9290
+26009,-37.57,140.7,KALANGADOO,41156,Penola,4,South Australia,2949
+26016,-36.97,140.37,LUCINDALE POST OFFICE,41155,Naracoorte Region,4,South Australia,9290
+26018,-37.59,140.34,MILLICENT,41152,Millicent,4,South Australia,2322
+26025,-37.38,140.84,PENOLA POST OFFICE,41156,Penola,4,South Australia,2949
+26062,-36.92,140.58,NARACOORTE (BETTWS-Y-COED),41155,Naracoorte Region,4,South Australia,9290
+26069,-36.81,140.39,LUCINDALE (GREENVALE),41155,Naracoorte Region,4,South Australia,9290
+26091,-37.29,140.83,COONAWARRA,41156,Penola,4,South Australia,2949
+26098,-37.54,140.81,NANGWARRY FORESTRY SA DEPOT,41156,Penola,4,South Australia,2949
+26099,-36.98,140.73,NARACOORTE AERODROME,41155,Naracoorte Region,4,South Australia,9290
+26100,-36.65,140.52,PADTHAWAY SOUTH,41157,Tatiara,4,South Australia,32984
+26103,-37.13,140.73,BOOL LAGOON (LOCKSLEY FARM),41155,Naracoorte Region,4,South Australia,9290
+26107,-36.44,140.34,WILLALOOKA (NIOKA),41157,Tatiara,4,South Australia,32984
+26109,-37.38,139.95,LAKE GEORGE (MAHARISHI VEDIC COLLEGE),41158,Wattle Range,4,South Australia,1617
+26113,-37.54,140.63,KALANGADOO (MIRNAT),41156,Penola,4,South Australia,2949
+33054,-21.69,148.69,NEBO,31338,Broadsound - Nebo,3,Queensland,4148
+33095,-21.8,149.36,ORKABIE WEST HILL,31338,Broadsound - Nebo,3,Queensland,4148
+33170,-22.36,149.37,MYSTERY PARK,31338,Broadsound - Nebo,3,Queensland,4148
+33188,-22.03,149.49,BELGAMBA,31338,Broadsound - Nebo,3,Queensland,4148
+33210,-22.35,149.52,ST LAWRENCE,31338,Broadsound - Nebo,3,Queensland,4148
+33318,-21.81,148.69,DILKERA,31338,Broadsound - Nebo,3,Queensland,4148
+34016,-22.46,148.68,CARFAX,31338,Broadsound - Nebo,3,Queensland,4148
+34047,-22.53,149.1,BARMOUNT,31338,Broadsound - Nebo,3,Queensland,4148
+35001,-23.55,147.75,ANAKIE RICHARDSON ST,31191,Central Highlands - West,3,Queensland,78752
+35003,-23.88,148.96,ARDURAD,31190,Central Highlands - East,3,Queensland,18480
+35007,-24.57,149.29,BAUHINIA DOWNS STORE,31190,Central Highlands - East,3,Queensland,18480
+35014,-26.12,149.96,WANDOAN POST OFFICE,31175,Miles - Wandoan,3,Queensland,61690
+35015,-25.4,149.1,THE SANDSTONE,31528,Banana,3,Queensland,21175
+35016,-23.09,148.02,CAPELLA POST OFFICE,31191,Central Highlands - West,3,Queensland,78752
+35019,-22.83,147.64,CLERMONT POST OFFICE,31339,Clermont,3,Queensland,47276
+35021,-23.6,148.55,COMET POST OFFICE,31191,Central Highlands - West,3,Queensland,78752
+35026,-23.71,149.67,DUARINGA POST OFFICE,31190,Central Highlands - East,3,Queensland,18480
+35039,-26.36,150.05,GILIGULGUL TM,31175,Miles - Wandoan,3,Queensland,61690
+35040,-25.58,148.48,WESTGROVE TM,31177,Roma Region,3,Queensland,104985
+35063,-24.21,148.74,SOMERBY,31191,Central Highlands - West,3,Queensland,78752
+35064,-24.45,147.9,SPRING CREEK STATION,31191,Central Highlands - West,3,Queensland,78752
+35065,-24.12,148.09,SPRINGSURE COMET ST,31191,Central Highlands - West,3,Queensland,78752
+35068,-25.61,148.94,WADDY BRAE TM,31177,Roma Region,3,Queensland,104985
+35070,-25.64,149.8,TAROOM POST OFFICE,31528,Banana,3,Queensland,21175
+35077,-24.92,148.6,WARRINILLA,31191,Central Highlands - West,3,Queensland,78752
+35081,-26.29,149.83,WOLEEBEE NEVASA,31175,Miles - Wandoan,3,Queensland,61690
+35088,-24.33,147.94,BIRRABAN,31191,Central Highlands - West,3,Queensland,78752
+35090,-24.96,148.37,REWAN STATION,31191,Central Highlands - West,3,Queensland,78752
+35093,-25.02,147.95,MT MOFFATT NATIONAL PARK,31177,Roma Region,3,Queensland,104985
+35094,-22.48,147.52,WINVIC,31339,Clermont,3,Queensland,47276
+35109,-22.82,148.49,BOOROONDARRA,31338,Broadsound - Nebo,3,Queensland,4148
+35117,-25.39,149.78,LA PALMA,31528,Banana,3,Queensland,21175
+35121,-22.96,147.8,VALENCIA,31191,Central Highlands - West,3,Queensland,78752
+35124,-22.78,147.62,CLERMONT AIRPORT,31339,Clermont,3,Queensland,47276
+35129,-24.46,148.63,ROLLESTON AIRPORT,31191,Central Highlands - West,3,Queensland,78752
+35131,-23.13,148.53,TALAGAI,31191,Central Highlands - West,3,Queensland,78752
+35132,-23.43,148.93,NEW CALEDONIA,31190,Central Highlands - East,3,Queensland,18480
+35134,-23.6,148.81,BLACKWATER AIRPORT,31190,Central Highlands - East,3,Queensland,18480
+35135,-25.71,149.41,HORNET BANK HOMESTEAD,31528,Banana,3,Queensland,21175
+35146,-23.55,148.24,EMERALD RADAR AL,31191,Central Highlands - West,3,Queensland,78752
+35172,-23.45,149.26,MELMOTH,31190,Central Highlands - East,3,Queensland,18480
+35174,-24.47,149.27,YANTUMARA,31190,Central Highlands - East,3,Queensland,18480
+35182,-25.68,149.63,KINNOUL,31528,Banana,3,Queensland,21175
+35185,-23.12,148.04,CAPELLA (ROWE'S HILL) ALERT,31191,Central Highlands - West,3,Queensland,78752
+35186,-23.77,149.12,BLACKDOWN TABLELAND AL,31190,Central Highlands - East,3,Queensland,18480
+35187,-23.19,147.89,VALERIA ALERT,31191,Central Highlands - West,3,Queensland,78752
+35194,-24.96,148.53,WYSEBY,31191,Central Highlands - West,3,Queensland,78752
+35205,-24.02,147.92,WOORARRA,31191,Central Highlands - West,3,Queensland,78752
+35207,-24.22,148.1,MOUNTAIN VIEW,31191,Central Highlands - West,3,Queensland,78752
+35211,-22.62,147.66,KURRAJONG,31339,Clermont,3,Queensland,47276
+35221,-23.3,148.11,LUCKNOW,31191,Central Highlands - West,3,Queensland,78752
+35225,-24.29,148.11,CARDBEIGN,31191,Central Highlands - West,3,Queensland,78752
+35242,-25.9,150.13,BUNGABAN TM,31175,Miles - Wandoan,3,Queensland,61690
+35251,-23.88,147.76,CRAIGMORE AL,31191,Central Highlands - West,3,Queensland,78752
+35271,-25.8,149.55,TARANA CROSSING,31528,Banana,3,Queensland,21175
+35272,-25.77,149.77,AQUA PARK,31528,Banana,3,Queensland,21175
+35274,-23.85,148.11,JUANITA,31191,Central Highlands - West,3,Queensland,78752
+35276,-23.86,148.5,SPRINGSURE CREEK JUNCTION AL,31191,Central Highlands - West,3,Queensland,78752
+35282,-25.64,149.79,TAROOM TM,31528,Banana,3,Queensland,21175
+35293,-24.34,148.06,HEATHWOOD AL,31191,Central Highlands - West,3,Queensland,78752
+35294,-23.8,147.77,KULUMUR RANGE ALERT,31191,Central Highlands - West,3,Queensland,78752
+35295,-23.07,149.04,BINGEGANG WEIR HW ALERT,31190,Central Highlands - East,3,Queensland,18480
+39000,-25.13,151.13,ABERCORN,31508,Monto - Eidsvold,3,Queensland,931
+39036,-25.37,151.12,EIDSVOLD POST OFFICE,31508,Monto - Eidsvold,3,Queensland,931
+39048,-24.15,150.29,GOOVIGEN,31528,Banana,3,Queensland,21175
+39054,-24.2,150.37,JAMBIN POST OFFICE,31528,Banana,3,Queensland,21175
+39057,-24.69,151.3,KALPOWAR FORESTRY,31508,Monto - Eidsvold,3,Queensland,931
+39070,-25.17,151.64,MT PERRY THE PINES,31508,Monto - Eidsvold,3,Queensland,931
+39089,-24.49,150.57,THANGOOL AIRPORT,31528,Banana,3,Queensland,21175
+39103,-24.78,151.23,BANCROFT,31508,Monto - Eidsvold,3,Queensland,931
+39104,-24.86,151.12,MONTO TOWNSHIP,31508,Monto - Eidsvold,3,Queensland,931
+39106,-24.41,150.73,MOUNT KROOMBIT,31528,Banana,3,Queensland,21175
+39129,-24.62,151.11,MALAKOFF,31508,Monto - Eidsvold,3,Queensland,931
+39156,-23.85,150.26,DULULU POST OFFICE,31528,Banana,3,Queensland,21175
+39201,-24.33,149.86,BELVEDERE,31528,Banana,3,Queensland,21175
+39204,-24.95,150.68,COLODAN,31508,Monto - Eidsvold,3,Queensland,931
+39205,-24.87,150.82,WINGFIELD,31508,Monto - Eidsvold,3,Queensland,931
+39222,-24.66,150.96,CANIA GORGE PARK,31508,Monto - Eidsvold,3,Queensland,931
+39240,-24.45,150.8,KROOMBIT,31528,Banana,3,Queensland,21175
+39251,-24.73,151.43,HILLVIEW,31508,Monto - Eidsvold,3,Queensland,931
+39256,-25.15,151.63,DINGLE DELL,31508,Monto - Eidsvold,3,Queensland,931
+39257,-23.97,150.27,WOODBINE,31528,Banana,3,Queensland,21175
+39269,-24.49,150.57,THANGOOL EVAP,31528,Banana,3,Queensland,21175
+39278,-24.84,150.74,GLENHAVEN,31508,Monto - Eidsvold,3,Queensland,931
+39290,-24.41,150.52,BILOELA - VALBONA,31529,Biloela,3,Queensland,1037
+39319,-25.13,151.13,ABERCORN TM,31508,Monto - Eidsvold,3,Queensland,931
+39321,-25.4,151.1,EIDSVOLD TM,31508,Monto - Eidsvold,3,Queensland,931
+39332,-24.41,149.84,LLOYONA,31528,Banana,3,Queensland,21175
+39339,-25.15,151.63,DINGLE DELL TM,31508,Monto - Eidsvold,3,Queensland,931
+40060,-26.98,151.83,COOYAR POST OFFICE,31179,Crows Nest - Rosalie,3,Queensland,3896
+40071,-26.38,151.19,LANARK,31506,Kingaroy Region - North,3,Queensland,4814
+40138,-26.51,151.51,MOUNEFONTEIN,31506,Kingaroy Region - North,3,Queensland,4814
+40170,-27.3,152.05,PECHEY FORESTRY,31179,Crows Nest - Rosalie,3,Queensland,3896
+40177,-26.16,151.6,PROSTON POST OFFICE,31506,Kingaroy Region - North,3,Queensland,4814
+40259,-26.89,151.9,YARRAMAN UPPER,31179,Crows Nest - Rosalie,3,Queensland,3896
+40301,-27.19,151.96,GLENAVEN,31179,Crows Nest - Rosalie,3,Queensland,3896
+40307,-26.97,151.71,VINCENT VALE,31179,Crows Nest - Rosalie,3,Queensland,3896
+40310,-27.72,152.31,MT BERRYMAN,31280,Lockyer Valley - East,3,Queensland,1044
+40385,-26.55,151.67,MINMORE,31506,Kingaroy Region - North,3,Queensland,4814
+40480,-27.29,152.12,PERSEVERANCE DAM,31179,Crows Nest - Rosalie,3,Queensland,3896
+40671,-26.28,151.19,KILLARA,31506,Kingaroy Region - North,3,Queensland,4814
+40675,-27.91,152.39,TOWNSON,31280,Lockyer Valley - East,3,Queensland,1044
+40876,-28.24,152.49,WILSONS PEAK ALERT,31185,Southern Downs - East,3,Queensland,1803
+40922,-26.57,151.84,KINGAROY AIRPORT,31506,Kingaroy Region - North,3,Queensland,4814
+41005,-26.93,151.45,BELL POLICE,31183,Wambo,3,Queensland,25995
+41012,-26.68,150.9,FERNFLAT,31172,Chinchilla,3,Queensland,10124
+41014,-28.35,151.63,CARBEAN,31174,Inglewood - Waggamba,3,Queensland,136496
+41016,-27.53,151.2,CECIL PLAINS HOMESTEAD,31181,Millmerran,3,Queensland,14199
+41017,-26.74,150.6,CHINCHILLA WATER TREATMENT PLANT,31172,Chinchilla,3,Queensland,10124
+41020,-26.7,150.76,SEVEN OAKS TM,31172,Chinchilla,3,Queensland,10124
+41022,-28.5,151.97,DALVEEN,31186,Southern Downs - West,3,Queensland,2710
+41024,-27.21,151.85,DOCTORS CREEK,31179,Crows Nest - Rosalie,3,Queensland,3896
+41025,-27.58,151.08,DUNMORE STATE FOREST,31181,Millmerran,3,Queensland,14199
+41040,-27.79,151.91,GREENMOUNT POST OFFICE,31184,Clifton - Greenmount,3,Queensland,7899
+41050,-26.78,151.11,JANDOWAE POST OFFICE,31183,Wambo,3,Queensland,25995
+41052,-26.69,151.1,JINGI JINGI,31183,Wambo,3,Queensland,25995
+41053,-27.37,151.59,JONDARYAN POST OFFICE,31180,Jondaryan,3,Queensland,16474
+41056,-28.33,152.3,KILLARNEY POST OFFICE,31185,Southern Downs - East,3,Queensland,1803
+41062,-27.81,151.33,LAGUNA,31181,Millmerran,3,Queensland,14199
+41063,-28.01,151.59,LEYBURN POST OFFICE,31186,Southern Downs - West,3,Queensland,2710
+41072,-27.48,151.6,MOUNT IRVING,31180,Jondaryan,3,Queensland,16474
+41082,-27.72,151.63,PITTSWORTH,31182,Pittsworth,3,Queensland,17017
+41083,-28.07,151.78,PRATTEN,31186,Southern Downs - West,3,Queensland,2710
+41085,-28.33,152.39,QUEEN MARY FALLS,31185,Southern Downs - East,3,Queensland,1803
+41090,-26.54,151.13,DARR CREEK AL,31172,Chinchilla,3,Queensland,10124
+41091,-26.81,151.08,LAURIEDALE,31183,Wambo,3,Queensland,25995
+41092,-26.45,150.89,BALLON AL,31172,Chinchilla,3,Queensland,10124
+41098,-28.29,152.25,TANNYMOREL,31185,Southern Downs - East,3,Queensland,1803
+41100,-28.85,151.17,TEXAS POST OFFICE,31174,Inglewood - Waggamba,3,Queensland,136496
+41106,-27.97,152.08,UPPER FOREST SPRINGS,31186,Southern Downs - West,3,Queensland,2710
+41112,-28.4,150.05,GIDDI GIDDI SOUTH TM,31174,Inglewood - Waggamba,3,Queensland,136496
+41120,-28.2,152.21,YANGAN POST OFFICE,31185,Southern Downs - East,3,Queensland,1803
+41123,-28.41,151.08,INGLEWOOD BRIDGE TM,31174,Inglewood - Waggamba,3,Queensland,136496
+41124,-28.28,150.37,KILBRONAE TM,31173,Goondiwindi,3,Queensland,21193
+41128,-28.5,150.59,WONDALLI,31174,Inglewood - Waggamba,3,Queensland,136496
+41131,-26.77,151.38,COORANGA NORTH,31183,Wambo,3,Queensland,25995
+41133,-28.36,151.14,WOODSPRING TM,31174,Inglewood - Waggamba,3,Queensland,136496
+41145,-26.84,151.17,MARNHULL,31183,Wambo,3,Queensland,25995
+41152,-27.98,150.92,LANGLEY TM,31181,Millmerran,3,Queensland,14199
+41166,-27.68,151.6,SPRINGSIDE,31182,Pittsworth,3,Queensland,17017
+41182,-27.18,151.57,WHITTAKER,31179,Crows Nest - Rosalie,3,Queensland,3896
+41208,-28.35,152.34,SPRING CREEK,31185,Southern Downs - East,3,Queensland,1803
+41212,-27.21,151.68,ROSALIE PLAINS,31179,Crows Nest - Rosalie,3,Queensland,3896
+41229,-28.08,152.26,MARYVALE,31185,Southern Downs - East,3,Queensland,1803
+41250,-27.79,151.41,PAMPAS,31181,Millmerran,3,Queensland,14199
+41277,-26.77,151.21,GLENROY,31183,Wambo,3,Queensland,25995
+41285,-28.33,151.85,FAIRLEIGH,31186,Southern Downs - West,3,Queensland,2710
+41306,-27.86,151.45,TOSARI,31181,Millmerran,3,Queensland,14199
+41314,-27.76,151.45,BROOKSTEAD POST OFFICE,31182,Pittsworth,3,Queensland,17017
+41315,-28.11,151.57,BRIGALOW PARK,31186,Southern Downs - West,3,Queensland,2710
+41318,-27.97,151.34,CARRAMAR,31181,Millmerran,3,Queensland,14199
+41323,-28.02,152.29,MANDALA,31185,Southern Downs - East,3,Queensland,1803
+41339,-27.21,151.19,LOUDOUN BRIDGE,31183,Wambo,3,Queensland,25995
+41344,-28.21,151.56,KARARA,31186,Southern Downs - West,3,Queensland,2710
+41348,-28.17,150.64,WYAGA TM,31174,Inglewood - Waggamba,3,Queensland,136496
+41359,-27.4,151.74,OAKEY AERO,31180,Jondaryan,3,Queensland,16474
+41370,-28.12,150.54,YAGABURNE,31174,Inglewood - Waggamba,3,Queensland,136496
+41388,-28.06,151.33,MURRALAH,31181,Millmerran,3,Queensland,14199
+41391,-28.36,151.15,WOODSPRING,31174,Inglewood - Waggamba,3,Queensland,136496
+41397,-28.14,150.13,BURILDA,31174,Inglewood - Waggamba,3,Queensland,136496
+41404,-27.96,151.67,ELLANGOWAN,31184,Clifton - Greenmount,3,Queensland,7899
+41415,-28.24,151.53,WARAHGAI TM,31186,Southern Downs - West,3,Queensland,2710
+41445,-28.21,151.92,LESLIE DAM,31186,Southern Downs - West,3,Queensland,2710
+41456,-28.06,152.37,CUNNINGHAMS GAP NATIONAL PARK,31185,Southern Downs - East,3,Queensland,1803
+41457,-28.42,151.21,COOLMUNDA DAM,31174,Inglewood - Waggamba,3,Queensland,136496
+41464,-28.15,152.33,OAKINGTON,31185,Southern Downs - East,3,Queensland,1803
+41469,-27.03,151.09,MACALISTER,31183,Wambo,3,Queensland,25995
+41473,-28.1,151.81,PRATTEN CONDAMINE RIVER,31186,Southern Downs - West,3,Queensland,2710
+41486,-26.96,150.86,WARRA-KOGAN RD BR,31172,Chinchilla,3,Queensland,10124
+41488,-28.05,150.15,BALLYMENA TM,31174,Inglewood - Waggamba,3,Queensland,136496
+41490,-26.9,150.78,BRIGALOW BRIDGE TM,31172,Chinchilla,3,Queensland,10124
+41491,-28.43,151.47,BARONGAROOK TM,31174,Inglewood - Waggamba,3,Queensland,136496
+41493,-27.49,150.46,THE DEEP CROSSING,31178,Tara,3,Queensland,106478
+41495,-28.48,151.28,TERRAINE TM,31174,Inglewood - Waggamba,3,Queensland,136496
+41504,-27.74,151.41,GLEN ROYAL,31182,Pittsworth,3,Queensland,17017
+41506,-28.66,150.67,BENGALLA TM,11192,Inverell Region - East,1,New South Wales,8893
+41507,-28.67,150.45,NEW KILDONAN TM,11196,Moree Region,1,New South Wales,371725
+41508,-27.73,150.65,O'CONNOR TM,31178,Tara,3,Queensland,106478
+41512,-27.38,151.92,COOBY CREEK DAM,31179,Crows Nest - Rosalie,3,Queensland,3896
+41514,-28.03,151.58,LEYBURN TM,31186,Southern Downs - West,3,Queensland,2710
+41515,-27.85,151.68,FELTON TM,31184,Clifton - Greenmount,3,Queensland,7899
+41516,-28.03,152.02,ALLORA TM,31186,Southern Downs - West,3,Queensland,2710
+41519,-28.58,150.85,BOOBA SANDS TM,31174,Inglewood - Waggamba,3,Queensland,136496
+41522,-27.16,151.26,DALBY AIRPORT,31183,Wambo,3,Queensland,25995
+41525,-28.21,152.1,WARWICK,31185,Southern Downs - East,3,Queensland,1803
+41527,-27.13,151.49,WILLGA HOME,31179,Crows Nest - Rosalie,3,Queensland,3896
+41530,-28.2,152.22,YANGAN ALERT,31185,Southern Downs - East,3,Queensland,1803
+41531,-28.12,152.06,GLENGALLAN CREEK ALERT,31185,Southern Downs - East,3,Queensland,1803
+41532,-28.36,152,CONNOLLY DAM ALERT,31186,Southern Downs - West,3,Queensland,2710
+41533,-28.23,152.23,EMU VALE ALERT,31185,Southern Downs - East,3,Queensland,1803
+41535,-28.37,152.14,ELBOW VALLEY ALERT,31185,Southern Downs - East,3,Queensland,1803
+41536,-28.29,152.11,MURRAYS BRIDGE ALERT,31185,Southern Downs - East,3,Queensland,1803
+41537,-28.34,152.29,KILLARNEY ALERT,31185,Southern Downs - East,3,Queensland,1803
+41540,-29.17,151.34,BEARDY JUNCTION,31174,Inglewood - Waggamba,3,Queensland,136496
+41543,-28.07,151.19,DUDDAWARRA,31181,Millmerran,3,Queensland,14199
+41545,-27.65,150.91,DUNMORE EXCHANGE TM,31181,Millmerran,3,Queensland,14199
+41546,-27.98,150.52,AVOCA TM,31178,Tara,3,Queensland,106478
+41548,-28.87,151.16,TEXAS TM,11192,Inverell Region - East,1,New South Wales,8893
+41551,-26.97,151.48,BELGRAE PARK ALERT,31183,Wambo,3,Queensland,25995
+42002,-27.21,150.28,BELAH PARK,31178,Tara,3,Queensland,106478
+42004,-26.5,150.1,POSSUM PARK,31175,Miles - Wandoan,3,Queensland,61690
+42009,-26.64,149.98,DRILLHAM,31175,Miles - Wandoan,3,Queensland,61690
+42016,-27.34,150.06,HANNAFORD POST OFFICE,31178,Tara,3,Queensland,106478
+42022,-27.32,149.88,MEANDARRA POST OFFICE,31178,Tara,3,Queensland,106478
+42023,-26.66,150.18,MILES POST OFFICE,31175,Miles - Wandoan,3,Queensland,61690
+42025,-26.55,150.63,HORSE CREEK AL,31172,Chinchilla,3,Queensland,10124
+42027,-28.49,149.47,TALWOOD STATE SCHOOL,31174,Inglewood - Waggamba,3,Queensland,136496
+42034,-27.17,150,OURIGILLA,31178,Tara,3,Queensland,106478
+42035,-26.64,149.63,JACKSON COMMUNITY POSTAL  AGENCY,31177,Roma Region,3,Queensland,104985
+42036,-26.16,150.84,BAWNDUGGIE AL,31172,Chinchilla,3,Queensland,10124
+42048,-26.93,150.14,CONDAMINE,31175,Miles - Wandoan,3,Queensland,61690
+42069,-28.61,148.66,BIRRA BIRRA,31171,Balonne,3,Queensland,168356
+42072,-28.6,148.86,BULLAMON PLAINS,31171,Balonne,3,Queensland,168356
+42078,-26.92,150.47,HAREWOOD,31172,Chinchilla,3,Queensland,10124
+42097,-28.37,149.88,HARTMANN BRIDGE TM,31174,Inglewood - Waggamba,3,Queensland,136496
+42100,-27.76,150.07,SOUTHWOOD,31178,Tara,3,Queensland,106478
+42102,-27.94,150.14,RIPPLE DOWNS,31178,Tara,3,Queensland,106478
+42104,-28.38,149.67,SURREY TM,31174,Inglewood - Waggamba,3,Queensland,136496
+42112,-26.66,150.18,MILES CONSTANCE STREET,31175,Miles - Wandoan,3,Queensland,61690
+42115,-28.07,149.98,LUNDAVRA TM,31174,Inglewood - Waggamba,3,Queensland,136496
+42116,-28.23,149.56,ARDEN DOWNS TM,31174,Inglewood - Waggamba,3,Queensland,136496
+43006,-26.25,148.95,MOOGA HILLS TM,31177,Roma Region,3,Queensland,104985
+43008,-26.17,148.66,SPRINGDALE TM,31177,Roma Region,3,Queensland,104985
+43015,-25.84,148.57,INJUNE POST OFFICE,31177,Roma Region,3,Queensland,104985
+43020,-26.49,147.98,MITCHELL POST OFFICE,31177,Roma Region,3,Queensland,104985
+43023,-26.8,148.41,AIRLIE,31177,Roma Region,3,Queensland,104985
+43033,-26.47,148.8,TINDARRA TM,31177,Roma Region,3,Queensland,104985
+43035,-27.16,149.07,SURAT,31177,Roma Region,3,Queensland,104985
+43037,-26.21,149.09,FINSBURY PARK,31177,Roma Region,3,Queensland,104985
+43038,-26.59,149.19,WALLUMBILLA POST OFFICE,31177,Roma Region,3,Queensland,104985
+43041,-28.14,148.71,QLD COTTON,31171,Balonne,3,Queensland,168356
+43043,-26.61,149.39,YULEBA GARDEN ST,31177,Roma Region,3,Queensland,104985
+43045,-28.09,148.97,WARRIE STATION,31171,Balonne,3,Queensland,168356
+43051,-26.26,149.24,PINE HILLS TM,31175,Miles - Wandoan,3,Queensland,61690
+43052,-27,149.5,WARKON,31177,Roma Region,3,Queensland,104985
+43054,-25.84,148.57,INJUNE TM,31177,Roma Region,3,Queensland,104985
+43060,-26.08,147.9,HAVELOCK,31177,Roma Region,3,Queensland,104985
+43061,-25.98,148.56,GUNNEWIN,31177,Roma Region,3,Queensland,104985
+43071,-26.47,148.97,SOMERSET,31177,Roma Region,3,Queensland,104985
+43075,-25.8,147.95,MUNNAWEENA,31177,Roma Region,3,Queensland,104985
+43080,-27.23,148.74,KAROOLA PARK,31177,Roma Region,3,Queensland,104985
+43090,-27.91,148.65,BEARDMORE DAM,31171,Balonne,3,Queensland,168356
+43091,-26.55,148.77,ROMA AIRPORT,31177,Roma Region,3,Queensland,104985
+43093,-26.61,148.54,WAVERLEY DOWNS,31177,Roma Region,3,Queensland,104985
+43095,-27.39,149.39,NAMARAH,31177,Roma Region,3,Queensland,104985
+43099,-26.82,148.02,SPRINGFIELD,31177,Roma Region,3,Queensland,104985
+43101,-27.31,148.83,WERIBONE TM,31177,Roma Region,3,Queensland,104985
+43102,-26.49,147.98,MITCHELL TM,31177,Roma Region,3,Queensland,104985
+43105,-26.41,148.78,TABERS TM,31177,Roma Region,3,Queensland,104985
+43106,-26.51,148.13,RICHLAND HILL,31177,Roma Region,3,Queensland,104985
+43107,-27.65,148.74,WARROO,31171,Balonne,3,Queensland,168356
+43108,-25.96,148.39,BENDOBA TM,31177,Roma Region,3,Queensland,104985
+43109,-28.05,148.59,ST GEORGE AIRPORT,31171,Balonne,3,Queensland,168356
+43112,-26.8,148.6,DALMALLY,31177,Roma Region,3,Queensland,104985
+44042,-28.97,147.8,HEBEL STORE,31171,Balonne,3,Queensland,168356
+44117,-28.59,148.23,DIRRANBANDI,31171,Balonne,3,Queensland,168356
+44154,-28.39,148.31,WHYENBAH,31171,Balonne,3,Queensland,168356
+44166,-28.51,148.4,YAMBURGAN,31171,Balonne,3,Queensland,168356
+44194,-28.35,148.82,NINDIGULLY,31171,Balonne,3,Queensland,168356
+47040,-33.93,142.36,WENTWORTH (WAMBERRA STATION),11179,Wentworth-Balranald Region,1,New South Wales,150245
+47107,-34.32,142.36,PARINGI(KERRIBEE),11179,Wentworth-Balranald Region,1,New South Wales,150245
+48018,-29.54,148.4,COLLARENEBRI (BUNDABARINA),11096,Walgett - Lightning Ridge,1,New South Wales,354100
+48031,-29.54,148.58,COLLARENEBRI (ALBERT ST),11096,Walgett - Lightning Ridge,1,New South Wales,354100
+49002,-34.64,143.56,BALRANALD (RSL),11179,Wentworth-Balranald Region,1,New South Wales,150245
+50010,-33.52,147.25,BURCHER POST OFFICE,11062,Condobolin,1,New South Wales,251555
+50014,-33.08,147.15,CONDOBOLIN RETIREMENT VILLAGE,11062,Condobolin,1,New South Wales,251555
+50017,-33.94,147.2,WEST WYALONG AIRPORT AWS,11069,West Wyalong,1,New South Wales,199959
+50018,-32.29,147.67,DANDALOO (KELVIN),11105,Narromine,1,New South Wales,148605
+50031,-32.72,148.19,PEAK HILL POST OFFICE,11068,Parkes Region,1,New South Wales,93735
+50035,-32.24,147.36,TOTTENHAM (UMANG ST),11062,Condobolin,1,New South Wales,251555
+50036,-32.92,147.71,TRUNDLE (BROOKVIEW ST),11068,Parkes Region,1,New South Wales,93735
+50040,-33.64,146.97,UNGARIE POST OFFICE,11069,West Wyalong,1,New South Wales,199959
+50045,-33.85,146.83,YALGOGRIN NORTH (ROLOMA),11069,West Wyalong,1,New South Wales,199959
+50052,-33.07,147.23,CONDOBOLIN AG RESEARCH STN,11062,Condobolin,1,New South Wales,251555
+50054,-33.1,146.85,CONDOBOLIN (WORRONGORRAH),11062,Condobolin,1,New South Wales,251555
+50108,-32.57,147.22,WILMATHA (WANGANUI),11062,Condobolin,1,New South Wales,251555
+50110,-32.64,148.06,PEAK HILL (WARATAH),11068,Parkes Region,1,New South Wales,93735
+50117,-32.9,148.28,ALECTOWN (BRIDGEWATER),11068,Parkes Region,1,New South Wales,93735
+50119,-32.94,148.24,ALECTOWN (VANVILLA),11068,Parkes Region,1,New South Wales,93735
+50137,-33.07,147.21,CONDOBOLIN AIRPORT AWS,11062,Condobolin,1,New South Wales,251555
+50139,-32.56,148.34,TOMINGLEY (GUNDONGS),11105,Narromine,1,New South Wales,148605
+51008,-32.46,148.15,WYANGA (BARCOO),11105,Narromine,1,New South Wales,148605
+51018,-31.7,148.66,GILGANDRA (CHELMSFORD AVE),11104,Gilgandra,1,New South Wales,62521
+51038,-31.84,147.72,NEVERTIRE (CLYDE ST),11095,Nyngan - Warren,1,New South Wales,181118
+51039,-31.55,147.2,NYNGAN AIRPORT,11095,Nyngan - Warren,1,New South Wales,181118
+51042,-30.93,147.87,QUAMBONE STATION,11094,Coonamble,1,New South Wales,143061
+51049,-31.99,147.95,TRANGIE RESEARCH STATION AWS,11105,Narromine,1,New South Wales,148605
+51062,-31.26,148.02,WARREN (ELLERSLIE),11094,Coonamble,1,New South Wales,143061
+51066,-31.95,148.62,EUMUNGERIE POST OFFICE,11103,Dubbo Region,1,New South Wales,20440
+51091,-32.22,148.57,DUBBO AIRPORT (OLD TOWER),11103,Dubbo Region,1,New South Wales,20440
+51122,-31.56,148.6,CURBAN (ERCILDOUNE),11104,Gilgandra,1,New South Wales,62521
+51133,-31.23,148.89,WARRUMBUNGLE (MIAGUNYAH),11094,Coonamble,1,New South Wales,143061
+51160,-31.71,148.64,GILGANDRA (COUNCIL DEPOT),11104,Gilgandra,1,New South Wales,62521
+51161,-30.98,148.38,COONAMBLE AIRPORT AWS,11094,Coonamble,1,New South Wales,143061
+52001,-30.1,148.97,BURREN JUNCTION (HASTINGS STREET),11096,Walgett - Lightning Ridge,1,New South Wales,354100
+52003,-29.96,148.47,CRYON (KOOTHNEY),11096,Walgett - Lightning Ridge,1,New South Wales,354100
+52016,-30.61,148.97,GWABEGAR POST OFFICE,11198,Narrabri Region,1,New South Wales,105939
+52019,-29.35,148.69,MOGIL MOGIL (BENIMORA),11196,Moree Region,1,New South Wales,371725
+52020,-28.98,148.99,MUNGINDI POST OFFICE,11196,Moree Region,1,New South Wales,371725
+52067,-29.81,148.91,ROWENA POST OFFICE,11096,Walgett - Lightning Ridge,1,New South Wales,354100
+52074,-30.35,149.02,PILLIGA (LOWANA),11198,Narrabri Region,1,New South Wales,105939
+52088,-30.04,148.12,WALGETT AIRPORT AWS,11096,Walgett - Lightning Ridge,1,New South Wales,354100
+53001,-30.95,149.07,BARADINE POST OFFICE,11099,Coonabarabran,1,New South Wales,23801
+53002,-30.95,149.07,BARADINE FORESTRY,11099,Coonabarabran,1,New South Wales,23801
+53003,-29.92,149.79,BELLATA POST OFFICE,11198,Narrabri Region,1,New South Wales,105939
+53011,-29.07,149.63,GARAH POST OFFICE,11196,Moree Region,1,New South Wales,371725
+53018,-28.99,150.02,CROPPA CREEK (KRUI PLAINS),11196,Moree Region,1,New South Wales,371725
+53026,-30.26,149.68,NARRABRI (MOLLEE),11198,Narrabri Region,1,New South Wales,105939
+53033,-29.47,150.14,PALLAMALLAWA POST OFFICE,11196,Moree Region,1,New South Wales,371725
+53034,-30.12,149.32,WEE WAA (PENDENNIS),11198,Narrabri Region,1,New South Wales,105939
+53041,-28.87,150.09,TULLOONA (COOLANGA),11196,Moree Region,1,New South Wales,371725
+53042,-28.9,149.54,GARAH (ULINGA),11196,Moree Region,1,New South Wales,371725
+53044,-30.23,149.45,WEE WAA (GEORGE ST),11198,Narrabri Region,1,New South Wales,105939
+53073,-30.76,149,KENEBRI (ELLERSLIE),11099,Coonabarabran,1,New South Wales,23801
+53076,-28.95,150.26,NORTH STAR (BONANZA),11196,Moree Region,1,New South Wales,371725
+53081,-30.8,149.12,KENEBRI (CUMBIL),11099,Coonabarabran,1,New South Wales,23801
+53085,-28.97,149.67,GARAH (DELVIN),11196,Moree Region,1,New South Wales,371725
+53103,-30.45,149.67,NARRABRI (ROSEWOOD FARM),11198,Narrabri Region,1,New South Wales,105939
+53108,-29.79,150.15,TERRY HIE HIE,11196,Moree Region,1,New South Wales,371725
+53115,-29.49,149.85,MOREE AERO,11196,Moree Region,1,New South Wales,371725
+54003,-30.38,150.61,BARRABA POST OFFICE,11205,Tamworth Region,1,New South Wales,7960
+54012,-29.25,150.75,COOLATAI (ORANA),11193,Inverell Region - West,1,New South Wales,25094
+54016,-29.44,150.79,DELUNGRA (CRAIGMORE),11192,Inverell Region - East,1,New South Wales,8893
+54023,-30.29,150.81,BARRABA (NERANGHI),11205,Tamworth Region,1,New South Wales,7960
+54029,-29.54,150.58,WARIALDA POST OFFICE,11193,Inverell Region - West,1,New South Wales,25094
+54036,-29.24,150.89,WALLANGRA (WALLANGRA STATION),11192,Inverell Region - East,1,New South Wales,8893
+54038,-30.32,149.83,NARRABRI AIRPORT AWS,11198,Narrabri Region,1,New South Wales,105939
+54045,-29.34,151.29,ASHFORD (SPRINGVALE),11192,Inverell Region - East,1,New South Wales,8893
+54049,-29.41,150.9,GRAMAN (ULUPNA),11192,Inverell Region - East,1,New South Wales,8893
+54073,-29.64,151.24,NULLAMANNA (BELMORE),11192,Inverell Region - East,1,New South Wales,8893
+54074,-29.66,151.04,OAKWOOD (BENARA),11192,Inverell Region - East,1,New South Wales,8893
+54076,-29.64,151.43,KINGS PLAINS (WINDERMERE),11192,Inverell Region - East,1,New South Wales,8893
+54078,-29.68,151.15,INVERELL (WANDERA),11192,Inverell Region - East,1,New South Wales,8893
+54081,-29.7,150.41,BINGARA (GLENROY),11193,Inverell Region - West,1,New South Wales,25094
+54082,-29.64,151.41,KINGS PLAINS (CROYE),11192,Inverell Region - East,1,New South Wales,8893
+54090,-29.92,150.37,BINGARA (PALLAL),11193,Inverell Region - West,1,New South Wales,25094
+54104,-29.39,151.24,PINDARI DAM,11192,Inverell Region - East,1,New South Wales,8893
+54105,-30.34,150.93,BUNDARRA (GRANITE HEIGHTS),11205,Tamworth Region,1,New South Wales,7960
+54114,-30.1,151.01,BUNDARRA (BEVERLEY),11192,Inverell Region - East,1,New South Wales,8893
+54117,-30.22,150.72,COBBADAH (ROCKY GLEN),11193,Inverell Region - West,1,New South Wales,25094
+54121,-29.5,151.13,BUKKULLA (RFS),11192,Inverell Region - East,1,New South Wales,8893
+54124,-29.27,150.27,CROOBLE STATION,11196,Moree Region,1,New South Wales,371725
+54128,-29.89,150.9,COPETON DAM,11193,Inverell Region - West,1,New South Wales,25094
+54141,-29.58,150.37,GWYDER RIVER (GRAVESEND RD BDG (GWYDIR R,11193,Inverell Region - West,1,New South Wales,25094
+54146,-29.23,151.38,HAYSTACK (BEARDY RIVER),11192,Inverell Region - East,1,New South Wales,8893
+54149,-30.19,149.86,NARRABRI (MURRUMBILLA),11198,Narrabri Region,1,New South Wales,105939
+54151,-30.28,150.17,NARRABRI (MT KAPUTAR NATIONAL PARK),11198,Narrabri Region,1,New South Wales,105939
+54153,-30.12,150.13,CARODA (PALEROO),11193,Inverell Region - West,1,New South Wales,25094
+54161,-29.19,151.16,FRASERS CREEK (LLANARTH),11192,Inverell Region - East,1,New South Wales,8893
+55000,-30.91,150.86,ATTUNGA (GARTHOWEN),11205,Tamworth Region,1,New South Wales,7960
+55006,-31.64,150.24,BLACKVILLE POST OFFICE,11201,Quirindi,1,New South Wales,31303
+55007,-30.71,150.05,BOGGABRI POST OFFICE,11200,Gunnedah Region,1,New South Wales,53292
+55014,-31.12,150.27,CURLEWIS POST OFFICE,11200,Gunnedah Region,1,New South Wales,53292
+55023,-30.98,150.25,GUNNEDAH POOL,11200,Gunnedah Region,1,New South Wales,53292
+55024,-31.03,150.27,GUNNEDAH RESOURCE CENTRE,11200,Gunnedah Region,1,New South Wales,53292
+55025,-31.79,150.67,WILLOW TREE (HIGHLANDS),11201,Quirindi,1,New South Wales,31303
+55038,-31.1,149.91,MULLALEY POST OFFICE,11200,Gunnedah Region,1,New South Wales,53292
+55041,-31.46,151.13,NUNDLE POST OFFICE,11205,Tamworth Region,1,New South Wales,7960
+55043,-31.71,150.41,WILLOW TREE  (PARRAWEENA),11201,Quirindi,1,New South Wales,31303
+55044,-30.7,150.28,BOGGABRI (RETREAT),11200,Gunnedah Region,1,New South Wales,53292
+55046,-31.53,150.44,PINE RIDGE (BILLABONG),11201,Quirindi,1,New South Wales,31303
+55049,-31.51,150.68,QUIRINDI POST OFFICE,11201,Quirindi,1,New South Wales,31303
+55057,-31.77,150.29,WILLOW TREE (VALAIS),11201,Quirindi,1,New South Wales,31303
+55058,-30.44,149.94,TURRAWAN (WALLAH),11198,Narrabri Region,1,New South Wales,105939
+55062,-31.35,150.65,WERRIS CREEK POST OFFICE,11201,Quirindi,1,New South Wales,31303
+55066,-31.62,150.84,WALLABADAH (WOODTON),11201,Quirindi,1,New South Wales,31303
+55069,-31.45,150.02,YANNERGEE (DOBROYD),11201,Quirindi,1,New South Wales,31303
+55076,-30.51,150.21,BOGGABRI (KANOWNDA),11198,Narrabri Region,1,New South Wales,105939
+55078,-31.41,151.09,NUNDLE (BENONI),11205,Tamworth Region,1,New South Wales,7960
+55103,-30.69,151.12,WATSONS CREEK (TILMUNDA),11205,Tamworth Region,1,New South Wales,7960
+55105,-30.8,150.86,ATTUNGA (TARANA),11205,Tamworth Region,1,New South Wales,7960
+55120,-30.93,150.79,ATTUNGA (THE PINES),11205,Tamworth Region,1,New South Wales,7960
+55122,-30.84,150.91,ATTUNGA (MINDEROO),11205,Tamworth Region,1,New South Wales,7960
+55157,-31.09,150.66,WINTON (DALBLAIR),11205,Tamworth Region,1,New South Wales,7960
+55164,-31.18,151.3,WEABONGA (STONELEIGH),11205,Tamworth Region,1,New South Wales,7960
+55172,-31.21,151.32,WEABONGA (MONOMEETH),11205,Tamworth Region,1,New South Wales,7960
+55176,-31.26,151.08,LOOMBERAH (PENDENE),11205,Tamworth Region,1,New South Wales,7960
+55183,-31.3,150.86,DURI (ASHGROVE) NO 142,11205,Tamworth Region,1,New South Wales,7960
+55195,-31.44,150.89,GOWRIE (LALLYBROCH),11205,Tamworth Region,1,New South Wales,7960
+55200,-31.49,151.19,HANGING ROCK (ANDEVA),11205,Tamworth Region,1,New South Wales,7960
+55201,-30.82,150.32,KELVIN (KAHANA),11200,Gunnedah Region,1,New South Wales,53292
+55202,-30.95,150.25,GUNNEDAH AIRPORT AWS,11200,Gunnedah Region,1,New South Wales,53292
+55220,-30.96,150.15,GUNNEDAH (BELTANA),11200,Gunnedah Region,1,New South Wales,53292
+55239,-31.59,150.48,PINE RIDGE (ROUND ISLAND),11201,Quirindi,1,New South Wales,31303
+55244,-31.64,150.57,WILLOW TREE (COOINDA),11201,Quirindi,1,New South Wales,31303
+55254,-30.79,150.63,MANILLA (FERN HILL),11205,Tamworth Region,1,New South Wales,7960
+55255,-31.53,150.76,QUIRINDI (SPRING VALE),11201,Quirindi,1,New South Wales,31303
+55257,-31.22,150.82,DURI (DUNGOWAN RD),11205,Tamworth Region,1,New South Wales,7960
+55268,-30.83,149.77,BOGGABRI (BE-BARA),11200,Gunnedah Region,1,New South Wales,53292
+55276,-30.88,150.49,KEEPIT DAM,11200,Gunnedah Region,1,New South Wales,53292
+55279,-31.09,150.74,TAMWORTH (HILLGROVE),11205,Tamworth Region,1,New South Wales,7960
+55282,-31.48,150.54,PINE RIDGE (RANGARI),11201,Quirindi,1,New South Wales,31303
+55294,-31.35,150.63,WERRIS CREEK (YANDILLA),11201,Quirindi,1,New South Wales,31303
+55302,-31.36,151.14,NUNDLE (CHAFFEY DAM),11205,Tamworth Region,1,New South Wales,7960
+55303,-30.81,150.75,MANILLA (ROSEDALE),11205,Tamworth Region,1,New South Wales,7960
+55304,-31.02,149.91,MULLALEY (FAIRWINDS),11200,Gunnedah Region,1,New South Wales,53292
+55308,-30.88,151.16,BENDEMEER (BONNA),11205,Tamworth Region,1,New South Wales,7960
+55311,-31.22,150.82,DURI POST OFFICE,11205,Tamworth Region,1,New South Wales,7960
+55313,-31.27,150.92,GOONOO GOONOO (GOONOO GOONOO CREEK),11205,Tamworth Region,1,New South Wales,7960
+55319,-30.61,150.59,UPPER MANILLA (GLENBORAH),11205,Tamworth Region,1,New South Wales,7960
+55324,-31.08,150.26,CURLEWIS (WONGALEE),11200,Gunnedah Region,1,New South Wales,53292
+55331,-30.73,150.58,MANILLA (TOWRI),11205,Tamworth Region,1,New South Wales,7960
+55335,-31.53,151.18,NUNDLE (MALONGA),11205,Tamworth Region,1,New South Wales,7960
+55336,-31.6,151.14,NUNDLE (HEAD OF THE PEEL),11205,Tamworth Region,1,New South Wales,7960
+55337,-31.59,151,CRAWNEY MOUNTAIN,11205,Tamworth Region,1,New South Wales,7960
+56001,-29.72,151.36,SAPPHIRE (ARGYLE),11192,Inverell Region - East,1,New South Wales,8893
+56018,-29.78,151.08,INVERELL RESEARCH CENTRE,11191,Inverell,1,New South Wales,61
+56033,-29.95,151.21,TINGHA POST OFFICE,11192,Inverell Region - East,1,New South Wales,8893
+56057,-30.09,151.39,TENTERDEN (BALOOK),11192,Inverell Region - East,1,New South Wales,8893
+56111,-29.78,151.36,ELSMORE (DANTHONIA),11192,Inverell Region - East,1,New South Wales,8893
+56176,-30.14,151.26,BUNDARRA (BIMBADEEN),11192,Inverell Region - East,1,New South Wales,8893
+56237,-29.8,151.27,INVERELL (ELSMORE VILLAGE),11192,Inverell Region - East,1,New South Wales,8893
+56242,-29.78,151.11,INVERELL (RAGLAN ST),11191,Inverell,1,New South Wales,61
+57093,-29.51,152.49,CANGAI (SMELTER CREEK),11081,Grafton Region,1,New South Wales,2455
+57114,-29.2,152.6,BARYULGIL (CLARENCE RIVER),11081,Grafton Region,1,New South Wales,2455
+58006,-29.57,153.08,BRUSHGROVE (CLARENCE ST),11081,Grafton Region,1,New South Wales,2455
+58028,-29.38,152.79,COALDALE (BELLONA),11081,Grafton Region,1,New South Wales,2455
+58045,-29.97,152.73,NYMBOIDA (ARMIDALE ROAD),11081,Grafton Region,1,New South Wales,2455
+58059,-29.63,153.03,ULMARRA (NEWSAGENCY),11081,Grafton Region,1,New South Wales,2455
+58074,-29.93,152.87,KANGAROO CREEK (JALOOM),11081,Grafton Region,1,New South Wales,2455
+58102,-29.74,152.79,GRAFTON SOUTH (SOUTH GRAFTON  (YEERONG)),11081,Grafton Region,1,New South Wales,2455
+58138,-29.84,152.9,KANGAROO CREEK  (HAYFIELD),11081,Grafton Region,1,New South Wales,2455
+58161,-29.76,153.03,GRAFTON AIRPORT AWS,11081,Grafton Region,1,New South Wales,2455
+58218,-29.63,152.86,SEELANDS (BREAM PLACE),11081,Grafton Region,1,New South Wales,2455
+59124,-29.98,152.72,NYMBOIDA (NYMBOIDA RIVER),11081,Grafton Region,1,New South Wales,2455
+60127,-31.5,151.34,NUNDLE (OLSLAND),11205,Tamworth Region,1,New South Wales,7960
+60128,-31.58,151.32,NUNDLE (BARRY (BARNARD RIVER)),11129,Scone Region,1,New South Wales,4307
+61002,-31.85,150.34,BLACKVILLE (KRUI VALE),11129,Scone Region,1,New South Wales,4307
+61007,-32.03,150.58,BUNNAN (MILHAVEN),11129,Scone Region,1,New South Wales,4307
+61026,-32.01,151,GUNDY (MILLER ST),11129,Scone Region,1,New South Wales,4307
+61051,-31.77,150.84,MURRURUNDI (HAYDON STREET),11129,Scone Region,1,New South Wales,4307
+61075,-32.23,150.22,MERRIWA (BOWGLEN),11129,Scone Region,1,New South Wales,4307
+61089,-32.06,150.93,SCONE SCS,11129,Scone Region,1,New South Wales,4307
+61097,-31.92,151.24,MOONAN FLAT (HIGH ST),11129,Scone Region,1,New South Wales,4307
+61135,-32.1,151.23,UPPER ROUCHEL (MOUNT VIEW),11129,Scone Region,1,New South Wales,4307
+61195,-31.77,151.08,MURRURUNDI (TIMOR),11129,Scone Region,1,New South Wales,4307
+61196,-31.71,151.21,ELLERSTON (POITREL),11129,Scone Region,1,New South Wales,4307
+61287,-32.19,150.17,MERRIWA (ROSCOMMON),11129,Scone Region,1,New South Wales,4307
+61315,-32.16,151.16,ROUCHEL (BONNIE DOON),11129,Scone Region,1,New South Wales,4307
+61372,-31.8,150.93,BLANDFORD (PAGES RIVER),11129,Scone Region,1,New South Wales,4307
+61373,-31.96,150.86,PARKVILLE (KINGDON PONDS),11129,Scone Region,1,New South Wales,4307
+61392,-31.74,150.79,MURRURUNDI GAP AWS,11201,Quirindi,1,New South Wales,31303
+61399,-31.93,151.26,MOONAN BROOK (PAMPAS),11129,Scone Region,1,New South Wales,4307
+61402,-31.83,150.83,SCONE (STONEY CREEK),11129,Scone Region,1,New South Wales,4307
+61418,-32.04,151.4,BARRINGTON TOPS (MOUNT BARRINGTON),11129,Scone Region,1,New South Wales,4307
+61419,-31.83,150.35,MOUNT PALMER,11129,Scone Region,1,New South Wales,4307
+62003,-32.67,149.1,MUMBIL (BURRENDONG DAM),11106,Wellington,1,New South Wales,22271
+62009,-32,149.99,CASSILIS (DALKEITH),11129,Scone Region,1,New South Wales,4307
+62013,-32.36,149.53,GULGONG POST OFFICE,11074,Mudgee Region - West,1,New South Wales,3413
+62014,-32.79,149.46,HARGRAVES (GENERAL STORE),11074,Mudgee Region - West,1,New South Wales,3413
+62028,-32.49,149.27,GOOLMA (BROOKLYN),11074,Mudgee Region - West,1,New South Wales,3413
+62032,-32.36,149.95,WOLLAR (BARRIGAN ST),11074,Mudgee Region - West,1,New South Wales,3413
+62036,-32.28,149.74,ULAN WATER,11074,Mudgee Region - West,1,New South Wales,3413
+62075,-32.48,149.52,GALAMBINE (GOOREE PARK),11074,Mudgee Region - West,1,New South Wales,3413
+62084,-32.5,149.71,BUDGEE BUDGEE (BOTOBOLAR VINEYARD),11074,Mudgee Region - West,1,New South Wales,3413
+62089,-32.89,149.38,HARGRAVES (EDGE HILL),11074,Mudgee Region - West,1,New South Wales,3413
+62099,-32.84,149,STUART TOWN (CANOBLA),11106,Wellington,1,New South Wales,22271
+62104,-32.58,149.68,MUDGEE (WANDU-TOO),11074,Mudgee Region - West,1,New South Wales,3413
+62106,-32.99,148.93,MOLONG (BONNIE DOON),11079,Orange Region,1,New South Wales,19934
+62108,-32.03,150.02,CASSILIS (THISTLEDALE),11129,Scone Region,1,New South Wales,4307
+63005,-33.43,149.56,BATHURST AGRICULTURAL STATION,11060,Bathurst Region,1,New South Wales,1762
+63022,-33.8,148.7,COWRA AG RESEARCH STATION,11064,Cowra Region,1,New South Wales,34288
+63035,-33.04,149.41,HILL END POST OFFICE,11060,Bathurst Region,1,New South Wales,1762
+63059,-33.46,149.84,YETHOLME (CLONTURKLE),11060,Bathurst Region,1,New South Wales,1762
+63061,-33.82,149.32,TRUNKEY (OLD POST OFFICE),11060,Bathurst Region,1,New South Wales,1762
+63073,-33.69,149.56,ROCKLEY POST OFFICE,11060,Bathurst Region,1,New South Wales,1762
+63076,-33.08,149.69,SOFALA OLD POST OFFICE,11060,Bathurst Region,1,New South Wales,1762
+63113,-33.55,148.91,ORANGE (ANGULLONG),11076,Blayney,1,New South Wales,924
+63114,-33.34,149.16,LUCKNOW (NEWMAN ST),11079,Orange Region,1,New South Wales,19934
+63117,-33.67,149.05,LYNDHURST OLD BAKERY,11076,Blayney,1,New South Wales,924
+63128,-33.71,149.21,NEVILLE (CARCOAR ST),11076,Blayney,1,New South Wales,924
+63190,-33.41,149.56,WEST BATHURST,11060,Bathurst Region,1,New South Wales,1762
+63214,-33.36,149.41,ROCK FOREST (BIMBIL),11060,Bathurst Region,1,New South Wales,1762
+63234,-33.67,148.86,WALLI (KENTUCKY),11064,Cowra Region,1,New South Wales,34288
+63245,-33.65,149.08,MANDURAMA POST OFFICE,11076,Blayney,1,New South Wales,924
+63264,-33.57,149.38,NEWBRIDGE (STRINGYBARK RD),11076,Blayney,1,New South Wales,924
+63287,-33.41,149.58,BATHURST STANLEY STREET (MACQUARIE RIVER,11060,Bathurst Region,1,New South Wales,1762
+63291,-33.41,149.65,BATHURST AIRPORT AWS,11060,Bathurst Region,1,New South Wales,1762
+63298,-33.61,149.7,CHIFLEY DAM (CAMPBELLS RIVER (UPSTREAM C,11060,Bathurst Region,1,New South Wales,1762
+63303,-33.38,149.13,ORANGE AIRPORT AWS,11079,Orange Region,1,New South Wales,19934
+63304,-33.72,149.51,ROCKLEY (GLENLEA),11060,Bathurst Region,1,New South Wales,1762
+64004,-31.56,149.38,BINNAWAY (WATTLE ST),11099,Coonabarabran,1,New South Wales,23801
+64008,-31.28,149.28,COONABARABRAN (SHOWGROUNDS),11099,Coonabarabran,1,New South Wales,23801
+64009,-32.02,149.4,DUNEDOO POST OFFICE,11074,Mudgee Region - West,1,New South Wales,3413
+64010,-32.11,149.04,ELONG ELONG (BENDEELA ST),11103,Dubbo Region,1,New South Wales,20440
+64015,-31.82,149.12,MENDOORAN POST OFFICE,11099,Coonabarabran,1,New South Wales,23801
+64017,-31.33,149.27,COONABARABRAN AIRPORT AWS,11099,Coonabarabran,1,New South Wales,23801
+64024,-31.56,148.95,GILGANDRA (WALLUMBURRAWANG),11104,Gilgandra,1,New South Wales,62521
+64025,-31.82,149.72,COOLAH (BINNIA ST),11099,Coonabarabran,1,New South Wales,23801
+64026,-32.04,149.24,COBBORA (KUNDIAWA),11074,Mudgee Region - West,1,New South Wales,3413
+64027,-31.31,149.2,COONABARABRAN (BARINA -TM),11099,Coonabarabran,1,New South Wales,23801
+64029,-32.02,149.39,DUNEDOO (SHELL),11074,Mudgee Region - West,1,New South Wales,3413
+64050,-31.65,149.62,WEETALIBA (MUNNA),11099,Coonabarabran,1,New South Wales,23801
+64053,-31.47,148.62,GILGANDRA  (TREBOR),11104,Gilgandra,1,New South Wales,62521
+64054,-31.79,149.67,COOLAH (BROWN SPRINGS),11099,Coonabarabran,1,New South Wales,23801
+64055,-31.28,149.31,COONABARABRAN (PURLEWAUGH RD),11099,Coonabarabran,1,New South Wales,23801
+65000,-32.5,148.75,ARTHURVILLE (CRAMOND),11106,Wellington,1,New South Wales,22271
+65010,-33.29,148.74,CUDAL POST OFFICE,11079,Orange Region,1,New South Wales,19934
+65013,-33.43,148.37,EUGOWRA POST OFFICE,11065,Forbes,1,New South Wales,84544
+65020,-33.18,148.69,MANILDRA (GEORGE ST),11079,Orange Region,1,New South Wales,19934
+65022,-33.16,148.59,MANILDRA (HAZELDALE),11079,Orange Region,1,New South Wales,19934
+65023,-33.09,148.86,MOLONG (HILL ST),11079,Orange Region,1,New South Wales,19934
+65030,-32.52,148.52,DUBBO (MENTONE),11103,Dubbo Region,1,New South Wales,20440
+65034,-32.56,148.95,WELLINGTON (D&J RURAL),11106,Wellington,1,New South Wales,22271
+65039,-33.33,147.85,FORBES (MUDDY WATER),11065,Forbes,1,New South Wales,84544
+65041,-33.1,148.87,MOLONG POST OFFICE,11079,Orange Region,1,New South Wales,19934
+65056,-33.29,148.87,CUDAL (HEIMAT),11079,Orange Region,1,New South Wales,19934
+65068,-33.13,148.24,PARKES AIRPORT AWS,11067,Parkes (NSW),1,New South Wales,9979
+65070,-32.22,148.58,DUBBO AIRPORT AWS,11103,Dubbo Region,1,New South Wales,20440
+65072,-33.61,148.15,GAREMA (FOREST LODGE),11065,Forbes,1,New South Wales,84544
+65084,-33.37,148.59,TOOGONG (GLENAYR),11065,Forbes,1,New South Wales,84544
+65096,-33.27,148.39,MANDAGERY (RAWENE),11068,Parkes Region,1,New South Wales,93735
+65099,-32.38,148.87,GEURIE (KURRABRI),11106,Wellington,1,New South Wales,22271
+65100,-32.99,148.23,ALECTOWN (CAWDOR),11068,Parkes Region,1,New South Wales,93735
+65103,-33.36,147.92,FORBES AIRPORT AWS,11065,Forbes,1,New South Wales,84544
+65106,-32.04,148.66,DUBBO (MOGRIGUY (KYARRA)),11103,Dubbo Region,1,New South Wales,20440
+65110,-33.25,148.98,BORENORE (LYNDEN-BRAE),11079,Orange Region,1,New South Wales,19934
+65111,-33.84,148.65,COWRA AIRPORT AWS,11064,Cowra Region,1,New South Wales,34288
+65112,-33.48,148.26,PAYTENS BRIDGE (YANDILLA),11065,Forbes,1,New South Wales,84544
+65113,-33.39,147.97,FORBES (BIMBIMBI),11065,Forbes,1,New South Wales,84544
+65114,-33.37,147.94,FORBES (BEDGERABONG RD),11065,Forbes,1,New South Wales,84544
+70032,-35.23,148.91,FAIRLIGHT STATION,11542,Yass Region,1,New South Wales,4165
+70043,-34.78,149.27,GUNNING RURAL SUPPLIES,11542,Yass Region,1,New South Wales,4165
+70045,-35.15,149.06,HALL (LOCHLEIGH),11542,Yass Region,1,New South Wales,4165
+70112,-34.72,149.18,DALTON POST OFFICE,11542,Yass Region,1,New South Wales,4165
+70117,-34.72,149.12,DALTON (ROSE VALLEY),11542,Yass Region,1,New South Wales,4165
+70264,-34.37,148.82,TAYLORS FLAT (GUNNARY (BURNBRAE)),11544,Young Region,1,New South Wales,78046
+70295,-34.53,149.12,BEVENDALE (RIVERVIEW),11542,Yass Region,1,New South Wales,4165
+70296,-34.72,148.99,DALTON (MILVERTON),11542,Yass Region,1,New South Wales,4165
+70297,-34.54,148.92,RYE PARK (GLENFLESK),11542,Yass Region,1,New South Wales,4165
+70344,-34.98,149.01,MURRUMBATEMAN (MCINTOSH CIRCUIT),11542,Yass Region,1,New South Wales,4165
+70349,-35.53,148.77,MOUNT GININI AWS,11262,Tumut Region,1,New South Wales,1302
+70358,-34.82,148.91,YASS (RURAL FIRE SERVICE),11542,Yass Region,1,New South Wales,4165
+71073,-35.39,148.75,BRINDABELLA (KOOLAMI),11262,Tumut Region,1,New South Wales,1302
+72000,-35.31,148.06,ADELONG (TUMUT ST),11262,Tumut Region,1,New South Wales,1302
+72008,-35.39,147.57,TARCUTTA (WOLLUMBI),11271,Wagga Wagga Region,1,New South Wales,193434
+72012,-35.6,147.73,CARABOST,11175,Albury Region,1,New South Wales,71825
+72017,-35.56,147.73,CARABOST (YALLOWIN),11175,Albury Region,1,New South Wales,71825
+72042,-35.28,147.74,TARCUTTA POST OFFICE,11271,Wagga Wagga Region,1,New South Wales,193434
+72050,-36.04,147.27,WYMAH (GWANDALLEN),11175,Albury Region,1,New South Wales,71825
+72056,-35.39,148.25,BLOWERING DAM,11262,Tumut Region,1,New South Wales,1302
+72098,-35.34,148.38,LACMALAC (FEDERAL PARK),11262,Tumut Region,1,New South Wales,1302
+72101,-35.71,147.49,HOLBROOK (NARRABILLA),11175,Albury Region,1,New South Wales,71825
+72141,-35.73,148.49,YARRANGOBILLY CAVES,11262,Tumut Region,1,New South Wales,1302
+72142,-35.72,147.31,HOLBROOK (CROFT ST),11175,Albury Region,1,New South Wales,71825
+72150,-35.16,147.46,WAGGA WAGGA AMO,11271,Wagga Wagga Region,1,New South Wales,193434
+72152,-35.32,148.43,ARGALONG (SANDY CREEK),11262,Tumut Region,1,New South Wales,1302
+72154,-35.22,148.03,MOUNT HOREB (MARATHORN),11262,Tumut Region,1,New South Wales,1302
+72159,-35.32,147.94,ADELONG (KATHVALE),11262,Tumut Region,1,New South Wales,1302
+72161,-35.94,148.38,CABRAMURRA SMHEA AWS,11262,Tumut Region,1,New South Wales,1302
+72171,-35.83,147.25,WOOMARGAMA POST OFFICE,11175,Albury Region,1,New South Wales,71825
+73000,-34.14,147.39,BARMEDMAN POST OFFICE,11069,West Wyalong,1,New South Wales,199959
+73007,-35,148.6,BURRINJUCK DAM,11542,Yass Region,1,New South Wales,4165
+73014,-33.89,148.15,GRENFELL (MANGANESE RD),11066,Grenfell,1,New South Wales,79005
+73017,-34.08,148.37,GREENETHORPE (IANDRA),11066,Grenfell,1,New South Wales,79005
+73019,-34.85,147.57,JUNEE TREATMENT WORKS,11265,Junee,1,New South Wales,43511
+73022,-34.65,148.16,COOTAMUNDRA (LANDGROVE),11263,Cootamundra,1,New South Wales,21622
+73025,-34.79,147.56,OLD JUNEE (MILLBANK),11265,Junee,1,New South Wales,43511
+73029,-34.55,148.35,MURRUMBURRAH (HISTORICAL SOCIETY),11544,Young Region,1,New South Wales,78046
+73032,-34.01,147.79,QUANDIALLA POST OFFICE,11066,Grenfell,1,New South Wales,79005
+73036,-34.5,147.88,STOCKINBINGAL GENERAL STORE,11263,Cootamundra,1,New South Wales,21622
+73037,-34.44,147.53,TEMORA AMBULANCE STATION,11266,Temora,1,New South Wales,107867
+73043,-34.49,148.13,WALLENDBEEN (CORANG),11263,Cootamundra,1,New South Wales,21622
+73044,-35.06,147.75,WANTABADGERY,11265,Junee,1,New South Wales,43511
+73050,-34.76,148.83,BOWNING (WANGANUI),11542,Yass Region,1,New South Wales,4165
+73051,-34.21,148.55,MURRINGO (WINDERMERE),11544,Young Region,1,New South Wales,78046
+73054,-33.93,147.24,WYALONG POST OFFICE,11069,West Wyalong,1,New South Wales,199959
+73097,-34.02,148.81,COWRA (LAWLING VALE),11544,Young Region,1,New South Wales,78046
+73099,-34.62,147.62,JUNEE REEFS (CLEAR HILLS),11265,Junee,1,New South Wales,43511
+73100,-33.91,148.44,BUMBALDRY (GOLD 'N' GROVE),11066,Grenfell,1,New South Wales,79005
+73109,-34.43,148.54,MURRINGO (YALLAMBEE),11544,Young Region,1,New South Wales,78046
+73110,-33.95,148.08,GRENFELL (COROWOOD),11066,Grenfell,1,New South Wales,79005
+73113,-34.2,148,TUBBUL (KEIRAVILLE),11544,Young Region,1,New South Wales,78046
+73115,-35.17,148.23,BRUNGLE (BONNIE DOON),11262,Tumut Region,1,New South Wales,1302
+73129,-34.16,148.69,GODFREYS CREEK (TAROONA),11544,Young Region,1,New South Wales,78046
+73138,-34.25,148.25,YOUNG AIRPORT,11544,Young Region,1,New South Wales,78046
+73140,-35.06,147.72,WANTABADGERY (GUNDAGAI ST),11265,Junee,1,New South Wales,43511
+73141,-35.06,148.1,GUNDAGAI (NANGUS RD),11264,Gundagai,1,New South Wales,2853
+73142,-34.63,148.04,COOTAMUNDRA AIRPORT,11263,Cootamundra,1,New South Wales,21622
+73145,-33.98,147.62,QUANDIALLA (BLAND (SUNNYSIDE)),11069,West Wyalong,1,New South Wales,199959
+73149,-33.74,147.52,WYALONG (MARSDEN (MINORU)),11066,Grenfell,1,New South Wales,79005
+73150,-34.53,147.84,STOCKINBINGAL (SUNNYDALE),11263,Cootamundra,1,New South Wales,21622
+73151,-34.43,147.51,TEMORA AIRPORT,11266,Temora,1,New South Wales,107867
+74000,-34.36,146.9,ARDLETHAN POST OFFICE,11266,Temora,1,New South Wales,107867
+74005,-34.28,146.57,BARELLAN POST OFFICE,11259,Narrandera,1,New South Wales,98169
+74033,-34.82,147.2,COOLAMON POST OFFICE,11271,Wagga Wagga Region,1,New South Wales,193434
+74037,-34.62,146.43,YANCO AGRICULTURAL INSTITUTE,11258,Leeton,1,New South Wales,4171
+74042,-35.64,145.58,FINLEY POST OFFICE,11185,Tocumwal - Finley - Jerilderie,1,New South Wales,97322
+74050,-34.74,146.78,GRONG GRONG (JUNEE ST),11259,Narrandera,1,New South Wales,98169
+74053,-35.52,147.03,HENTY POST OFFICE,11175,Albury Region,1,New South Wales,71825
+74064,-35.22,146.72,LOCKHART BOWLING CLUB,11271,Wagga Wagga Region,1,New South Wales,193434
+74081,-35.99,146.01,MULWALA POST OFFICE,11181,Corowa Region,1,New South Wales,120533
+74087,-35.33,146.03,URANA (NOWRANIE),11185,Tocumwal - Finley - Jerilderie,1,New South Wales,97322
+74100,-35.9,146.45,HOPEFIELD (BARNWEAL),11181,Corowa Region,1,New South Wales,120533
+74104,-35.27,147.11,THE ROCK POST OFFICE,11271,Wagga Wagga Region,1,New South Wales,193434
+74106,-35.82,145.6,TOCUMWAL AIRPORT,11185,Tocumwal - Finley - Jerilderie,1,New South Wales,97322
+74110,-35.33,146.27,URANA POST OFFICE,11181,Corowa Region,1,New South Wales,120533
+74118,-34.51,146.18,WHITTON (CONAPAIRA ST),11257,Griffith Region,1,New South Wales,241529
+74127,-35.11,147.36,WAGGA WAGGA (GURWOOD STREET),11271,Wagga Wagga Region,1,New South Wales,193434
+74128,-35.53,144.97,DENILIQUIN (VISITOR INFORMATION CENTRE),11183,Deniliquin Region,1,New South Wales,121502
+74129,-35.72,144.79,MATHOURA (MATHOURA STATION),11183,Deniliquin Region,1,New South Wales,121502
+74148,-34.71,146.51,NARRANDERA AIRPORT AWS,11259,Narrandera,1,New South Wales,98169
+74162,-34.93,146.3,MORUNDAH HOTEL,11259,Narrandera,1,New South Wales,98169
+74179,-35.26,146.98,TOOTOOL (TORONTO),11271,Wagga Wagga Region,1,New South Wales,193434
+74188,-35.67,147.04,CULCAIRN BOWLING CLUB,11175,Albury Region,1,New South Wales,71825
+74202,-34.85,146.98,GANMAIN (ROSEDALE),11271,Wagga Wagga Region,1,New South Wales,193434
+74205,-35.16,147.03,BELFRAYDEN (NORTH MAYFIELD),11271,Wagga Wagga Region,1,New South Wales,193434
+74208,-35.61,145.2,TUPPAL (WARRAGOON),11183,Deniliquin Region,1,New South Wales,121502
+74236,-36.02,146.76,BUNGOWANNAH (ROSELEIGH),11175,Albury Region,1,New South Wales,71825
+74249,-34.8,145.89,COLEAMBALLY IRRIGATION,11257,Griffith Region,1,New South Wales,241529
+74254,-34.51,146.43,LEETON (FIVEBOUGH RD),11258,Leeton,1,New South Wales,4171
+74258,-35.56,144.95,DENILIQUIN AIRPORT AWS,11183,Deniliquin Region,1,New South Wales,121502
+74262,-35.79,144.6,BUNNALOO (GLENKANA),11183,Deniliquin Region,1,New South Wales,121502
+74264,-35.41,147.25,MANGOPLAH (FOREST VALE),11271,Wagga Wagga Region,1,New South Wales,193434
+74268,-34.21,146.86,ARDLETHAN (STRATHBOGIE),11069,West Wyalong,1,New South Wales,199959
+74269,-34.83,147.36,MARRAR (JUNEE RD),11271,Wagga Wagga Region,1,New South Wales,193434
+74270,-35.47,145.3,DENILIQUIN (MAYRUNG (MELBERGEN)),11183,Deniliquin Region,1,New South Wales,121502
+75012,-35.42,144.6,WAKOOL (CALIMO),11183,Deniliquin Region,1,New South Wales,121502
+75017,-33.17,146.64,LAKE CARGELLIGO (FAIRVIEW),11062,Condobolin,1,New South Wales,251555
+75039,-33.28,146.37,LAKE CARGELLIGO AIRPORT,11062,Condobolin,1,New South Wales,251555
+75041,-34.25,146.07,GRIFFITH AIRPORT AWS,11257,Griffith Region,1,New South Wales,241529
+75046,-35.09,144.03,MOULAMEIN POST OFFICE,11183,Deniliquin Region,1,New South Wales,121502
+75054,-35.28,145.21,CONARGO (PUCKAWIDGEE),11183,Deniliquin Region,1,New South Wales,121502
+75056,-34.94,144.74,BOOROORBAN (RAMSAY),11183,Deniliquin Region,1,New South Wales,121502
+75062,-34.81,144.17,MOULAMEIN (TCHELERY),11183,Deniliquin Region,1,New South Wales,121502
+75071,-35.21,144.82,WANGANELLA GENERAL STORE,11183,Deniliquin Region,1,New South Wales,121502
+75072,-33.94,146.61,WEETHALLE (MOUNTAIN VIEW),11069,West Wyalong,1,New South Wales,199959
+75079,-34.25,146.19,YENDA (HENRY STREET),11257,Griffith Region,1,New South Wales,241529
+75086,-35.47,144.4,WAKOOL (MURRAY IRRIGATION),11183,Deniliquin Region,1,New South Wales,121502
+75093,-35.14,143.83,MALLAN (OAKBANK),11183,Deniliquin Region,1,New South Wales,121502
+75173,-34.64,145.15,HAY (BEDARBIDGAL),11177,Hay,1,New South Wales,13683
+76000,-34.85,142.78,ANNUELLO,21405,Swan Hill Region,2,Victoria,233358
+76012,-35.17,143,MANANGATANG (EUREKA EAST),21405,Swan Hill Region,2,Victoria,233358
+76015,-34.23,142.15,IRYMPLE (ARLINGTON),21398,Mildura Region,2,Victoria,378977
+76017,-35.19,143.04,MANANGATANG (CHINKAPOOK),21405,Swan Hill Region,2,Victoria,233358
+76018,-35.11,142.92,MANANGATANG (COCAMBA),21405,Swan Hill Region,2,Victoria,233358
+76031,-34.24,142.09,MILDURA AIRPORT,21398,Mildura Region,2,Victoria,378977
+76038,-35.26,141.18,MURRAYVILLE,21398,Mildura Region,2,Victoria,378977
+76043,-34.93,142.18,NULKWYNE KIAMAL,21398,Mildura Region,2,Victoria,378977
+76044,-35.18,143.37,NYAH,21405,Swan Hill Region,2,Victoria,233358
+76046,-35.17,143.28,NYAH (YARRABY TANK),21405,Swan Hill Region,2,Victoria,233358
+76047,-35.07,142.31,OUYEN (POST OFFICE),21398,Mildura Region,2,Victoria,378977
+76050,-35.26,143.37,PIRA WILD HORSE PLAINS,21405,Swan Hill Region,2,Victoria,233358
+76051,-34.36,141.9,PIRLTA,21398,Mildura Region,2,Victoria,378977
+76052,-34.31,142.19,RED CLIFFS (POST OFFICE),21398,Mildura Region,2,Victoria,378977
+76064,-35.12,142,WALPEUP RESEARCH,21398,Mildura Region,2,Victoria,378977
+76067,-34.39,141.6,WERRIMULL,21398,Mildura Region,2,Victoria,378977
+76103,-35.19,142.37,BRONZEWING,21398,Mildura Region,2,Victoria,378977
+76105,-34.72,143.15,BOUNDARY BEND,21405,Swan Hill Region,2,Victoria,233358
+76106,-35.25,141.08,MURRAYVILLE (CARINA),21398,Mildura Region,2,Victoria,378977
+76107,-35.28,141.49,TUTYE (BUNUROUK),21398,Mildura Region,2,Victoria,378977
+76108,-35.17,141.69,LINGA,21398,Mildura Region,2,Victoria,378977
+77004,-35.94,142.42,BEULAH,21394,Yarriambiack,2,Victoria,184057
+77005,-35.64,143,BERRIWILLOCK,21400,Buloke,2,Victoria,211323
+77008,-35.92,142.85,BIRCHIP (WOODLANDS),21400,Buloke,2,Victoria,211323
+77010,-35.72,142.36,HOPETOUN AIRPORT,21394,Yarriambiack,2,Victoria,184057
+77014,-35.72,143.11,CULGOA,21400,Buloke,2,Victoria,211323
+77015,-35.56,142.54,GAMA,21394,Yarriambiack,2,Victoria,184057
+77023,-35.67,143.38,LALBERT,21401,Gannawarra,2,Victoria,59105
+77025,-35.46,143.63,LAKE BOGA,21405,Swan Hill Region,2,Victoria,233358
+77026,-35.61,142.58,LASCELLES,21394,Yarriambiack,2,Victoria,184057
+77034,-35.93,143.5,QUAMBATOOK SOUTH,21401,Gannawarra,2,Victoria,59105
+77039,-35.5,142.85,SEA LAKE (POST OFFICE),21400,Buloke,2,Victoria,211323
+77040,-35.53,142.73,SEA LAKE (MARSTON DOWNS),21400,Buloke,2,Victoria,211323
+77048,-35.47,143.27,ULTIMA (POST OFFICE),21405,Swan Hill Region,2,Victoria,233358
+77052,-35.68,142.67,WOOMELANG,21394,Yarriambiack,2,Victoria,184057
+77079,-36.01,143.37,NINYEUNOOK,21400,Buloke,2,Victoria,211323
+77082,-35.93,142.28,BEULAH WEST,21394,Yarriambiack,2,Victoria,184057
+77088,-35.99,142.92,BIRCHIP CROPPING GROUP,21400,Buloke,2,Victoria,211323
+77094,-35.38,143.54,SWAN HILL AERODROME,21405,Swan Hill Region,2,Victoria,233358
+77095,-35.67,142.27,HOPETOUN (WIRRBIBIAL DOWNS),21394,Yarriambiack,2,Victoria,184057
+78001,-36.1,141,TELOPEA DOWNS (BLUE HILLS),21390,Nhill Region,2,Victoria,128334
+78010,-36.46,142.03,DIMBOOLA,21390,Nhill Region,2,Victoria,128334
+78013,-36.4,141.88,GERANG GERUNG,21390,Nhill Region,2,Victoria,128334
+78015,-36.31,141.65,NHILL AERODROME,21390,Nhill Region,2,Victoria,128334
+78018,-36.32,142.42,KELLALAC (WARRACKNABEAL AIRPORT),21394,Yarriambiack,2,Victoria,184057
+78029,-36.46,142.59,MINYIP (POST OFFICE),21394,Yarriambiack,2,Victoria,184057
+78038,-36.27,142.22,WARRACKNABEAL (EARLSTAN),21394,Yarriambiack,2,Victoria,184057
+78040,-36.29,141.74,NHILL (WOORAK),21390,Nhill Region,2,Victoria,128334
+78042,-36.08,143.23,WYCHEPROOF,21400,Buloke,2,Victoria,211323
+78072,-36.37,142.97,DONALD,21400,Buloke,2,Victoria,211323
+78077,-36.26,142.41,WARRACKNABEAL MUSEUM,21394,Yarriambiack,2,Victoria,184057
+78078,-36.37,141.24,KANIVA,21390,Nhill Region,2,Victoria,128334
+78080,-36.3,142.02,ANTWERP,21390,Nhill Region,2,Victoria,128334
+79002,-36.95,143.2,BARKLY,21013,Avoca,2,Victoria,4630
+79008,-36.94,141.87,CLEAR LAKE,21389,Horsham Region,2,Victoria,55624
+79010,-36.78,142.39,DRUNG DRUNG,21389,Horsham Region,2,Victoria,55624
+79011,-37.04,141.3,EDENHOPE (POST OFFICE),21393,West Wimmera,2,Victoria,27014
+79016,-36.73,142.73,WARRANOOKE (GLENORCHY),21391,St Arnaud,2,Victoria,24481
+79017,-36.72,141.47,GOROKE (POST OFFICE),21393,West Wimmera,2,Victoria,27014
+79019,-37.18,142.86,GREAT WESTERN (SEPPELT),21392,Stawell,2,Victoria,9708
+79028,-36.67,142.3,LONGERENONG,21389,Horsham Region,2,Victoria,55624
+79031,-36.99,143.27,MOONAMBEL,21013,Avoca,2,Victoria,4630
+79032,-36.86,142.93,MORRL MORRL (VALLEY VIEW),21392,Stawell,2,Victoria,9708
+79036,-36.74,141.94,NATIMUK,21389,Horsham Region,2,Victoria,55624
+79037,-36.9,143.11,NAVARRE,21391,St Arnaud,2,Victoria,24481
+79039,-36.91,143.34,REDBANK,21391,St Arnaud,2,Victoria,24481
+79040,-36.62,143.26,ST ARNAUD,21391,St Arnaud,2,Victoria,24481
+79050,-37.32,142.7,MOYSTON (BARTON ESTATE),21387,Ararat Region,2,Victoria,49087
+79071,-36.97,141.08,APSLEY (POST OFFICE),21393,West Wimmera,2,Victoria,27014
+79075,-36.63,142.63,RUPANYUP (POST OFFICE),21394,Yarriambiack,2,Victoria,184057
+79078,-37.06,141.99,TELANGATUK EAST (MILINGIMBI),21389,Horsham Region,2,Victoria,55624
+79082,-36.7,142.2,HORSHAM,21389,Horsham Region,2,Victoria,55624
+79083,-36.87,141.01,BENAYEO,21393,West Wimmera,2,Victoria,27014
+79097,-37.12,141.8,KANAGULK,21389,Horsham Region,2,Victoria,55624
+79099,-37.02,141.27,EDENHOPE AIRPORT,21393,West Wimmera,2,Victoria,27014
+79100,-36.67,142.17,HORSHAM AERODROME,21389,Horsham Region,2,Victoria,55624
+79101,-37.23,143.2,PYRENEES (BEN NEVIS),21013,Avoca,2,Victoria,4630
+79105,-37.07,142.74,STAWELL AERODROME,21392,Stawell,2,Victoria,9708
+79107,-36.81,141.26,PATYAH (BOOROOPKI),21393,West Wimmera,2,Victoria,27014
+80002,-36.12,143.72,BOORT,21033,Loddon,2,Victoria,70567
+80004,-35.97,143.85,CANARY ISLAND,21033,Loddon,2,Victoria,70567
+80009,-36.48,143.35,ST ARNAUD (COONOOER BRIDGE),21400,Buloke,2,Victoria,211323
+80014,-36.13,143.92,DURHAM OX,21033,Loddon,2,Victoria,70567
+80015,-36.16,144.76,ECHUCA AERODROME,21406,Echuca,2,Victoria,2498
+80017,-36.04,143.94,GLADFIELD HOPEFIELD ESTATE,21033,Loddon,2,Victoria,70567
+80020,-35.97,144.37,GUNBOWER GEE TEE STUD,21408,Lockington - Gunbower,2,Victoria,11514
+80023,-35.72,143.92,KERANG,21402,Kerang,2,Victoria,4165
+80027,-36.32,143.74,KORONG VALE (BURNBANK),21033,Loddon,2,Victoria,70567
+80036,-35.97,144.11,MINCHA,21033,Loddon,2,Victoria,70567
+80049,-36.36,144.71,ROCHESTER,21409,Rochester,2,Victoria,5030
+80065,-35.93,145.56,YARROWEYAH,21413,Numurkah,2,Victoria,15058
+80067,-36.27,143.35,CHARLTON (DONALD ST),21400,Buloke,2,Victoria,211323
+80091,-36.34,145.06,KYABRAM,21407,Kyabram,2,Victoria,3132
+80095,-36.22,144.54,KOTTA,21408,Lockington - Gunbower,2,Victoria,11514
+80103,-36.38,144.23,DINGEE,21033,Loddon,2,Victoria,70567
+80125,-35.89,145.39,ULUPNA,21413,Numurkah,2,Victoria,15058
+80126,-35.72,143.91,KERANG MODEL FARM,21402,Kerang,2,Victoria,4165
+80128,-36.28,143.33,CHARLTON,21400,Buloke,2,Victoria,211323
+81000,-37.09,143.47,AVOCA (POST OFFICE),21013,Avoca,2,Victoria,4630
+81002,-36.79,143.54,BEALIBA,21017,Maryborough Region,2,Victoria,8133
+81006,-36.67,143.55,BURKES FLAT,21033,Loddon,2,Victoria,70567
+81007,-36.46,145.66,CANIAMBO,21419,Shepparton Region - West,2,Victoria,24355
+81008,-36.54,144.78,COLBINABBIN,21410,Rushworth,2,Victoria,13027
+81013,-36.37,145.7,DOOKIE AGRICULTURAL COLLEGE,21419,Shepparton Region - West,2,Victoria,24355
+81016,-36.5,144.61,ELMORE,21032,Bendigo Region - North,2,Victoria,22057
+81019,-36.72,145.17,NAGAMBIE (GOULBURN WEIR),21058,Nagambie,2,Victoria,4274
+81020,-36.58,143.87,INGLEWOOD (POST OFFICE),21033,Loddon,2,Victoria,70567
+81033,-36.64,145.42,MOLKA (LOWANA),21055,Euroa,2,Victoria,6620
+81034,-36.4,145.34,MOOROOPNA,21419,Shepparton Region - West,2,Victoria,24355
+81035,-36.61,145.21,MURCHISON,21419,Shepparton Region - West,2,Victoria,24355
+81038,-36.94,143.47,NATTE YALLOCK,21013,Avoca,2,Victoria,4630
+81041,-36.53,144.21,RAYWOOD,21032,Bendigo Region - North,2,Victoria,22057
+81046,-36.44,144.98,STANHOPE,21410,Rushworth,2,Victoria,13027
+81047,-36.77,143.83,TARNAGULLA,21033,Loddon,2,Victoria,70567
+81049,-36.44,145.27,TATURA INST SUSTAINABLE AG,21419,Shepparton Region - West,2,Victoria,24355
+81053,-36.51,145.09,WARANGA SHORES (WARANGA RESERVOIR),21410,Rushworth,2,Victoria,13027
+81085,-36.86,143.73,DUNOLLY,21017,Maryborough Region,2,Victoria,8133
+81087,-36.26,146.04,BUNGEET (HIGHLANDS),21064,Benalla Region,2,Victoria,16258
+81090,-36.74,143.68,MOLIAGUL,21017,Maryborough Region,2,Victoria,8133
+81095,-36.59,145.31,MURCHISON (ARCADIA (SUNNYVILLE)),21419,Shepparton Region - West,2,Victoria,24355
+81115,-36.63,144.87,WANALTA DAEN STATION,21410,Rushworth,2,Victoria,13027
+81120,-36.58,145.01,RUSHWORTH (RAGLUS),21410,Rushworth,2,Victoria,13027
+81124,-36.03,146.03,YARRAWONGA,21414,Yarrawonga,2,Victoria,4682
+81125,-36.43,145.39,SHEPPARTON AIRPORT,21419,Shepparton Region - West,2,Victoria,24355
+81127,-36.89,143.5,AVOCA RIVER AT ARCHDALE JUNCTION,21017,Maryborough Region,2,Victoria,8133
+81128,-36.74,143.83,TARNAGULLA (LLANELLY),21033,Loddon,2,Victoria,70567
+82009,-36.61,146.54,CARBOOR,21067,Wangaratta Region,2,Victoria,7343
+82015,-36.31,146.52,ELDORADO,21067,Wangaratta Region,2,Victoria,7343
+82016,-36.75,145.57,EUROA,21055,Euroa,2,Victoria,6620
+82029,-36.46,146.43,MILAWA BROWN BROS,21067,Wangaratta Region,2,Victoria,7343
+82033,-36.7,146.29,MYRRHEE (JOELYN),21067,Wangaratta Region,2,Victoria,7343
+82042,-36.85,145.73,STRATHBOGIE,21055,Euroa,2,Victoria,6620
+82049,-36.63,145.72,VIOLET TOWN,21055,Euroa,2,Victoria,6620
+82084,-36.71,145.76,BOHO (HONEYSUCKLE CK U/S VIOLET TOWN),21055,Euroa,2,Victoria,6620
+82096,-36.9,145.52,CREIGHTONS CREEK (BARONGA (CREIGHTON'S C,21055,Euroa,2,Victoria,6620
+82105,-36.83,146.4,WHITFIELD (KING RIVER AT CHESHUNT),21067,Wangaratta Region,2,Victoria,7343
+82109,-36.61,146.11,MOLYULLAH (KILLANOOLA),21064,Benalla Region,2,Victoria,16258
+82110,-36.76,146.09,TATONG,21064,Benalla Region,2,Victoria,16258
+82116,-36.61,146.36,MYRRHEE (BOGGY CK AT ANGLESIDE),21067,Wangaratta Region,2,Victoria,7343
+82128,-36.51,146.45,HURDLE CK AT BOBINAWARRAH,21067,Wangaratta Region,2,Victoria,7343
+82138,-36.42,146.31,WANGARATTA AERO,21067,Wangaratta Region,2,Victoria,7343
+82140,-36.85,145.94,LIMA EAST (CHARNWOOD),21064,Benalla Region,2,Victoria,16258
+82143,-36.79,145.66,SHEANS CREEK (HERONSLEA),21055,Euroa,2,Victoria,6620
+82144,-36.82,145.64,KELVIN VIEW (WATERHOUSE RESERVOIR),21055,Euroa,2,Victoria,6620
+82145,-36.88,145.58,GOORAM (HILLSIDE),21055,Euroa,2,Victoria,6620
+82146,-36.93,145.58,GOORAM (MORELLA),21055,Euroa,2,Victoria,6620
+82147,-36.92,145.68,MERTON (ENDERLEE),21055,Euroa,2,Victoria,6620
+82149,-36.79,145.57,EUROA (CASTLE CK AT TELFORD BRIDGE),21055,Euroa,2,Victoria,6620
+82151,-36.86,145.73,SEVEN CREEKS AT STRATHBOGIE,21055,Euroa,2,Victoria,6620
+82153,-36.82,145.71,KITHBROOK (BALQUHAIN),21055,Euroa,2,Victoria,6620
+82154,-36.89,145.68,SEVEN CREEKS AT D/S POLLY MCQUINNS WEIR,21055,Euroa,2,Victoria,6620
+82155,-36.82,146.13,HOLLAND CK AT WRIGHTLEY,21064,Benalla Region,2,Victoria,16258
+82156,-36.79,146.28,MYRHEE (HANDCOCKS),21067,Wangaratta Region,2,Victoria,7343
+82158,-36.75,146.54,EDI UPPER (BLACK RANGE TROUT FARM),21067,Wangaratta Region,2,Victoria,7343
+82163,-36.64,146.55,CARBOOR UPPER,21067,Wangaratta Region,2,Victoria,7343
+82166,-36.42,146.56,BLOOMFIELD PARK (EVERTON),21067,Wangaratta Region,2,Victoria,7343
+82167,-36.53,146.22,GRETA WEST,21067,Wangaratta Region,2,Victoria,7343
+82170,-36.55,146,BENALLA AIRPORT,21064,Benalla Region,2,Victoria,16258
+83083,-36.74,146.47,EDI UPPER,21067,Wangaratta Region,2,Victoria,7343
+84100,-37.83,147.62,BAIRNSDALE WATERWORKS,21081,Bairnsdale,2,Victoria,230
+85279,-37.88,147.57,BAIRNSDALE AIRPORT,21081,Bairnsdale,2,Victoria,230
+87006,-37.6,144.23,BALLAN,21009,Bacchus Marsh Region,2,Victoria,3844
+87007,-37.74,144.14,MORRISONS (BALLARK),21012,Gordon (Vic.),2,Victoria,2588
+87021,-37.82,144.21,DURDIDWARRAH,21035,Golden Plains - South,2,Victoria,10797
+87042,-37.86,144.11,MEREDITH,21035,Golden Plains - South,2,Victoria,10797
+87043,-37.82,144.15,MEREDITH (DARRA),21035,Golden Plains - South,2,Victoria,10797
+87068,-37.65,144.04,MOORABOOL RIVER AT LAL LAL,21012,Gordon (Vic.),2,Victoria,2588
+87095,-37.61,144.3,PYKES CREEK RESERVOIR,21009,Bacchus Marsh Region,2,Victoria,3844
+87124,-38.25,144.09,BUCKLEY (BALLIWINDI),21036,Winchelsea,2,Victoria,7093
+87162,-38.14,144.19,GNARWARRE (BARWON RIVER AT POLLOCKSFORD),21036,Winchelsea,2,Victoria,7093
+87168,-37.91,144.13,SHEOAKS,21035,Golden Plains - South,2,Victoria,10797
+88002,-36.89,145.23,AVENEL (POST OFFICE),21058,Nagambie,2,Victoria,4274
+88009,-36.99,143.97,CAIRN CURRAN RESERVOIR,21028,Castlemaine Region,2,Victoria,4646
+88015,-37.3,143.78,CLUNES,21010,Creswick - Clunes,2,Victoria,4367
+88019,-37.42,143.89,CRESWICK,21010,Creswick - Clunes,2,Victoria,4367
+88032,-37.09,144,JOYCES CREEK,21028,Castlemaine Region,2,Victoria,4646
+88048,-37.11,144.06,NEWSTEAD,21028,Castlemaine Region,2,Victoria,4646
+88051,-37.02,144.52,REDESDALE,21028,Castlemaine Region,2,Victoria,4646
+88109,-36.89,145.19,MANGALORE AIRPORT,21058,Nagambie,2,Victoria,4274
+88137,-37.16,143.55,LILLICUR,21013,Avoca,2,Victoria,4630
+89003,-37.25,141.84,BALMORAL (POST OFFICE),21423,Southern Grampians,2,Victoria,17966
+89005,-37.45,143.37,BEAUFORT,21014,Beaufort,2,Victoria,16676
+89009,-37.53,142.04,CAVENDISH (POST OFFICE),21423,Southern Grampians,2,Victoria,17966
+89010,-38.03,143.63,CRESSY,21473,Colac Region,2,Victoria,4087
+89011,-37.66,142.34,DUNKELD,21423,Southern Grampians,2,Victoria,17966
+89016,-37.71,142.84,LAKE BOLAC (POST OFFICE),21387,Ararat Region,2,Victoria,49087
+89018,-37.95,143.34,LISMORE (POST OFFICE),21474,Corangamite - North,2,Victoria,33874
+89025,-37.69,143.37,SKIPTON POST OFFICE,21474,Corangamite - North,2,Victoria,33874
+89033,-37.69,142.73,WICKLIFFE,21387,Ararat Region,2,Victoria,49087
+89034,-37.55,142.74,WILLAURA (MAIN STREET),21387,Ararat Region,2,Victoria,49087
+89043,-37.39,141.92,GATUM,21423,Southern Grampians,2,Victoria,17966
+89068,-37.9,143.72,ROKEWOOD,21035,Golden Plains - South,2,Victoria,10797
+89074,-37.95,143.22,DERRINALLUM (POST OFFICE),21474,Corangamite - North,2,Victoria,33874
+89082,-37.5,143.28,BEAUFORT (SHEEPWASH),21014,Beaufort,2,Victoria,16676
+89084,-37.93,143.87,WARRAMBINE CK AT WARRAMBINE,21035,Golden Plains - South,2,Victoria,10797
+89085,-37.28,142.98,ARARAT PRISON,21387,Ararat Region,2,Victoria,49087
+89103,-37.97,143.22,DERRINALLUM (CRAIGMORE),21474,Corangamite - North,2,Victoria,33874
+89104,-37.81,143.92,LEIGH RIVER @ MOUNT MERCER,21035,Golden Plains - South,2,Victoria,10797
+89106,-37.42,143.67,ADDINGTON,21010,Creswick - Clunes,2,Victoria,4367
+89107,-37.35,143.3,RAGLAN,21014,Beaufort,2,Victoria,16676
+89109,-37.36,143.2,BUANGOR (CRAIGIE),21387,Ararat Region,2,Victoria,49087
+89112,-37.71,142.94,WESTMERE,21387,Ararat Region,2,Victoria,49087
+90005,-38.2,143.64,BEEAC (POST OFFICE),21473,Colac Region,2,Victoria,4087
+90008,-38.34,143.78,BIRREGURRA (POST OFFICE),21473,Colac Region,2,Victoria,4087
+90010,-37.86,141.77,BRANXHOLME (BASSETT),21423,Southern Grampians,2,Victoria,17966
+90022,-38.28,143.66,COLAC AIRPORT,21473,Colac Region,2,Victoria,4087
+90024,-37.6,141.69,COLERAINE HOSPITAL,21423,Southern Grampians,2,Victoria,17966
+90035,-38.23,143.79,COLAC (MOUNT GELLIBRAND),21473,Colac Region,2,Victoria,4087
+90045,-38.11,142.32,HAWKESDALE (POST OFFICE),21478,Moyne - West,2,Victoria,1678
+90055,-38.03,142,MACARTHUR (POST OFFICE),21478,Moyne - West,2,Victoria,1678
+90057,-37.72,141.55,MERINO,21420,Glenelg (Vic.),2,Victoria,1742
+90062,-37.88,142.42,PENSHURST (THE GUMS),21423,Southern Grampians,2,Victoria,17966
+90063,-37.88,142.29,PENSHURST (POST OFFICE),21423,Southern Grampians,2,Victoria,17966
+90077,-38.24,142.92,TERANG,21474,Corangamite - North,2,Victoria,33874
+90147,-38.34,143.58,COLAC (SHIRE OFFICE),21473,Colac Region,2,Victoria,4087
+90173,-37.65,142.06,HAMILTON AIRPORT,21423,Southern Grampians,2,Victoria,17966
+90176,-38.07,142.77,MORTLAKE RACECOURSE,21477,Moyne - East,2,Victoria,13075
+109511,-34.66,117.89,PORONGURUPS,51234,Plantagenet,5,Western Australia,8628
+109512,-34.73,117.78,PORONGURUP SOUTH,51234,Plantagenet,5,Western Australia,8628
+109515,-34.65,117.91,PORONGURUP NORTH,51234,Plantagenet,5,Western Australia,8628
+109516,-32.78,116.48,BODDINGTON NORTH,51248,Murray,5,Western Australia,110
+140000,-27.27,152.06,CROWS NEST JOHN ST,31179,Crows Nest - Rosalie,3,Queensland,3896
+200001,-21.66,150.27,MIDDLE PERCY ISLAND,31338,Broadsound - Nebo,3,Queensland,4148

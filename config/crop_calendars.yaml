@@ -1,0 +1,122 @@
+# Crop Calendar Configuration
+# Used by Risk Engine agent for event detection timing
+# Based on general Australian wheat growing seasons
+
+# Wheat growing stages and typical timing
+wheat:
+  # Stage definitions with month ranges (approximate)
+  stages:
+    planting:
+      months: [4, 5, 6]        # Apr-Jun (Autumn planting)
+      description: "Seeding and early establishment"
+      
+    emergence:
+      months: [5, 6, 7]        # May-Jul  
+      description: "Crop emergence, vulnerable to frost"
+      frost_critical: true
+      
+    tillering:
+      months: [6, 7, 8]        # Jun-Aug
+      description: "Plant development, some frost tolerance"
+      frost_critical: false
+      
+    stem_elongation:
+      months: [8, 9]           # Aug-Sep
+      description: "Rapid growth, frost risk returns"
+      frost_critical: true
+      
+    flowering:
+      months: [9, 10]          # Sep-Oct  
+      description: "Most frost-sensitive stage"
+      frost_critical: true
+      heat_critical: false
+      
+    grain_fill:
+      months: [10, 11]         # Oct-Nov
+      description: "Heat stress can reduce grain size/quality" 
+      frost_critical: true
+      heat_critical: true
+      
+    maturity:
+      months: [11, 12]         # Nov-Dec
+      description: "Crop ready for harvest"
+      frost_critical: false
+      heat_critical: false
+      
+    harvest:
+      months: [11, 12, 1]      # Nov-Jan (extends into summer)
+      description: "Rainfall risk for quality downgrades"
+      rain_critical: true
+
+# Regional variations (simplified for MVP)
+regions:
+  # Statistical Division level adjustments
+  # Format: SD_code: {stage_adjustments}
+  
+  default:
+    # Default calendar used if no specific regional data
+    calendar: "wheat"
+    
+  # Example regional adjustments (implement as needed)
+  # "WA_Central_Wheat":
+  #   calendar: "wheat"
+  #   adjustments:
+  #     planting: [4, 5]      # Earlier planting in WA
+  #     harvest: [11, 12]     # Earlier harvest
+      
+  # "SA_Mallee": 
+  #   calendar: "wheat"
+  #   adjustments:
+  #     grain_fill: [10, 11, 12]  # Extended grain fill
+
+# Crop mix weights by region (for severity scoring)
+# TODO M2: Import actual crop statistics
+crop_mix:
+  default:
+    wheat: 0.8
+    barley: 0.15  
+    other: 0.05
+    
+# Critical temperature thresholds by stage
+thresholds:
+  frost:
+    # Temperature thresholds (°C) by crop stage
+    emergence:
+      light: 2.0      # 0-2°C: Light damage
+      moderate: 0.0   # -2-0°C: Moderate damage  
+      severe: -2.0    # <-2°C: Severe damage
+      
+    flowering:
+      light: 1.0      # More sensitive during flowering
+      moderate: -1.0
+      severe: -3.0
+      
+    grain_fill:
+      light: 0.0      # Critical stage
+      moderate: -2.0
+      severe: -4.0
+      
+  heat:
+    grain_fill:
+      stress: 32.0    # >32°C: Heat stress begins
+      severe: 35.0    # >35°C: Severe impact on grain quality
+      
+  rainfall:
+    harvest:
+      heavy_day: 10.0      # >10mm in single day
+      moderate_period: 15.0 # >15mm over 3 days  
+      severe_period: 25.0   # >25mm over 3 days
+
+# Notes and assumptions
+metadata:
+  source: "General Australian wheat calendar - simplified for MVP"
+  assumptions:
+    - "Based on southeastern Australian conditions"
+    - "Regional variations not fully implemented"  
+    - "Stage timing approximate - varies by variety and year"
+    - "Thresholds based on industry literature review"
+  
+  validation_needed:
+    - "Compare with actual planting/harvest dates"
+    - "Validate thresholds against known damage events"
+    - "Refine regional variations with local expertise"

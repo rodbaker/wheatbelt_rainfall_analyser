@@ -1,0 +1,123 @@
+# Risk Engine Assumptions Configuration
+# Used for transparency and auditability of event detection
+# This file is saved alongside outputs for full traceability
+
+# Event detection assumptions
+detection:
+  version: "v1.0-mvp"
+  created_date: "2025-09-07"
+  
+  # Data quality assumptions
+  data_quality:
+    min_completeness: 0.8        # Require 80%+ data availability for confident detection
+    interpolated_acceptable: true # Accept SILO quality code 15 (interpolated)
+    synthetic_acceptable: false   # Reject SILO quality code 35 (long-term average)
+    gap_handling: "lower_confidence"  # Reduce confidence score for data gaps
+    
+  # Spatial assumptions  
+  spatial:
+    station_representativeness: "10km_radius"    # Assume station represents ~10km area
+    statistical_division_aggregation: "area_weighted"  # Weight by agricultural area
+    boundary_source: "abs_statistical_areas_2021"     # ABS Statistical Areas
+    
+  # Temporal assumptions
+  temporal:
+    daily_reporting: true              # All events reported on daily basis
+    growing_season: "april_to_january"  # Southern hemisphere wheat season
+    stage_transitions: "calendar_based" # Use fixed calendar vs actual observations
+    
+# Threshold assumptions
+thresholds:
+  # Frost detection logic
+  frost:
+    methodology: "minimum_temperature_based"
+    measurement_height: "screen_level"     # Standard weather station height
+    duration_threshold: "single_night"     # Count any night below threshold
+    consecutive_weighting: true            # Weight consecutive nights higher
+    
+    severity_classification:
+      light: "0_to_2_celsius"
+      moderate: "minus2_to_0_celsius" 
+      severe: "below_minus2_celsius"
+      
+    stage_sensitivity:
+      most_vulnerable: ["emergence", "flowering", "grain_fill"]
+      moderate_risk: ["stem_elongation"]
+      low_risk: ["tillering", "maturity", "harvest"]
+      
+  # Heat stress detection  
+  heat:
+    methodology: "maximum_temperature_based"
+    accumulation: "daily_exceedance_count"  # Count days above threshold
+    duration_weighting: false               # Single day events significant
+    
+    severity_classification:
+      stress: "above_32_celsius"
+      severe: "above_35_celsius"
+      
+    stage_sensitivity:
+      most_vulnerable: ["grain_fill"]
+      moderate_risk: ["flowering"]
+      
+  # Rainfall risk detection
+  rainfall:
+    methodology: "accumulation_based"
+    windows: [1, 3, 5, 7]                  # Check 1,3,5,7 day accumulations
+    timing_critical: ["harvest"]           # Only critical during harvest
+    
+    severity_classification:
+      moderate: "10mm_single_day"
+      high: "15mm_three_days"
+      severe: "25mm_three_days"
+
+# Statistical assumptions
+statistics:
+  # Confidence scoring
+  confidence:
+    full_data: 1.0          # 100% confidence with complete data
+    minor_gaps: 0.8         # 80% confidence with <20% missing data
+    major_gaps: 0.5         # 50% confidence with 20-50% missing data
+    insufficient_data: 0.0  # No confidence with >50% missing data
+    
+  # Aggregation methods
+  aggregation:
+    regional_weighting: "agricultural_area"  # Weight by crop area in region
+    missing_stations: "ignore"               # Don't interpolate missing stations
+    outlier_handling: "include"              # Include all valid observations
+    
+# Limitations and caveats
+limitations:
+  known_issues:
+    - "Station micro-climate may not represent broader area"
+    - "Fixed calendar stages vs actual phenology observations"
+    - "Thresholds based on literature, not locally calibrated"
+    - "No consideration of crop variety differences"
+    - "Weather station quality and siting variations not accounted"
+    
+  validation_status:
+    frost_thresholds: "literature_based"
+    heat_thresholds: "literature_based"  
+    rain_thresholds: "industry_consultation"
+    regional_variations: "not_implemented"
+    
+  improvement_priorities:
+    1: "Validate thresholds against known damage events"
+    2: "Implement actual phenology observations vs fixed calendar"  
+    3: "Add crop variety and management practice adjustments"
+    4: "Refine regional variations with local expertise"
+    5: "Implement multi-variable risk interactions"
+
+# Model versioning
+versioning:
+  schema_version: "1.0"
+  assumptions_version: "mvp-2025-09-07"
+  next_review_date: "2025-10-01"
+  change_log:
+    - "2025-09-07: Initial MVP assumptions established"
+    
+# Contact and governance
+governance:
+  responsible_analyst: "RJB"
+  review_frequency: "monthly_during_season"
+  approval_required_for: ["threshold_changes", "methodology_changes"]
+  stakeholder_review: ["agronomists", "growers", "data_scientists"]

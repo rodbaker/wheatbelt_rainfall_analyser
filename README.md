@@ -17,6 +17,8 @@ Project Organization
     │   └── colormaps      <- Color maps for visualisation
     │
     ├── docs               <- A default Sphinx project; see sphinx-doc.org for details
+    │   ├── Logpaddock_SILO_API_Reference.pdf  <- Official SILO API documentation
+    │   └── silo_api_usage_guide.md            <- SILO API quickstart guide for CropForecaster
     │
     ├── models             <- Trained and serialized models, model predictions, or model summaries
     │
@@ -63,6 +65,13 @@ To set up the project environment, run:
 `pip install -r requirements.txt`
 It is recommended to use a virtual environment (e.g., `venv` or `conda`) to isolate the project dependencies.
 
+
+SILO API Integration
+--------------------
+This project uses the SILO API for daily weather data ingestion. Key documentation:
+
+- **API Reference**: [`docs/Logpaddock_SILO_API_Reference.pdf`](docs/Logpaddock_SILO_API_Reference.pdf) - Official SILO API documentation
+- **Quickstart Guide**: [`docs/silo_api_usage_guide.md`](docs/silo_api_usage_guide.md) - CropForecaster-specific API usage examples
 
 Running the analysis
 --------------------

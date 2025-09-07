@@ -1,0 +1,114 @@
+# SILO Data Sources Configuration
+# Used by SILO Wrangler agent for data ingestion
+
+# API Configuration
+api:
+  base_url: "https://www.longpaddock.qld.gov.au/cgi-bin/silo/PatchedPointDataset.php"
+  username: "your@email.com"  # Required by SILO for usage tracking
+  rate_limit_seconds: 0.5     # Respect API (2 requests/second max)
+  timeout_seconds: 30
+  max_retries: 3
+
+# Variables to collect (comment parameter)
+variables:
+  R: "rainfall"           # Rainfall (mm) 
+  N: "min_temperature"    # Minimum temperature (°C)
+  X: "max_temperature"    # Maximum temperature (°C)
+  V: "vapour_pressure"    # Vapour pressure (hPa) - optional for MVP
+  # D: "solar_radiation"  # Uncomment for future crop modeling
+  # E: "pan_evaporation"  # Uncomment for water balance
+
+# Data collection strategy
+collection:
+  mode: "rolling_window"    # rolling_window | full_historical | date_range
+  rolling_days: 90          # For rolling_window: days to collect/update
+  historical_start: "1990-01-01"  # For full_historical mode
+  
+# Station configuration  
+stations:
+  # STATION LOADING OPTIONS:
+  # Option 1: Use tiered configuration below (--tiers active,unverified,inactive,all)
+  # Option 2: Use BOM wheatbelt dataset (--use-bom-dataset with geographic filters)
+  # Option 3: Direct CLI override (--stations "040004,009538")
+  
+  # THREE-TIER STATION CLASSIFICATION SYSTEM
+  
+  # TIER 1: Active stations - BOM verified, high quality data
+  # These are included by default and have been validated against BOM
+  active:
+    "040004": "AMBERLEY AMO"                    # QLD - High quality observed data
+    "009538": "DWELLINGUP"                      # WA - Wheatbelt region, verified active
+    "009789": "ESPERANCE"                       # WA - Coastal, high quality data
+    "009225": "PERTH METRO"                     # WA - Urban reference station
+    "052088": "WALGETT AIRPORT AWS"             # NSW - Verified active AWS
+    "055325": "TAMWORTH AIRPORT AWS"            # NSW - Verified active AWS
+    
+  # TIER 2: Unverified stations - included with quality warnings
+  # These stations need validation but may have good data
+  unverified:
+    "040126": "MARYBOROUGH"                     # QLD - Status needs verification
+    # Add more stations here as they are discovered/tested
+    
+  # TIER 3: Inactive stations - excluded by default unless explicitly requested
+  # These have poor data quality due to discontinuation/interpolation
+  inactive:
+    "040214": "BRISBANE REGIONAL OFFICE"        # QLD - Data ends ~1994
+    "040241": "SAMFORD CSIRO"                   # QLD - Data ends ~2003, heavy interpolation
+    
+  # TIER 4: Status unknown - commented out until verified
+  # "040223": "BRISBANE AERO"                 # Status unknown
+  # "054038": "Roma, QLD"                     # Status unknown  
+  # "070014": "CANBERRA AIRPORT COMPARISON"   # Status unknown
+  # "075031": "HAY (MILLER STREET)"           # Status unknown
+  
+  # TODO M2: Expand to full 2000+ station list
+  # Import from: data/meta/wheatbelt_stations.csv
+
+# BOM Dataset Integration (M2 Feature)
+# Use --use-bom-dataset flag to access 1,376 wheatbelt stations
+bom_dataset:
+  file_path: "data/meta/wheatbelt_stations.csv"
+  
+  # Geographic filtering options (use with --use-bom-dataset):
+  # --states "Western Australia,South Australia,Victoria"
+  # --sample-size 50 --sample-seed 42  # For testing
+  # --min-cropping-area 100000  # Minimum hectares (filters to major cropping areas)
+  
+  # Available states in dataset:
+  available_states:
+    - "Western Australia"      # 277 stations
+    - "South Australia"        # 249 stations  
+    - "Victoria"              # 217 stations
+    - "New South Wales"       # 375 stations
+    - "Queensland"            # 258 stations
+  
+  # Examples:
+  # python -m src.agents.silo_wrangler.run_ingest --use-bom-dataset --sample-size 10 --dry-run
+  # python -m src.agents.silo_wrangler.run_ingest --use-bom-dataset --states "Western Australia" --dry-run
+  # python -m src.agents.silo_wrangler.run_ingest --use-bom-dataset --min-cropping-area 200000 --dry-run
+
+# Quality control
+quality:
+  accept_interpolated: true     # Accept quality code 15 (interpolated)
+  accept_synthetic: false       # Reject quality code 35 (long-term average)
+  min_data_completeness: 0.8    # Require 80%+ data availability
+  min_observed_ratio: 0.3       # Require 30%+ observed (non-interpolated) data
+  max_interpolated_ratio: 0.8   # Flag if >80% interpolated (indicates old station)
+  
+  # Automatic station filtering (NEW)
+  auto_exclude_poor_stations: true    # Automatically skip stations with poor quality
+  min_confidence_threshold: 0.3       # Skip stations below 30% confidence
+  warn_interpolated_threshold: 0.5    # Warn if >50% interpolated data
+
+# Output configuration
+output:
+  format: "csv"                           # csv | parquet  
+  daily_observations: "data/obs/obs_daily.csv"
+  station_metadata: "data/meta/stations.csv" 
+  run_log: "logs/ingest_runs.jsonl"
+  
+# File handling
+files:
+  atomic_writes: true          # Write to temp file, then move
+  backup_days: 30             # Keep backup files for 30 days
+  compression: false          # Set true for .csv.gz if files get large

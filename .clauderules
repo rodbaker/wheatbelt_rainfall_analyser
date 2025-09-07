@@ -1,0 +1,27 @@
+# Claude Code Rules for CropForecaster
+
+## Project Context
+This is CropForecaster - an operational weather monitoring system for Australian wheat crop risk assessment. Focus on production reliability over research exploration.
+
+## Key Documentation to Reference
+- `docs/silo_api_usage_guide.md` - SILO API integration patterns
+- `prd.md` - Event detection thresholds and MVP requirements  
+- `task_manager.md` - Current sprint priorities and blockers
+- `CLAUDE.md` - System architecture and specialized agent scopes
+
+## Development Priorities (September 2025)
+1. M1 Sprint (Sep 10): Basic frost/heat detection working
+2. API reliability and error handling critical
+3. CSV output format must match external system requirements
+4. Performance target: <10 seconds for 2000+ stations
+
+## Code Standards
+- Production-ready error handling required
+- Comprehensive logging for operational monitoring
+- API rate limiting respect (1-2 req/sec max)
+- Data validation for all weather inputs
+
+## When to Use Specialized Agents
+- silo-api-specialist: For all SILO API integration work
+- event-detection-developer: For threshold logic and validation
+- csv-export-system: For output formatting and data exports

@@ -1,10 +1,29 @@
+# CropForecaster - Operational Dependencies
+
 # local package
 -e .
 
-# external requirements
-click
-Sphinx
-coverage
-awscli
-flake8
-python-dotenv>=0.5.1
+# Core operational requirements
+requests>=2.31.0           # SILO API calls
+pandas>=2.0.0              # CSV processing and data manipulation
+pyyaml>=6.0                # YAML config file handling
+python-dateutil>=2.8.0    # Date parsing and handling
+click>=8.0.0               # CLI interfaces
+
+# Environment and configuration
+python-dotenv>=0.5.1       # Environment variable management
+
+# Optional operational enhancements
+# geopandas>=0.13.0        # Statistical Division boundary processing (add when needed)
+# matplotlib>=3.7.0        # Optional visualization generation (add when needed)
+# duckdb>=0.8.0            # Fast CSV querying (add when performance needed)
+
+# Development and quality tools
+flake8>=6.0.0              # Code quality checking
+coverage>=7.0.0            # Test coverage reporting
+
+# Documentation (existing sphinx setup)
+Sphinx>=7.0.0              # Documentation generation
+
+# Legacy/optional (review for removal)
+# awscli                   # Only needed if using S3 uploads - consider removing
