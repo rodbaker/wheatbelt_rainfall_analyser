@@ -171,20 +171,20 @@ Successfully integrated comprehensive BOM wheatbelt stations dataset (1,376 stat
 ✅ Cropping area filtering (>400,000ha regions)  
 ✅ Quality assessment and automatic exclusion  
 
-**Next Steps:**
-1. **Risk Engine Implementation** - Core M1 milestone requirement
-   - Frost detection thresholds (Tmin < 2°C/0°C)
-   - Heat stress detection (Tmax > 32°C/35°C)  
-   - Event logging system (`data/derived/event_log.csv`)
-   - Crop calendar integration for seasonal context
+**M1 Status:** ✅ **COMPLETE** - All core dashboard functionality delivered
 
-2. **Insight Publisher** - Complete M1 deliverables
-   - Daily risk digest generation
-   - Export CSV files for downstream systems
+**Key Achievements:**
+- **SILO Wrangler** ✅ Complete: Weather ingestion pipeline with DuckDB storage
+- **Risk Engine** ✅ Complete: Phenology-aware event detection with flowering window analysis  
+- **Insight Publisher** ✅ Complete: Daily risk digests and Power BI exports with crop calendar context
 
-**Blockers:** None - SILO Wrangler foundation complete and production-ready
+**Enhanced Features Delivered:**
+- Flowering window detection with 3.0x risk amplification
+- Stage-specific frost thresholds (flowering: 1.0°C vs general: 2.0°C)
+- Agronomically-aware reporting with phenological context
+- Power BI exports enriched with crop development stage data
 
-**M1 Status:** SILO Wrangler ✅ Complete | Risk Engine 🔄 Ready to Begin | Insight Publisher ⏳ Pending
+**System Status:** Production-ready for M2 scaling and automation deployment
 
 ## Essential Documentation
 

@@ -1,0 +1,6 @@
+2025-09-09 08:03:04,054 - __main__ - INFO - Starting daily ingest for 2025-09-08
+2025-09-09 08:03:04,054 - __main__ - INFO - Using configuration: config/silo_sources.yaml
+2025-09-09 08:03:04,067 - src.data.silo_ingest - INFO - Loaded configuration from config/silo_sources.yaml
+2025-09-09 08:03:04,108 - src.data.duckdb_storage - INFO - DuckDB schema initialized
+2025-09-09 08:03:04,112 - __main__ - INFO - DRY RUN: Configuration loaded successfully
+2025-09-09 08:03:04,113 - __main__ - INFO - DRY RUN: Would ingest data for stations from configuration

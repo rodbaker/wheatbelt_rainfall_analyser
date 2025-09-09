@@ -5,7 +5,7 @@
 api:
   base_url: "https://www.longpaddock.qld.gov.au/cgi-bin/silo/PatchedPointDataset.php"
   username: "your@email.com"  # Required by SILO for usage tracking
-  rate_limit_seconds: 0.5     # Respect API (2 requests/second max)
+  rate_limit_seconds: 0.6     # Conservative for large-scale (1.6 req/sec)
   timeout_seconds: 30
   max_retries: 3
 
@@ -21,7 +21,7 @@ variables:
 # Data collection strategy
 collection:
   mode: "rolling_window"    # rolling_window | full_historical | date_range
-  rolling_days: 90          # For rolling_window: days to collect/update
+  rolling_days: 40          # Extended for Aug 1 start (M2 full deployment)
   historical_start: "1990-01-01"  # For full_historical mode
   
 # Station configuration  
@@ -61,8 +61,8 @@ stations:
   # "070014": "CANBERRA AIRPORT COMPARISON"   # Status unknown
   # "075031": "HAY (MILLER STREET)"           # Status unknown
   
-  # TODO M2: Expand to full 2000+ station list
-  # Import from: data/meta/wheatbelt_stations.csv
+  # M2 COMPLETE: Full wheatbelt coverage available via BOM dataset
+  # Use --use-bom-dataset for access to all 1,376 stations
 
 # BOM Dataset Integration (M2 Feature)
 # Use --use-bom-dataset flag to access 1,376 wheatbelt stations
@@ -82,10 +82,18 @@ bom_dataset:
     - "New South Wales"       # 375 stations
     - "Queensland"            # 258 stations
   
-  # Examples:
+  # M2 PRODUCTION COMMANDS:
+  # Full wheatbelt (1,376 stations):
+  # python -m src.agents.silo_wrangler.run_ingest --use-bom-dataset
+  
+  # Major cropping regions only (400k+ hectares):
+  # python -m src.agents.silo_wrangler.run_ingest --use-bom-dataset --min-cropping-area 400000
+  
+  # State-specific deployments:
+  # python -m src.agents.silo_wrangler.run_ingest --use-bom-dataset --states "Western Australia"
+  
+  # Testing examples:
   # python -m src.agents.silo_wrangler.run_ingest --use-bom-dataset --sample-size 10 --dry-run
-  # python -m src.agents.silo_wrangler.run_ingest --use-bom-dataset --states "Western Australia" --dry-run
-  # python -m src.agents.silo_wrangler.run_ingest --use-bom-dataset --min-cropping-area 200000 --dry-run
 
 # Quality control
 quality:

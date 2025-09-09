@@ -81,19 +81,38 @@ def run_daily_ingest(config: str, stations: str, days: int, tiers: str, include_
             if min_cropping_area:
                 filter_params['min_cropping_area'] = min_cropping_area
             
+            # Warning when no state filter is applied
+            if not states and sample_size:
+                logger.warning(f"No --states filter specified with BOM dataset sampling. "
+                             f"Will sample {sample_size} stations from ALL states (WA, SA, NSW, QLD, VIC, TAS). "
+                             f"To filter by state, use: --states 'Western Australia'")
+            
             station_list = load_wheatbelt_stations_for_config(filter_params)
             silo_config['stations'] = station_list
+            
+            # Show actual states represented in the final selection
+            from src.common.stations_loader import WheatbeltStationsLoader
+            loader = WheatbeltStationsLoader()
+            actual_states = set()
+            for station_id in station_list.keys():
+                station_info = loader.get_station_info(station_id)
+                if station_info:
+                    actual_states.add(station_info.state_name)
             
             filter_desc = []
             if 'states' in filter_params:
                 filter_desc.append(f"states: {filter_params['states']}")
+            else:
+                filter_desc.append("states: ALL (WA, SA, NSW, QLD, VIC, TAS)")
             if 'sample_size' in filter_params:
                 filter_desc.append(f"sample: {filter_params['sample_size']}")
             if 'min_cropping_area' in filter_params:
                 filter_desc.append(f"min_area: {filter_params['min_cropping_area']}ha")
             
             filter_str = ", ".join(filter_desc) if filter_desc else "no filters"
+            actual_states_str = ", ".join(sorted(actual_states))
             logger.info(f"Using BOM wheatbelt dataset: {len(station_list)} stations loaded ({filter_str})")
+            logger.info(f"Final selection includes stations from: {actual_states_str}")
         else:
             # Load stations by tier from config
             station_list = load_stations_by_tier(silo_config, tiers)

@@ -68,8 +68,12 @@ docs/_build/
 *.zip
 *.gz
 data/meta/*.nc
+data/weather.duckdb
 
 # Temporary files
 tmp/
 temp/
 *.tmp
+
+# Claude Code configuration
+.claude/

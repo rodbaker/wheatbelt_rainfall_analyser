@@ -71,6 +71,9 @@ class WeatherEventDetector:
                 # Calculate confidence based on data quality
                 confidence = self._calculate_event_confidence(row, 'min_temperature')
                 
+                # Calculate phenology-adjusted risk score
+                phenology_risk_multiplier = self._get_phenology_risk_multiplier(crop_stage_info, 'frost')
+                
                 frost_event = {
                     'station_id': row['station_id'],
                     'date': row['date'],
@@ -81,6 +84,9 @@ class WeatherEventDetector:
                     'crop_stage': stage_name,
                     'confidence': confidence,
                     'data_quality': row.get('min_temperature_quality', 0),
+                    'phenology_risk_multiplier': phenology_risk_multiplier,
+                    'flowering_window_active': crop_stage_info.get('flowering_window', {}).get('active', False),
+                    'days_since_flowering_start': crop_stage_info.get('days_since_flowering_start'),
                     'detected_at': datetime.now().isoformat()
                 }
                 frost_events.append(frost_event)
@@ -344,3 +350,77 @@ class WeatherEventDetector:
             return None
             
         return rain_values.sum()
+    
+    def _get_phenology_risk_multiplier(self, crop_stage_info: Dict[str, Any], event_type: str) -> float:
+        """
+        Calculate phenology-based risk multiplier for events
+        
+        Adjusts risk assessment based on crop development stage and timing
+        within the growing season. More critical stages get higher multipliers.
+        
+        Args:
+            crop_stage_info: Crop stage information from risk engine
+            event_type: Type of weather event ('frost', 'heat', 'rainfall')
+            
+        Returns:
+            Risk multiplier (1.0 = baseline, >1.0 = elevated risk, <1.0 = reduced risk)
+        """
+        current_stage = crop_stage_info.get('current_stage', 'unknown')
+        flowering_active = crop_stage_info.get('flowering_window', {}).get('active', False)
+        days_since_flowering = crop_stage_info.get('days_since_flowering_start', 0)
+        
+        if event_type == 'frost':
+            # Frost risk multipliers by stage
+            stage_multipliers = {
+                'emergence': 1.5,     # Young plants vulnerable
+                'stem_elongation': 1.8,  # Growing points exposed
+                'flowering': 2.5,     # Most critical stage
+                'grain_fill': 2.0,    # Still very vulnerable
+                'tillering': 1.0,     # More frost tolerant
+                'maturity': 0.5,      # Crop nearly finished
+                'harvest': 0.2        # Minimal impact
+            }
+            
+            base_multiplier = stage_multipliers.get(current_stage, 1.0)
+            
+            # Extra weighting for flowering window
+            if flowering_active:
+                base_multiplier *= 1.3  # 30% increase during flowering
+                
+                # Peak vulnerability in early flowering
+                if days_since_flowering is not None and days_since_flowering <= 7:
+                    base_multiplier *= 1.2  # Additional 20% in first week
+                    
+        elif event_type == 'heat':
+            # Heat stress risk multipliers
+            stage_multipliers = {
+                'flowering': 1.5,     # Pollen viability affected
+                'grain_fill': 2.0,    # Most critical for grain quality
+                'maturity': 1.2,      # Some impact on final filling
+                'emergence': 0.8,     # Less heat sensitive when young
+                'tillering': 0.8,
+                'stem_elongation': 1.0,
+                'harvest': 1.0        # Quality impacts during harvest
+            }
+            
+            base_multiplier = stage_multipliers.get(current_stage, 1.0)
+            
+        elif event_type == 'rainfall':
+            # Rainfall risk mainly during harvest
+            stage_multipliers = {
+                'harvest': 2.0,       # Quality downgrades
+                'maturity': 1.5,      # Pre-harvest risk
+                'grain_fill': 0.8,    # Generally beneficial
+                'flowering': 0.7,     # Usually beneficial
+                'emergence': 0.5,     # Can be beneficial for establishment
+                'tillering': 0.6,
+                'stem_elongation': 0.8
+            }
+            
+            base_multiplier = stage_multipliers.get(current_stage, 1.0)
+            
+        else:
+            base_multiplier = 1.0  # Unknown event type
+            
+        # Cap multipliers to reasonable range
+        return max(0.1, min(base_multiplier, 3.0))
