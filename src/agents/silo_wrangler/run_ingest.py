@@ -15,10 +15,13 @@ import json
 from pathlib import Path
 from typing import Dict, List, Any
 from datetime import datetime
+from dotenv import load_dotenv
+load_dotenv()
 
 from src.common.config_loader import load_config
 from src.common.logging_utils import setup_logging
 from src.common.stations_loader import load_wheatbelt_stations_for_config
+from src.data.duckdb_storage import DuckDBStorage
 from .api_client import SILOAPIClient
 from .data_processor import WeatherDataProcessor
 from .quality_checker import DataQualityChecker
@@ -123,6 +126,7 @@ def run_daily_ingest(config: str, stations: str, days: int, tiers: str, include_
         api_client = SILOAPIClient(silo_config)
         data_processor = WeatherDataProcessor(silo_config)
         quality_checker = DataQualityChecker(silo_config)
+        storage = DuckDBStorage({'database_path': 'data/weather.duckdb'})
         
         # Prepare run metadata
         run_metadata = {
@@ -201,6 +205,18 @@ def run_daily_ingest(config: str, stations: str, days: int, tiers: str, include_
                 # Write to output files (unless dry run)
                 if not dry_run:
                     success = data_processor.append_to_daily_observations(filtered_data)
+                    if success:
+                        # Also write to DuckDB — rename CSV columns to match DuckDB schema
+                        duckdb_df = filtered_data.rename(columns={
+                            'min_temperature': 'min_temp',
+                            'max_temperature': 'max_temp',
+                            'min_temperature_quality': 'min_temp_quality',
+                            'max_temperature_quality': 'max_temp_quality',
+                            'timestamp_processed': 'ingested_at',
+                        })
+                        duckdb_cols = ['station_id', 'date', 'min_temp', 'max_temp', 'rainfall',
+                                       'min_temp_quality', 'max_temp_quality', 'rainfall_quality', 'ingested_at']
+                        storage.upsert_observations(duckdb_df[[c for c in duckdb_cols if c in duckdb_df.columns]])
                     if success:
                         successful_stations.append({
                             'station_id': station_id,

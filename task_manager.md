@@ -1,7 +1,7 @@
 
 # Task Manager
 **PRD:** ./prd.md  
-**Updated:** 2025-09-09 (M1 Complete + All Agent Cleanup - Full CropForecaster system operational)  
+**Updated:** 2026-03-26 (Data pipeline gap closed: SILO→CSV→DuckDB wired; rolling window bug fixed; all 5 event types confirmed firing)  
 
 ---
 
@@ -235,7 +235,68 @@ Claude prints: `OK TO CLOSE: Save is complete. Please close this chat to reset c
   - Production-grade error handling and data validation  
 - **Next steps:** System ready for M2 automation deployment; daily operational monitoring; multi-state expansion  
 - **Blockers:** None - Full CropForecaster system operational and production-ready  
-- **Commit:** `docs: M1 milestone complete - All agents operational with comprehensive WA wheatbelt coverage`
+- **Commit:** `df2698b - feat: Complete M1 milestone - Full CropForecaster system operational`
+
+---
+
+### 2026-03-26 — risk-engine + insight-publisher (Seeding Window Rainfall Monitoring + Schema Consistency)
+- **Task:** Extend rainfall detection to cover seeding (Apr–Jun) and crop development (Jul–Oct) windows ahead of 2026/27 season; enforce consistent event schema and atomic writes throughout
+- **What changed:**
+  - Added two new event detection methods and two new calendar stages
+  - Updated report generator with Seasonal Moisture section and seeding/development event counts
+  - Fixed 5 bugs found in review
+  - Replaced all 7 inline event dicts in event_detector.py with `_build_event_record()` calls (consistent schema guaranteed everywhere)
+  - Replaced `_calculate_confidence()` in csv_risk_engine.py with SILO_QUALITY_CODES/SILO_QUALITY_DEFAULT constants
+  - All export paths now use `atomic_csv_write()` — no bare `.to_csv()` on output files
+  - CLAUDE.md rewritten: accurate structure, all 5 event types, real CLI entry points, key design decisions
+  - Sphinx moved to commented optional in requirements.txt
+  - `scripts/cron_schedule.sh` created with 3-step pipeline, --date override, venv detection, and crontab example
+- **Files touched:**
+  - `config/crop_calendars.yaml` (added seeding + crop_development stages; fixed harvest key names)
+  - `config/assumptions.yaml` (added seeding_rain + development_rain event types; quoted methodology strings)
+  - `src/agents/risk_engine/event_detector.py` (all event dicts → _build_event_record(); detect_seeding_rainfall(); detect_development_rainfall() with dedup)
+  - `src/agents/risk_engine/run_risk_engine.py` (wired new methods; atomic_csv_write; fixed error dict + CLI summary)
+  - `src/agents/risk_engine/csv_risk_engine.py` (SILO_QUALITY_CODES constants; atomic_csv_write)
+  - `src/agents/insight_publisher/report_generator.py` (_generate_seasonal_moisture_section(); seeding/development counts in exec summary; fixed DataFrame.get() crash)
+  - `src/common/constants.py` (new file: SILO_QUALITY_CODES, SILO_QUALITY_DEFAULT, EVENT_* string constants)
+  - `requirements.txt` (Sphinx → commented optional)
+  - `CLAUDE.md` (full rewrite)
+  - `scripts/cron_schedule.sh` (new: daily automation script)
+- **New event types:**
+  - `seeding_rain`: adequate (≥25mm/7d or ≥10mm/day) and inadequate (<5mm/7d) — active Apr–Jun
+  - `development_rain`: dry_spell (<5mm/7d) and moisture_stress (<10mm/14d) — active Jul–Oct
+- **Design decision deferred:** Middle-range seeding (5–25mm/7d) currently produces no event — acceptable; add `normal` severity later if needed
+- **Next steps:** Backfill Oct 2025–Mar 2026 data; install cron; test against April data when season opens
+- **Blockers:** None
+- **Commit:** pending
+
+### 2026-03-26 — infrastructure + risk-engine (Data pipeline gap + rolling window bug)
+- **Task:** Close the ingest→DuckDB→risk-engine pipeline gap; fix cross-station rolling rainfall summation bug
+- **What changed:**
+  - Wired SILO credentials from `.env` via `python-dotenv` — `run_ingest.py` now calls `load_dotenv()` at startup
+  - `silo_sources.yaml` uses `${SILO_EMAIL}` env substitution (config_loader already supported this)
+  - `DuckDBStorage.upsert_observations()` added — INSERT OR REPLACE, safe to call per station without wiping other stations’ data
+  - `run_ingest.py` now writes to DuckDB after every successful CSV write (column rename: `min_temperature`→`min_temp` etc.)
+  - Backfilled 6,163 rows from `obs_daily.csv` into `weather.duckdb` (132 stations, 2024-09-07 → 2026-03-25)
+  - `_load_weather_data` now fetches a 14-day window (was single-day) — required for rolling accumulation detection
+  - `run_daily_assessment` splits `today_data` (target date only, for frost/heat) vs `weather_window` (14 days, for rainfall detectors)
+  - All three rainfall detectors (`detect_rainfall_events`, `detect_seeding_rainfall`, `detect_development_rainfall`) now accept `weather_window` param
+  - `_calculate_rolling_rainfall` now filters by `station_id` before date windowing — fixes cross-station summation bug (previous "high" harvest rain events were summing across stations, not over time)
+- **Files touched:**
+  - `config/silo_sources.yaml` (username → `${SILO_EMAIL}`)
+  - `src/agents/silo_wrangler/run_ingest.py` (load_dotenv; DuckDB import; upsert after CSV write)
+  - `src/data/duckdb_storage.py` (added `upsert_observations()`)
+  - `src/agents/risk_engine/run_risk_engine.py` (`_load_weather_data` 14-day window; today_data/weather_window split)
+  - `src/agents/risk_engine/event_detector.py` (`weather_window` param on 3 detectors; `station_id` param on `_calculate_rolling_rainfall`)
+- **Results (2025-09-08 → 2026-03-26 date range):**
+  - development_rain: 532 (dry_spell + moisture_stress, Sep–Oct 2025)
+  - frost: 168 (light/moderate/severe)
+  - rainfall: 207 (harvest, corrected per-station 3-day accumulation)
+  - heat: 6
+  - seeding_rain: 0 (expected — Apr–Jun window not in this date range)
+- **Next steps:** Run publisher against event_log.csv; ingest full season data (ingest currently has 6 active-tier stations only, consider BOM dataset for broader coverage); set up cron automation
+- **Blockers:** None
+- **Commit:** pending
 
 ---
 

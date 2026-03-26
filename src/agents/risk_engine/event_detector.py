@@ -14,6 +14,8 @@ import logging
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime, timedelta
 
+from src.common.constants import SILO_QUALITY_CODES, SILO_QUALITY_DEFAULT
+
 logger = logging.getLogger(__name__)
 
 
@@ -68,28 +70,22 @@ class WeatherEventDetector:
                 frost_severity = 'light'
                 
             if frost_severity:
-                # Calculate confidence based on data quality
                 confidence = self._calculate_event_confidence(row, 'min_temperature')
-                
-                # Calculate phenology-adjusted risk score
                 phenology_risk_multiplier = self._get_phenology_risk_multiplier(crop_stage_info, 'frost')
-                
-                frost_event = {
-                    'station_id': row['station_id'],
-                    'date': row['date'],
-                    'event_type': 'frost',
-                    'severity': frost_severity,
-                    'value': min_temp,
-                    'threshold': stage_thresholds[frost_severity],
-                    'crop_stage': stage_name,
-                    'confidence': confidence,
-                    'data_quality': row.get('min_temperature_quality', 0),
-                    'phenology_risk_multiplier': phenology_risk_multiplier,
-                    'flowering_window_active': crop_stage_info.get('flowering_window', {}).get('active', False),
-                    'days_since_flowering_start': crop_stage_info.get('days_since_flowering_start'),
-                    'detected_at': datetime.now().isoformat()
-                }
-                frost_events.append(frost_event)
+
+                frost_events.append(self._build_event_record(
+                    row=row,
+                    event_type='frost',
+                    severity=frost_severity,
+                    value=min_temp,
+                    threshold=stage_thresholds[frost_severity],
+                    crop_stage=stage_name,
+                    confidence=confidence,
+                    quality_col='min_temperature_quality',
+                    phenology_risk_multiplier=phenology_risk_multiplier,
+                    flowering_window_active=crop_stage_info.get('flowering_window', {}).get('active', False),
+                    days_since_flowering_start=crop_stage_info.get('days_since_flowering_start'),
+                ))
                 
         frost_df = pd.DataFrame(frost_events)
         
@@ -140,128 +136,299 @@ class WeatherEventDetector:
                 
             if heat_severity:
                 confidence = self._calculate_event_confidence(row, 'max_temperature')
-                
-                heat_event = {
-                    'station_id': row['station_id'],
-                    'date': row['date'],
-                    'event_type': 'heat',
-                    'severity': heat_severity,
-                    'value': max_temp,
-                    'threshold': heat_thresholds[heat_severity],
-                    'crop_stage': stage_name,
-                    'confidence': confidence,
-                    'data_quality': row.get('max_temperature_quality', 0),
-                    'detected_at': datetime.now().isoformat()
-                }
-                heat_events.append(heat_event)
+
+                heat_events.append(self._build_event_record(
+                    row=row,
+                    event_type='heat',
+                    severity=heat_severity,
+                    value=max_temp,
+                    threshold=heat_thresholds[heat_severity],
+                    crop_stage=stage_name,
+                    confidence=confidence,
+                    quality_col='max_temperature_quality',
+                ))
                 
         logger.info(f"Detected {len(heat_events)} heat events")
         return pd.DataFrame(heat_events)
         
-    def detect_rainfall_events(self, weather_df: pd.DataFrame, crop_stage_info: Dict[str, Any]) -> pd.DataFrame:
+    def detect_rainfall_events(self, weather_df: pd.DataFrame, crop_stage_info: Dict[str, Any],
+                               weather_window: Optional[pd.DataFrame] = None) -> pd.DataFrame:
         """
-        Detect harvest rainfall risk events with rolling accumulations
-        
+        Detect harvest rainfall risk events with rolling accumulations.
+
         Args:
-            weather_df: Daily weather data with rainfall column
+            weather_df: Target-date weather rows (one per station)
             crop_stage_info: Current crop stage information
-            
+            weather_window: Multi-day lookback DataFrame for rolling sums (falls back to weather_df)
+
         Returns:
             DataFrame with rainfall event records
         """
         if weather_df.empty or 'rainfall' not in weather_df.columns:
             return pd.DataFrame()
-            
-        # Only detect during rain-critical periods (harvest)
+
         if not crop_stage_info.get('rain_critical', False):
             stage_name = crop_stage_info.get('current_stage', 'unknown')
             logger.info(f"Stage {stage_name} not rain-critical, skipping rainfall detection")
             return pd.DataFrame()
-            
+
+        window = weather_window if weather_window is not None else weather_df
         rain_events = []
         rain_thresholds = self.thresholds['rainfall']['harvest']
-        
-        # Sort by date for rolling calculations
-        weather_sorted = weather_df.sort_values('date')
-        
-        for idx, row in weather_sorted.iterrows():
+
+        for idx, row in weather_df.iterrows():
             daily_rain = row['rainfall']
-            
-            # Skip missing data
             if pd.isna(daily_rain):
                 continue
-                
-            # Check single-day threshold
+
+            station_id = row['station_id']
+
+            # Single-day threshold
             if daily_rain >= rain_thresholds['moderate']:
                 confidence = self._calculate_event_confidence(row, 'rainfall')
-                
-                rain_event = {
-                    'station_id': row['station_id'],
-                    'date': row['date'],
-                    'event_type': 'rainfall',
-                    'severity': 'moderate',
-                    'value': daily_rain,
-                    'threshold': rain_thresholds['moderate'],
-                    'accumulation_window': 1,
-                    'crop_stage': 'harvest',
-                    'confidence': confidence,
-                    'data_quality': row.get('rainfall_quality', 0),
-                    'detected_at': datetime.now().isoformat()
-                }
-                rain_events.append(rain_event)
-                
-            # Check 3-day accumulation
-            three_day_total = self._calculate_rolling_rainfall(weather_sorted, row['date'], 3)
+                rain_events.append(self._build_event_record(
+                    row=row,
+                    event_type='rainfall',
+                    severity='moderate',
+                    value=daily_rain,
+                    threshold=rain_thresholds['moderate'],
+                    crop_stage='harvest',
+                    confidence=confidence,
+                    quality_col='rainfall_quality',
+                    accumulation_window=1,
+                ))
+
+            # 3-day accumulation — station-specific rolling window
+            three_day_total = self._calculate_rolling_rainfall(window, row['date'], 3, station_id=station_id)
             if three_day_total and three_day_total >= rain_thresholds['high']:
                 confidence = self._calculate_event_confidence(row, 'rainfall')
-                
-                rain_event = {
-                    'station_id': row['station_id'],
-                    'date': row['date'],
-                    'event_type': 'rainfall', 
-                    'severity': 'high',
-                    'value': three_day_total,
-                    'threshold': rain_thresholds['high'],
-                    'accumulation_window': 3,
-                    'crop_stage': 'harvest',
-                    'confidence': confidence,
-                    'data_quality': row.get('rainfall_quality', 0),
-                    'detected_at': datetime.now().isoformat()
-                }
-                rain_events.append(rain_event)
-                
+                rain_events.append(self._build_event_record(
+                    row=row,
+                    event_type='rainfall',
+                    severity='high',
+                    value=three_day_total,
+                    threshold=rain_thresholds['high'],
+                    crop_stage='harvest',
+                    confidence=confidence,
+                    quality_col='rainfall_quality',
+                    accumulation_window=3,
+                ))
+
         logger.info(f"Detected {len(rain_events)} rainfall events")
         return pd.DataFrame(rain_events)
         
+    def detect_seeding_rainfall(self, weather_df: pd.DataFrame, crop_stage_info: Dict[str, Any],
+                                weather_window: Optional[pd.DataFrame] = None) -> pd.DataFrame:
+        """
+        Detect seeding window rainfall events (April–June).
+
+        Args:
+            weather_df: Target-date weather rows (one per station)
+            crop_stage_info: Current crop stage information
+            weather_window: Multi-day lookback DataFrame for rolling sums
+        """
+        if weather_df.empty or 'rainfall' not in weather_df.columns:
+            return pd.DataFrame()
+
+        target_month = crop_stage_info.get('target_month', 0)
+        if target_month not in [4, 5, 6]:
+            return pd.DataFrame()
+
+        window = weather_window if weather_window is not None else weather_df
+        rain_thresholds = self.thresholds['rainfall']['seeding']
+        rain_events = []
+
+        for idx, row in weather_df.iterrows():
+            daily_rain = row['rainfall']
+            if pd.isna(daily_rain):
+                continue
+
+            station_id = row['station_id']
+            confidence = self._calculate_event_confidence(row, 'rainfall')
+
+            # Single-day germination trigger
+            if daily_rain >= rain_thresholds['germination_trigger']:
+                rain_events.append(self._build_event_record(
+                    row=row,
+                    event_type='seeding_rain',
+                    severity='adequate',
+                    value=daily_rain,
+                    threshold=rain_thresholds['germination_trigger'],
+                    crop_stage='seeding',
+                    confidence=confidence,
+                    quality_col='rainfall_quality',
+                    accumulation_window=1,
+                    rainfall_role='beneficial',
+                ))
+
+            # 7-day rolling window — adequate break or dry spell
+            seven_day_total = self._calculate_rolling_rainfall(window, row['date'], 7, station_id=station_id)
+            if seven_day_total is not None:
+                if seven_day_total >= rain_thresholds['adequate_break']:
+                    rain_events.append(self._build_event_record(
+                        row=row,
+                        event_type='seeding_rain',
+                        severity='adequate',
+                        value=seven_day_total,
+                        threshold=rain_thresholds['adequate_break'],
+                        crop_stage='seeding',
+                        confidence=confidence,
+                        quality_col='rainfall_quality',
+                        accumulation_window=7,
+                        rainfall_role='beneficial',
+                    ))
+                elif seven_day_total < rain_thresholds['inadequate_week']:
+                    rain_events.append(self._build_event_record(
+                        row=row,
+                        event_type='seeding_rain',
+                        severity='inadequate',
+                        value=seven_day_total,
+                        threshold=rain_thresholds['inadequate_week'],
+                        crop_stage='seeding',
+                        confidence=confidence,
+                        quality_col='rainfall_quality',
+                        accumulation_window=7,
+                        rainfall_role='beneficial',
+                    ))
+
+        result = pd.DataFrame(rain_events)
+        if not result.empty:
+            result = result.drop_duplicates(subset=['station_id', 'date', 'event_type', 'severity', 'accumulation_window'])
+        logger.info(f"Detected {len(result)} seeding rainfall events")
+        return result
+
+    def detect_development_rainfall(self, weather_df: pd.DataFrame, crop_stage_info: Dict[str, Any],
+                                    weather_window: Optional[pd.DataFrame] = None) -> pd.DataFrame:
+        """
+        Detect crop development window rainfall events (July–October).
+
+        Args:
+            weather_df: Target-date weather rows (one per station)
+            crop_stage_info: Current crop stage information
+            weather_window: Multi-day lookback DataFrame for rolling sums
+        """
+        if weather_df.empty or 'rainfall' not in weather_df.columns:
+            return pd.DataFrame()
+
+        target_month = crop_stage_info.get('target_month', 0)
+        if target_month not in [7, 8, 9, 10]:
+            return pd.DataFrame()
+
+        window = weather_window if weather_window is not None else weather_df
+        rain_thresholds = self.thresholds['rainfall']['crop_development']
+        rain_events = []
+
+        for idx, row in weather_df.iterrows():
+            daily_rain = row['rainfall']
+            if pd.isna(daily_rain):
+                continue
+
+            station_id = row['station_id']
+            confidence = self._calculate_event_confidence(row, 'rainfall')
+
+            # 7-day dry spell
+            seven_day_total = self._calculate_rolling_rainfall(window, row['date'], 7, station_id=station_id)
+            if seven_day_total is not None and seven_day_total < rain_thresholds['dry_spell_7day']:
+                rain_events.append(self._build_event_record(
+                    row=row,
+                    event_type='development_rain',
+                    severity='dry_spell',
+                    value=seven_day_total,
+                    threshold=rain_thresholds['dry_spell_7day'],
+                    crop_stage=crop_stage_info.get('current_stage', 'crop_development'),
+                    confidence=confidence,
+                    quality_col='rainfall_quality',
+                    accumulation_window=7,
+                    rainfall_role='beneficial',
+                ))
+
+            # 14-day moisture stress
+            fourteen_day_total = self._calculate_rolling_rainfall(window, row['date'], 14, station_id=station_id)
+            if fourteen_day_total is not None and fourteen_day_total < rain_thresholds['dry_spell_14day']:
+                rain_events.append(self._build_event_record(
+                    row=row,
+                    event_type='development_rain',
+                    severity='moisture_stress',
+                    value=fourteen_day_total,
+                    threshold=rain_thresholds['dry_spell_14day'],
+                    crop_stage=crop_stage_info.get('current_stage', 'crop_development'),
+                    confidence=confidence,
+                    quality_col='rainfall_quality',
+                    accumulation_window=14,
+                    rainfall_role='beneficial',
+                ))
+
+        result = pd.DataFrame(rain_events)
+        if not result.empty:
+            result = result.drop_duplicates(subset=['station_id', 'date', 'event_type', 'severity', 'accumulation_window'])
+        logger.info(f"Detected {len(result)} development rainfall events")
+        return result
+
     def _calculate_event_confidence(self, weather_row: pd.Series, variable: str) -> float:
         """
         Calculate confidence score for detected event based on data quality
-        
+
         Args:
             weather_row: Row of weather data
             variable: Variable name (min_temperature, max_temperature, rainfall)
-            
+
         Returns:
             Confidence score between 0.0 and 1.0
         """
         quality_col = f'{variable}_quality'
-        
+
         if quality_col not in weather_row or pd.isna(weather_row[quality_col]):
-            return 0.5  # Medium confidence for unknown quality
-            
+            return SILO_QUALITY_DEFAULT
+
         quality_code = int(weather_row[quality_col])
-        
-        # SILO quality codes
-        if quality_code == 0:      # Observed data
-            return 1.0
-        elif quality_code == 15:   # Interpolated  
-            return 0.8
-        elif quality_code == 35:   # Synthetic
-            return 0.3
-        elif quality_code == 999:  # Missing
-            return 0.0
-        else:
-            return 0.5  # Unknown code
+        return SILO_QUALITY_CODES.get(quality_code, SILO_QUALITY_DEFAULT)
+
+    def _build_event_record(
+        self,
+        row: pd.Series,
+        event_type: str,
+        severity: str,
+        value: float,
+        threshold: float,
+        crop_stage: str,
+        confidence: float,
+        quality_col: str,
+        **extra_fields
+    ) -> dict:
+        """
+        Build a standardised event record dictionary.
+
+        All event types share this structure so downstream consumers
+        (CSV export, report generator, Power BI) get consistent columns.
+
+        Args:
+            row: Weather data row
+            event_type: One of the EVENT_* constants
+            severity: Severity label for this event
+            value: Measured value that triggered the event
+            threshold: Threshold that was crossed
+            crop_stage: Current crop stage name
+            confidence: Pre-calculated confidence score
+            quality_col: Column name for the raw quality code
+            **extra_fields: Any additional fields (accumulation_window, rainfall_role, etc.)
+
+        Returns:
+            Event record dictionary
+        """
+        record = {
+            'station_id': row['station_id'],
+            'date': row['date'],
+            'event_type': event_type,
+            'severity': severity,
+            'value': value,
+            'threshold': threshold,
+            'crop_stage': crop_stage,
+            'confidence': confidence,
+            'data_quality': row.get(quality_col, 0),
+            'detected_at': datetime.now().isoformat(),
+        }
+        record.update(extra_fields)
+        return record
             
     def _analyze_consecutive_frosts(self, frost_df: pd.DataFrame, weather_df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -322,28 +489,34 @@ class WeatherEventDetector:
                     
         return frost_enhanced
         
-    def _calculate_rolling_rainfall(self, weather_df: pd.DataFrame, target_date: str, days: int) -> Optional[float]:
+    def _calculate_rolling_rainfall(self, weather_df: pd.DataFrame, target_date: str, days: int,
+                                    station_id: Optional[str] = None) -> Optional[float]:
         """
-        Calculate rolling rainfall total for specified number of days ending on target date
-        
+        Calculate rolling rainfall total for N days ending on target_date for a single station.
+
         Args:
-            weather_df: Weather DataFrame sorted by date
+            weather_df: Multi-day weather DataFrame (may contain multiple stations)
             target_date: End date for rolling calculation
             days: Number of days to include in rolling total
-            
+            station_id: Filter to this station before computing (required for multi-station DataFrames)
+
         Returns:
             Rolling rainfall total or None if insufficient data
         """
         target_dt = pd.to_datetime(target_date)
-        start_dt = target_dt - timedelta(days=days-1)
-        
+        start_dt = target_dt - timedelta(days=days - 1)
+
+        df = weather_df
+        if station_id is not None:
+            df = df[df['station_id'] == station_id]
+
         # Filter to rolling window
-        mask = (pd.to_datetime(weather_df['date']) >= start_dt) & (pd.to_datetime(weather_df['date']) <= target_dt)
-        window_data = weather_df[mask]
-        
+        mask = (pd.to_datetime(df['date']) >= start_dt) & (pd.to_datetime(df['date']) <= target_dt)
+        window_data = df[mask]
+
         if len(window_data) < days:
             return None  # Insufficient data for full window
-            
+
         # Calculate total, handling missing values
         rain_values = window_data['rainfall'].dropna()
         if len(rain_values) < days * 0.8:  # Require 80% data availability

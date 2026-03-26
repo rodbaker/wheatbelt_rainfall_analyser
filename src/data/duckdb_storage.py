@@ -127,6 +127,31 @@ class DuckDBStorage:
             logger.error(f"Failed to store observations for {target_date}: {e}")
             return False
             
+    def upsert_observations(self, df: pd.DataFrame) -> bool:
+        """
+        Insert or replace weather observations — safe to call per-station.
+
+        Args:
+            df: DataFrame with columns matching weather_observations schema
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if df.empty:
+            return True
+        try:
+            with self._get_connection() as conn:
+                conn.register('upsert_obs', df)
+                conn.execute("""
+                    INSERT OR REPLACE INTO weather_observations
+                    SELECT * FROM upsert_obs
+                """)
+            logger.info(f"Upserted {len(df)} observations into DuckDB")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to upsert observations: {e}")
+            return False
+
     def log_ingestion_run(self, run_id: str, stats: Dict[str, Any], target_date: Optional[str] = None):
         """Log ingestion run statistics
         

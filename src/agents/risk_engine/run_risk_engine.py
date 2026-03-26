@@ -28,8 +28,9 @@ project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from src.common.config_loader import load_config
-from src.common.logging_utils import setup_logging  
+from src.common.logging_utils import setup_logging
 from src.common.date_utils import get_current_crop_stage, get_crop_season
+from src.common.file_utils import atomic_csv_write
 from src.data.duckdb_storage import DuckDBStorage
 from src.agents.risk_engine.event_detector import WeatherEventDetector
 
@@ -83,49 +84,66 @@ class RiskEngineRunner:
         """
         logger.info(f"Running risk assessment for {target_date}")
         
-        # Load weather data for target date
-        weather_data = self._load_weather_data(target_date)
-        if weather_data.empty:
+        # Load 14-day window ending on target_date (needed for rolling accumulations)
+        weather_window = self._load_weather_data(target_date, window_days=14)
+        if weather_window.empty:
             logger.warning(f"No weather data available for {target_date}")
-            return {"frost": 0, "heat": 0, "rainfall": 0}
-            
+            return {"frost": 0, "heat": 0, "rainfall": 0, "seeding_rain": 0, "development_rain": 0}
+
+        # Single-day slice for point-in-time detectors (frost, heat)
+        today_mask = weather_window['date'].astype(str) == target_date
+        today_data = weather_window[today_mask]
+
+        if today_data.empty:
+            logger.warning(f"No weather data for target date {target_date} (window has older rows only)")
+            return {"frost": 0, "heat": 0, "rainfall": 0, "seeding_rain": 0, "development_rain": 0}
+
         # Determine current crop stage
         crop_stage_info = self._get_crop_stage_info(target_date)
-        
+
         # Run event detection
         all_events = []
         event_counts = {}
-        
-        # Frost detection
+
+        # Frost detection — point-in-time, today_data only
         if crop_stage_info.get('frost_critical', False):
-            frost_events = self.detector.detect_frost_events(weather_data, crop_stage_info)
+            frost_events = self.detector.detect_frost_events(today_data, crop_stage_info)
             all_events.append(frost_events)
             event_counts['frost'] = len(frost_events)
             logger.info(f"Detected {len(frost_events)} frost events")
         else:
             event_counts['frost'] = 0
             logger.info("Frost detection skipped - not in critical stage")
-            
-        # Heat detection  
+
+        # Heat detection — point-in-time, today_data only
         if crop_stage_info.get('heat_critical', False):
-            heat_events = self.detector.detect_heat_events(weather_data, crop_stage_info)
+            heat_events = self.detector.detect_heat_events(today_data, crop_stage_info)
             all_events.append(heat_events)
             event_counts['heat'] = len(heat_events)
             logger.info(f"Detected {len(heat_events)} heat events")
         else:
             event_counts['heat'] = 0
             logger.info("Heat detection skipped - not in critical stage")
-            
-        # Rainfall detection
+
+        # Harvest rainfall — today's stations, multi-day rolling window for accumulations
         if crop_stage_info.get('rain_critical', False):
-            rain_events = self.detector.detect_rainfall_events(weather_data, crop_stage_info)
+            rain_events = self.detector.detect_rainfall_events(today_data, crop_stage_info, weather_window=weather_window)
             all_events.append(rain_events)
             event_counts['rainfall'] = len(rain_events)
-            logger.info(f"Detected {len(rain_events)} rainfall events")
+            logger.info(f"Detected {len(rain_events)} harvest rainfall events")
         else:
             event_counts['rainfall'] = 0
-            logger.info("Rainfall detection skipped - not in critical stage")
-            
+
+        # Seeding rainfall (Apr–Jun) — self-gating by month
+        seeding_rain_events = self.detector.detect_seeding_rainfall(today_data, crop_stage_info, weather_window=weather_window)
+        all_events.append(seeding_rain_events)
+        event_counts['seeding_rain'] = len(seeding_rain_events)
+
+        # Development rainfall (Jul–Oct) — self-gating by month
+        dev_rain_events = self.detector.detect_development_rainfall(today_data, crop_stage_info, weather_window=weather_window)
+        all_events.append(dev_rain_events)
+        event_counts['development_rain'] = len(dev_rain_events)
+
         # Combine and export events
         if all_events and any(not df.empty for df in all_events):
             combined_events = pd.concat([df for df in all_events if not df.empty], ignore_index=True)
@@ -160,45 +178,51 @@ class RiskEngineRunner:
                 results[date_str] = self.run_daily_assessment(date_str)
             except Exception as e:
                 logger.error(f"Failed to process {date_str}: {e}")
-                results[date_str] = {"frost": 0, "heat": 0, "rainfall": 0, "error": str(e)}
+                results[date_str] = {"frost": 0, "heat": 0, "rainfall": 0, "seeding_rain": 0, "development_rain": 0, "error": str(e)}
                 
             current_date += timedelta(days=1)
             
         return results
         
-    def _load_weather_data(self, target_date: str) -> pd.DataFrame:
+    def _load_weather_data(self, target_date: str, window_days: int = 14) -> pd.DataFrame:
         """
-        Load weather data for target date from DuckDB storage
-        
+        Load weather data for target date plus a historical window from DuckDB.
+
+        Returns window_days of data ending on target_date so that rolling
+        accumulation detectors (seeding, development, harvest rainfall) have
+        enough history to compute multi-day totals.
+
         Args:
-            target_date: Date in YYYY-MM-DD format
-            
+            target_date: End date in YYYY-MM-DD format
+            window_days: Number of days of history to include (default 14)
+
         Returns:
-            DataFrame with weather data for all stations
+            DataFrame with weather data for all stations in the window
         """
         try:
-            # Query daily observations for target date (map field names to expected format)
+            start_dt = (datetime.strptime(target_date, '%Y-%m-%d') - timedelta(days=window_days - 1)).strftime('%Y-%m-%d')
             query = f"""
-                SELECT 
+                SELECT
                     station_id,
                     date,
                     min_temp as min_temperature,
-                    max_temp as max_temperature, 
+                    max_temp as max_temperature,
                     rainfall,
                     min_temp_quality as min_temperature_quality,
                     max_temp_quality as max_temperature_quality,
                     rainfall_quality
-                FROM weather_observations 
-                WHERE date = '{target_date}'
+                FROM weather_observations
+                WHERE date BETWEEN '{start_dt}' AND '{target_date}'
                 AND min_temp IS NOT NULL
                 AND max_temp IS NOT NULL
                 AND rainfall IS NOT NULL
             """
-            
+
             weather_df = self.storage.query_to_dataframe(query)
-            logger.info(f"Loaded weather data for {len(weather_df)} stations on {target_date}")
+            today_count = len(weather_df[weather_df['date'].astype(str) == target_date])
+            logger.info(f"Loaded {len(weather_df)} rows ({start_dt}–{target_date}), {today_count} stations on target date")
             return weather_df
-            
+
         except Exception as e:
             logger.error(f"Failed to load weather data for {target_date}: {e}")
             return pd.DataFrame()
@@ -285,7 +309,7 @@ class RiskEngineRunner:
     def _export_events(self, events_df: pd.DataFrame, target_date: str):
         """
         Export detected events to CSV files
-        
+
         Args:
             events_df: DataFrame with all detected events
             target_date: Date processed
@@ -293,36 +317,33 @@ class RiskEngineRunner:
         try:
             # Export consolidated event log
             event_log_path = self.output_dir / "event_log.csv"
-            
-            # Append to existing log or create new
+
             if event_log_path.exists():
-                # Remove existing events for this date to avoid duplicates
                 existing_df = pd.read_csv(event_log_path)
                 existing_df = existing_df[existing_df['date'] != target_date]
                 combined_df = pd.concat([existing_df, events_df], ignore_index=True)
             else:
                 combined_df = events_df
-                
-            combined_df.to_csv(event_log_path, index=False)
+
+            atomic_csv_write(combined_df, event_log_path)
             logger.info(f"Exported {len(events_df)} events to {event_log_path}")
-            
-            # Export separate files by event type (for backward compatibility)
-            for event_type in ['frost', 'heat', 'rainfall']:
+
+            # Export separate files by event type
+            for event_type in ['frost', 'heat', 'rainfall', 'seeding_rain', 'development_rain']:
                 type_events = events_df[events_df['event_type'] == event_type]
                 if not type_events.empty:
                     type_path = self.output_dir / f"{event_type}_events.csv"
-                    
-                    # Append or create
+
                     if type_path.exists():
                         existing_type = pd.read_csv(type_path)
                         existing_type = existing_type[existing_type['date'] != target_date]
                         combined_type = pd.concat([existing_type, type_events], ignore_index=True)
                     else:
                         combined_type = type_events
-                        
-                    combined_type.to_csv(type_path, index=False)
+
+                    atomic_csv_write(combined_type, type_path)
                     logger.info(f"Exported {len(type_events)} {event_type} events to {type_path}")
-                    
+
         except Exception as e:
             logger.error(f"Failed to export events: {e}")
             raise
@@ -381,7 +402,7 @@ def main():
             
             # Summary output
             total_events = sum(
-                sum(daily_counts.get(event_type, 0) for event_type in ['frost', 'heat', 'rainfall'])
+                sum(daily_counts.get(event_type, 0) for event_type in ['frost', 'heat', 'rainfall', 'seeding_rain', 'development_rain'])
                 for daily_counts in results.values()
                 if 'error' not in daily_counts
             )
@@ -396,7 +417,9 @@ def main():
             print(f"\nDate: {args.date}")
             print(f"Frost events: {results['frost']}")
             print(f"Heat events: {results['heat']}")
-            print(f"Rainfall events: {results['rainfall']}")
+            print(f"Harvest rainfall events: {results['rainfall']}")
+            print(f"Seeding rainfall events: {results['seeding_rain']}")
+            print(f"Development rainfall events: {results['development_rain']}")
             print(f"Total events: {total_events}")
             
         logger.info("Risk Engine run completed successfully")
