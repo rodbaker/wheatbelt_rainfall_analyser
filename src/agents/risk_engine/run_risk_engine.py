@@ -314,12 +314,22 @@ class RiskEngineRunner:
             events_df: DataFrame with all detected events
             target_date: Date processed
         """
+        def _normalise_dates(df: pd.DataFrame) -> pd.DataFrame:
+            """Normalise the date column to YYYY-MM-DD strings for consistent comparison."""
+            if 'date' in df.columns:
+                df = df.copy()
+                df['date'] = pd.to_datetime(df['date'], format='mixed').dt.strftime('%Y-%m-%d')
+            return df
+
+        # Normalise new events before writing so dates are always YYYY-MM-DD strings.
+        events_df = _normalise_dates(events_df)
+
         try:
             # Export consolidated event log
             event_log_path = self.output_dir / "event_log.csv"
 
             if event_log_path.exists():
-                existing_df = pd.read_csv(event_log_path)
+                existing_df = _normalise_dates(pd.read_csv(event_log_path))
                 existing_df = existing_df[existing_df['date'] != target_date]
                 combined_df = pd.concat([existing_df, events_df], ignore_index=True)
             else:
@@ -335,7 +345,7 @@ class RiskEngineRunner:
                     type_path = self.output_dir / f"{event_type}_events.csv"
 
                     if type_path.exists():
-                        existing_type = pd.read_csv(type_path)
+                        existing_type = _normalise_dates(pd.read_csv(type_path))
                         existing_type = existing_type[existing_type['date'] != target_date]
                         combined_type = pd.concat([existing_type, type_events], ignore_index=True)
                     else:

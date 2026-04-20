@@ -263,9 +263,10 @@ class WeatherEventDetector:
 
             # 7-day rolling window — four-band severity classification:
             #   adequate     >= 25mm  (sufficient autumn break)
-            #   marginal     >= 15mm, < 25mm  (near-miss — added 2026-03-26)
-            #   marginal_low >= 10mm, < 15mm  (borderline — added 2026-03-26)
-            #   inadequate    < 10mm  (dry spell, germination risk)
+            #   marginal     >= 15mm, < 25mm  (near-miss)
+            #   marginal_low >= 10mm, < 15mm  (borderline)
+            #   inadequate    < 10mm  (dry spell alarm — only fired from May onwards;
+            #                          April dryness is normal before the break arrives)
             adequate_break = rain_thresholds['adequate_break']          # 25mm
             marginal_break = rain_thresholds['marginal_break_mm_7d']    # 15mm
             marginal_low_break = rain_thresholds['marginal_low_break_mm_7d']  # 10mm
@@ -281,22 +282,27 @@ class WeatherEventDetector:
                 elif seven_day_total >= marginal_low_break:
                     severity_7d = 'marginal_low'
                     threshold_7d = marginal_low_break
-                else:
+                elif target_month >= 5:
+                    # Only raise a dry-spell alarm from May onwards — April is too
+                    # early in the seeding window to flag the absence of a break.
                     severity_7d = 'inadequate'
                     threshold_7d = rain_thresholds['inadequate_week']
+                else:
+                    severity_7d = None  # April dryness — suppress
 
-                rain_events.append(self._build_event_record(
-                    row=row,
-                    event_type='seeding_rain',
-                    severity=severity_7d,
-                    value=seven_day_total,
-                    threshold=threshold_7d,
-                    crop_stage='seeding',
-                    confidence=confidence,
-                    quality_col='rainfall_quality',
-                    accumulation_window=7,
-                    rainfall_role='beneficial',
-                ))
+                if severity_7d is not None:
+                    rain_events.append(self._build_event_record(
+                        row=row,
+                        event_type='seeding_rain',
+                        severity=severity_7d,
+                        value=seven_day_total,
+                        threshold=threshold_7d,
+                        crop_stage='seeding',
+                        confidence=confidence,
+                        quality_col='rainfall_quality',
+                        accumulation_window=7,
+                        rainfall_role='beneficial',
+                    ))
 
         result = pd.DataFrame(rain_events)
         if not result.empty:

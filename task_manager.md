@@ -1,7 +1,7 @@
 
 # Task Manager
 **PRD:** ./prd.md  
-**Updated:** 2026-03-26 (Frost detection bug fixed for Aug tillering stage; WA station expansion to 107 stations; 1,200 duplicate ID rows cleaned; sowing season ready)  
+**Updated:** 2026-04-20 (Seeding rain backtest Apr–Jun 2025; fixed date string bug in _export_events; gated inadequate events to May+)  
 
 ---
 
@@ -351,6 +351,31 @@ Claude prints: `OK TO CLOSE: Save is complete. Please close this chat to reset c
   - `data/derived/event_log.csv` (443 Aug frost events recovered; total 3,555 events)
   - `data/derived/frost_events.csv` (updated)
 - **Next steps:** Run risk engine over Apr–Jun 2025 to backtest seeding rain detection against last year’s autumn break; set rolling_days back to 40 in silo_sources.yaml for daily runs (or parameterise).
+- **Blockers:** None
+- **Commit:** pending
+
+### 2026-04-20 — risk-engine (Seeding Rain Backtest + Bug Fixes)
+- **Task:** Backtest seeding rain detection over Apr–Jun 2025; fix two bugs found during analysis
+- **What changed:**
+  - **Bug 1 fixed:** `_export_events` date string mismatch — CSV stored dates as `’2025-04-01 00:00:00’` but filter compared against `’2025-04-01’`. Old events were never removed on re-run, causing unbounded accumulation. Fixed by adding `_normalise_dates()` helper that applies `pd.to_datetime(format=’mixed’).dt.strftime(‘%Y-%m-%d’)` to both existing and new event DataFrames before write.
+  - **Bug 2 fixed:** `inadequate` seeding_rain events fired every dry day for every station in April, generating ~10k noise events with no agronomic signal. Fixed by gating `inadequate` to `target_month >= 5` — April dryness is normal before the autumn break arrives.
+  - Cleaned corrupted derived CSVs (24,370 accumulated duplicate seeding_rain events removed)
+- **Files touched:**
+  - `src/agents/risk_engine/run_risk_engine.py` (added `_normalise_dates()` helper; applied to both event_log and type-specific CSV paths)
+  - `src/agents/risk_engine/event_detector.py` (gated `inadequate` severity to May+ in `detect_seeding_rainfall`)
+  - `data/derived/event_log.csv` and `seeding_rain_events.csv` (cleaned, re-run from DuckDB)
+- **Backtest results (Apr–Jun 2025, 97 stations):**
+  - 7,075 total seeding_rain events (down from 24,559 with bugs)
+  - adequate: 1,114 | marginal: 841 | marginal_low: 721 | inadequate: 4,399
+  - 0 duplicate rows confirmed post-fix
+  - April: 32.2 events/day avg (positive signals only — no dry-spell noise)
+  - May–June: 97–150 events/day (accurate dry-spell alarms for stations with <5mm/7d)
+  - 97/97 stations detected a break; 70 in April, 19 in May, 8 in June (consistent with WA autumn break timing)
+- **Detection quality assessment:** PASS — autumn break timing agronomically plausible for WA wheatbelt 2025
+- **Notes:**
+  - `marginal` and `marginal_low` severities in code not yet documented in CLAUDE.md — minor gap
+  - May–June stations with 97 events/day means all stations in dry spell — expected for WA inland stations in May–June gaps between fronts
+- **Next steps:** Cron automation install; update CLAUDE.md to document marginal/marginal_low severities
 - **Blockers:** None
 - **Commit:** pending
 
