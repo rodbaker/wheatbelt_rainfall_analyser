@@ -261,35 +261,42 @@ class WeatherEventDetector:
                     rainfall_role='beneficial',
                 ))
 
-            # 7-day rolling window — adequate break or dry spell
+            # 7-day rolling window — four-band severity classification:
+            #   adequate     >= 25mm  (sufficient autumn break)
+            #   marginal     >= 15mm, < 25mm  (near-miss — added 2026-03-26)
+            #   marginal_low >= 10mm, < 15mm  (borderline — added 2026-03-26)
+            #   inadequate    < 10mm  (dry spell, germination risk)
+            adequate_break = rain_thresholds['adequate_break']          # 25mm
+            marginal_break = rain_thresholds['marginal_break_mm_7d']    # 15mm
+            marginal_low_break = rain_thresholds['marginal_low_break_mm_7d']  # 10mm
+
             seven_day_total = self._calculate_rolling_rainfall(window, row['date'], 7, station_id=station_id)
             if seven_day_total is not None:
-                if seven_day_total >= rain_thresholds['adequate_break']:
-                    rain_events.append(self._build_event_record(
-                        row=row,
-                        event_type='seeding_rain',
-                        severity='adequate',
-                        value=seven_day_total,
-                        threshold=rain_thresholds['adequate_break'],
-                        crop_stage='seeding',
-                        confidence=confidence,
-                        quality_col='rainfall_quality',
-                        accumulation_window=7,
-                        rainfall_role='beneficial',
-                    ))
-                elif seven_day_total < rain_thresholds['inadequate_week']:
-                    rain_events.append(self._build_event_record(
-                        row=row,
-                        event_type='seeding_rain',
-                        severity='inadequate',
-                        value=seven_day_total,
-                        threshold=rain_thresholds['inadequate_week'],
-                        crop_stage='seeding',
-                        confidence=confidence,
-                        quality_col='rainfall_quality',
-                        accumulation_window=7,
-                        rainfall_role='beneficial',
-                    ))
+                if seven_day_total >= adequate_break:
+                    severity_7d = 'adequate'
+                    threshold_7d = adequate_break
+                elif seven_day_total >= marginal_break:
+                    severity_7d = 'marginal'
+                    threshold_7d = marginal_break
+                elif seven_day_total >= marginal_low_break:
+                    severity_7d = 'marginal_low'
+                    threshold_7d = marginal_low_break
+                else:
+                    severity_7d = 'inadequate'
+                    threshold_7d = rain_thresholds['inadequate_week']
+
+                rain_events.append(self._build_event_record(
+                    row=row,
+                    event_type='seeding_rain',
+                    severity=severity_7d,
+                    value=seven_day_total,
+                    threshold=threshold_7d,
+                    crop_stage='seeding',
+                    confidence=confidence,
+                    quality_col='rainfall_quality',
+                    accumulation_window=7,
+                    rainfall_role='beneficial',
+                ))
 
         result = pd.DataFrame(rain_events)
         if not result.empty:

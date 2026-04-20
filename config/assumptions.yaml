@@ -63,12 +63,30 @@ thresholds:
   rainfall:
     methodology: "accumulation_based"
     windows: [1, 3, 5, 7]                  # Check 1,3,5,7 day accumulations
-    timing_critical: ["harvest"]           # Only critical during harvest
-    
+    timing_critical: ["seeding", "crop_development", "harvest"]
+
     severity_classification:
       moderate: "10mm_single_day"
       high: "15mm_three_days"
       severe: "25mm_three_days"
+
+  seeding_rain:
+    methodology: "accumulation_based"
+    windows_days: [7, 14]
+    role: "beneficial"
+    severity_labels:
+      adequate: "Germination moisture met (>=25mm/7d)"
+      marginal: "Near-miss break — monitor closely (15-24.9mm/7d)"
+      marginal_low: "Borderline moisture — germination uncertain (10-14.9mm/7d)"
+      inadequate: "Dry — germination risk (<10mm/7d)"
+
+  development_rain:
+    methodology: "accumulation_based"
+    windows_days: [7, 14, 21]
+    role: "beneficial"
+    severity_labels:
+      adequate: "Growth moisture adequate"
+      dry_spell: "Moisture stress — crop development risk"
 
 # Statistical assumptions
 statistics:
@@ -114,6 +132,7 @@ versioning:
   next_review_date: "2025-10-01"
   change_log:
     - "2025-09-07: Initial MVP assumptions established"
+    - "2026-03-26: Added marginal_low (10-14.9mm/7d) and marginal (15-24.9mm/7d) severity bands to seeding rain detection. These stations previously fell into inadequate. Inadequate band is now strictly <10mm/7d."
     
 # Contact and governance
 governance:

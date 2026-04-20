@@ -8,7 +8,7 @@ Provides human-readable summaries of frost, heat, and rainfall events.
 import pandas as pd
 from datetime import datetime, date
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 
 class DailyReportGenerator:
@@ -91,12 +91,17 @@ class DailyReportGenerator:
     
     def _generate_summary_stats(self, events_df: pd.DataFrame) -> Dict[str, int]:
         """Generate summary statistics for the daily digest header."""
+        def _count(event_type):
+            return len(events_df[events_df['event_type'] == event_type]) if not events_df.empty else 0
+
         stats = {
             'total_events': len(events_df),
-            'frost_events': len(events_df[events_df['event_type'] == 'frost']),
-            'heat_events': len(events_df[events_df['event_type'] == 'heat']),
-            'rainfall_events': len(events_df[events_df['event_type'] == 'rainfall']),
-            'stations_affected': events_df['station_id'].nunique() if not events_df.empty else 0
+            'frost_events': _count('frost'),
+            'heat_events': _count('heat'),
+            'rainfall_events': _count('rainfall'),
+            'seeding_rain_events': _count('seeding_rain'),
+            'development_rain_events': _count('development_rain'),
+            'stations_affected': events_df['station_id'].nunique() if not events_df.empty else 0,
         }
         return stats
     
@@ -184,6 +189,73 @@ class DailyReportGenerator:
         
         return section + "\n"
     
+    def _generate_seasonal_moisture_section(self, events_df: pd.DataFrame) -> str:
+        """Generate a year-round seasonal moisture tracker section."""
+        report_month = self.date.month
+
+        # Determine which windows are active
+        in_seeding = report_month in [4, 5, 6]
+        in_development = report_month in [7, 8, 9, 10]
+        in_harvest = report_month in [11, 12, 1]
+
+        def _window_status(event_type: str, adequate_severities: list, dry_severities: list) -> str:
+            if events_df.empty or event_type not in events_df['event_type'].values:
+                return "No data"
+            window_events = events_df[events_df['event_type'] == event_type]
+            if window_events.empty:
+                return "No events detected"
+            adequate_count = len(window_events[window_events['severity'].isin(adequate_severities)])
+            dry_count = len(window_events[window_events['severity'].isin(dry_severities)])
+            stations_dry = window_events[window_events['severity'].isin(dry_severities)]['station_id'].nunique()
+            if dry_count > 0:
+                return f"DRY SPELL — {stations_dry} station(s) below threshold"
+            if adequate_count > 0:
+                return f"Adequate — {adequate_count} event(s) met moisture threshold"
+            return "Monitoring"
+
+        section = "## Seasonal Moisture Status\n\n"
+
+        # Seeding window
+        if in_seeding:
+            status = _window_status('seeding_rain', ['adequate'], ['inadequate'])
+            prefix = "WARNING: " if "DRY SPELL" in status else ""
+            section += f"- **Seeding window (Apr–Jun):** {prefix}{status}\n"
+        else:
+            section += f"- **Seeding window (Apr–Jun):** {'Active' if in_seeding else 'Pre-season' if report_month < 4 else 'Complete'}\n"
+
+        # Development window
+        if in_development:
+            status = _window_status('development_rain', [], ['dry_spell', 'moisture_stress'])
+            prefix = "WARNING: " if "DRY SPELL" in status else ""
+            section += f"- **Development period (Jul–Oct):** {prefix}{status}\n"
+        else:
+            section += f"- **Development period (Jul–Oct):** {'Active' if in_development else 'Pre-season' if report_month < 7 else 'Complete'}\n"
+
+        # Harvest window
+        if in_harvest:
+            status = _window_status('rainfall', [], ['moderate', 'high', 'severe'])
+            prefix = ""
+            section += f"- **Harvest window (Nov–Jan):** Active — {len(events_df[events_df['event_type'] == 'rainfall'])} rainfall risk event(s)\n"
+        else:
+            section += f"- **Harvest window (Nov–Jan):** {'Active' if in_harvest else 'Pre-season' if report_month < 11 else 'Complete'}\n"
+
+        # Key dry stations (if any)
+        dry_events = pd.DataFrame()
+        if not events_df.empty and 'event_type' in events_df.columns:
+            dry_events = events_df[
+                (events_df['event_type'].isin(['seeding_rain', 'development_rain'])) &
+                (events_df['severity'].isin(['inadequate', 'dry_spell', 'moisture_stress']))
+            ]
+
+        if not dry_events.empty:
+            section += "\n**Stations with moisture stress:**\n"
+            for station_id in dry_events['station_id'].unique()[:5]:
+                station_name = self._get_station_name(station_id)
+                station_dry = dry_events[dry_events['station_id'] == station_id].iloc[0]
+                section += f"- {station_name}: {station_dry['value']:.1f}mm over {station_dry['accumulation_window']}-day window\n"
+
+        return section + "\n"
+
     def _generate_data_quality_section(self, events_df: pd.DataFrame) -> str:
         """Generate data quality assessment section."""
         if events_df.empty:
@@ -233,7 +305,11 @@ class DailyReportGenerator:
             if stats['heat_events'] > 0:
                 report_lines.append(f"- 🔥 **{stats['heat_events']} heat stress event(s)**")
             if stats['rainfall_events'] > 0:
-                report_lines.append(f"- 🌧️ **{stats['rainfall_events']} rainfall event(s)**")
+                report_lines.append(f"- 🌧️ **{stats['rainfall_events']} harvest rainfall event(s)**")
+            if stats['seeding_rain_events'] > 0:
+                report_lines.append(f"- 🌱 **{stats['seeding_rain_events']} seeding rainfall event(s)**")
+            if stats['development_rain_events'] > 0:
+                report_lines.append(f"- 💧 **{stats['development_rain_events']} development moisture event(s)**")
         
         report_lines.append("")
         
@@ -249,10 +325,13 @@ class DailyReportGenerator:
         report_lines.append("### 🔥 Heat Stress Risk")
         report_lines.append(self._generate_heat_section(events_df))
         
-        # Rainfall Events  
+        # Rainfall Events
         report_lines.append("### 🌧️ Harvest Rainfall Risk")
         report_lines.append(self._generate_rainfall_section(events_df))
-        
+
+        # Seasonal Moisture Tracker (year-round)
+        report_lines.append(self._generate_seasonal_moisture_section(events_df))
+
         # Data Quality
         report_lines.append(self._generate_data_quality_section(events_df))
         
@@ -272,5 +351,236 @@ class DailyReportGenerator:
         if self.verbose:
             print(f"Report written to: {report_path}")
             print(f"Report contains {len(report_lines)} lines")
-        
+
+        return report_path
+
+
+class SeasonReportGenerator:
+    """Generate a full-season risk summary report from the complete event log."""
+
+    MONTH_NAMES = {
+        1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'Jun',
+        7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec',
+    }
+
+    def __init__(self, season_year: int, output_dir: Optional[str] = None, verbose: bool = False):
+        """
+        Args:
+            season_year: The harvest year (e.g. 2025 covers Jul 2025 – Jun 2026).
+            output_dir: Override output directory (defaults to reports/).
+            verbose: Enable verbose logging.
+        """
+        self.season_year = season_year
+        self.verbose = verbose
+
+        self.project_root = Path(__file__).parent.parent.parent.parent
+        self.output_dir = Path(output_dir) if output_dir else self.project_root / "reports"
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
+        self.event_log_path = self.project_root / "data" / "derived" / "event_log.csv"
+        self.stations_path = self.project_root / "data" / "meta" / "wheatbelt_stations.csv"
+        self._load_station_metadata()
+
+    def _load_station_metadata(self):
+        try:
+            self.stations_df = pd.read_csv(self.stations_path)
+            if 'Station number' in self.stations_df.columns:
+                self.stations_df = self.stations_df.rename(columns={'Station number': 'station_id'})
+        except Exception:
+            self.stations_df = pd.DataFrame()
+
+    def _get_station_name(self, station_id: int) -> str:
+        if not self.stations_df.empty:
+            match = self.stations_df[self.stations_df['station_id'] == station_id]
+            if not match.empty:
+                return match.iloc[0].get('Station name', f"Station {station_id}")
+        return f"Station {station_id}"
+
+    def _load_season_events(self) -> pd.DataFrame:
+        """Load all events in the season window (Jul season_year – Jun season_year+1)."""
+        df = pd.read_csv(self.event_log_path)
+        df['date'] = pd.to_datetime(df['date'], format='mixed', errors='coerce')
+        df = df.dropna(subset=['date'])
+        df['month'] = df['date'].dt.month
+        df['year'] = df['date'].dt.year
+
+        # Season window: Aug of season_year to Jun of season_year+1 (wheat season)
+        season_start = pd.Timestamp(f"{self.season_year}-07-01")
+        season_end = pd.Timestamp(f"{self.season_year + 1}-06-30")
+        mask = (df['date'] >= season_start) & (df['date'] <= season_end)
+        season_df = df[mask].copy()
+
+        if self.verbose:
+            print(f"Season events loaded: {len(season_df)} (from {len(df)} total)")
+        return season_df
+
+    def _monthly_breakdown_table(self, df: pd.DataFrame) -> str:
+        """Markdown table: rows=month, cols=event types."""
+        event_types = ['frost', 'heat', 'rainfall', 'development_rain', 'seeding_rain']
+        col_labels = {'frost': 'Frost', 'heat': 'Heat', 'rainfall': 'Harvest Rain',
+                      'development_rain': 'Dev Rain', 'seeding_rain': 'Seeding Rain'}
+
+        df['month_num'] = df['date'].dt.month
+        df['year_num'] = df['date'].dt.year
+
+        months_in_season = []
+        for y, m in [(self.season_year, mo) for mo in range(7, 13)] + \
+                     [(self.season_year + 1, mo) for mo in range(1, 7)]:
+            if not df[(df['year_num'] == y) & (df['month_num'] == m)].empty:
+                months_in_season.append((y, m))
+
+        header = "| Month | " + " | ".join(col_labels[t] for t in event_types) + " | Total |"
+        sep = "|-------|" + "-------|" * len(event_types) + "-------|"
+        rows = [header, sep]
+
+        for y, m in months_in_season:
+            month_df = df[(df['year_num'] == y) & (df['month_num'] == m)]
+            label = f"{self.MONTH_NAMES[m]} {y}"
+            counts = [str(len(month_df[month_df['event_type'] == t])) for t in event_types]
+            rows.append(f"| {label} | " + " | ".join(counts) + f" | {len(month_df)} |")
+
+        total_counts = [str(len(df[df['event_type'] == t])) for t in event_types]
+        rows.append(f"| **TOTAL** | " + " | ".join(f"**{c}**" for c in total_counts) + f" | **{len(df)}** |")
+        return "\n".join(rows)
+
+    def _peak_events_section(self, df: pd.DataFrame) -> str:
+        """Highlight worst single-day events per type."""
+        lines = []
+
+        # Frost: coldest day
+        frost = df[df['event_type'] == 'frost']
+        if not frost.empty:
+            worst = frost.loc[frost['value'].idxmin()]
+            lines.append(f"- **Coldest frost**: {worst['value']:.1f}°C at "
+                         f"{self._get_station_name(int(worst['station_id']))} "
+                         f"on {worst['date'].strftime('%d %b %Y')} ({worst['severity']})")
+
+        # Heat: hottest day
+        heat = df[df['event_type'] == 'heat']
+        if not heat.empty:
+            worst = heat.loc[heat['value'].idxmax()]
+            lines.append(f"- **Hottest heat event**: {worst['value']:.1f}°C at "
+                         f"{self._get_station_name(int(worst['station_id']))} "
+                         f"on {worst['date'].strftime('%d %b %Y')} ({worst['severity']})")
+
+        # Harvest rainfall: highest single event
+        rain = df[df['event_type'] == 'rainfall']
+        if not rain.empty:
+            worst = rain.loc[rain['value'].idxmax()]
+            lines.append(f"- **Largest harvest rainfall**: {worst['value']:.1f}mm at "
+                         f"{self._get_station_name(int(worst['station_id']))} "
+                         f"on {worst['date'].strftime('%d %b %Y')} ({worst['severity']})")
+
+        # Development rain: most stressed station (most events)
+        dev = df[df['event_type'] == 'development_rain']
+        if not dev.empty:
+            top_station = dev['station_id'].value_counts().idxmax()
+            count = dev['station_id'].value_counts().max()
+            lines.append(f"- **Most development moisture stress**: "
+                         f"{self._get_station_name(int(top_station))} — {count} events")
+
+        return "\n".join(lines) if lines else "No extreme events on record."
+
+    def _top_stations_section(self, df: pd.DataFrame) -> str:
+        """Top 5 stations by total event count."""
+        counts = df.groupby('station_id').size().sort_values(ascending=False).head(5)
+        lines = []
+        for station_id, count in counts.items():
+            lines.append(f"- **{self._get_station_name(int(station_id))}** (ID {int(station_id)}): {count} events")
+        return "\n".join(lines) if lines else "No station data."
+
+    def generate_report(self) -> Path:
+        """Generate and write the season summary report."""
+        df = self._load_season_events()
+
+        lines = []
+
+        # Header
+        lines += [
+            f"# CropForecaster — {self.season_year}/{str(self.season_year + 1)[-2:]} Season Risk Summary",
+            "",
+            f"*Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | "
+            f"Events: {len(df)} | Stations: {df['station_id'].nunique()} | "
+            f"Date range: {df['date'].min().strftime('%d %b %Y')} – {df['date'].max().strftime('%d %b %Y')}*",
+            "",
+        ]
+
+        if df.empty:
+            lines.append("No events found for this season.")
+        else:
+            # Executive summary
+            frost_count = len(df[df['event_type'] == 'frost'])
+            heat_count = len(df[df['event_type'] == 'heat'])
+            rain_count = len(df[df['event_type'] == 'rainfall'])
+            dev_count = len(df[df['event_type'] == 'development_rain'])
+            seed_count = len(df[df['event_type'] == 'seeding_rain'])
+
+            lines += [
+                "## Executive Summary",
+                "",
+                f"The {self.season_year}/{str(self.season_year + 1)[-2:]} season recorded **{len(df)} weather risk events** "
+                f"across **{df['station_id'].nunique()} stations**.",
+                "",
+                f"| Event Type | Count | % of Season |",
+                f"|------------|-------|-------------|",
+                f"| Frost | {frost_count} | {frost_count/len(df)*100:.1f}% |",
+                f"| Heat Stress | {heat_count} | {heat_count/len(df)*100:.1f}% |",
+                f"| Harvest Rainfall Risk | {rain_count} | {rain_count/len(df)*100:.1f}% |",
+                f"| Crop Development Moisture | {dev_count} | {dev_count/len(df)*100:.1f}% |",
+                f"| Seeding Rainfall | {seed_count} | {seed_count/len(df)*100:.1f}% |",
+                "",
+            ]
+
+            # Severity breakdown for frost
+            if frost_count > 0:
+                frost_df = df[df['event_type'] == 'frost']
+                sev = frost_df['severity'].value_counts()
+                lines += [
+                    "### Frost Severity Breakdown",
+                    "",
+                    f"- Light (≤2°C): **{sev.get('light', 0)}** events",
+                    f"- Moderate (≤0°C): **{sev.get('moderate', 0)}** events",
+                    f"- Severe (≤-2°C): **{sev.get('severe', 0)}** events",
+                    "",
+                ]
+
+            # Monthly breakdown
+            lines += [
+                "## Monthly Breakdown",
+                "",
+                self._monthly_breakdown_table(df),
+                "",
+            ]
+
+            # Season highlights
+            lines += [
+                "## Season Highlights",
+                "",
+                self._peak_events_section(df),
+                "",
+            ]
+
+            # Top stations
+            lines += [
+                "## Most Affected Stations",
+                "",
+                self._top_stations_section(df),
+                "",
+            ]
+
+        # Footer
+        lines += [
+            "---",
+            "",
+            "*CropForecaster Season Risk Summary — Australian Wheatbelt*",
+            "*Data source: SILO API | Analysis: Risk Engine | Report: Insight Publisher*",
+        ]
+
+        report_path = self.output_dir / f"{self.season_year}-{str(self.season_year + 1)[-2:]}_season_summary.md"
+        with open(report_path, 'w') as f:
+            f.write('\n'.join(lines))
+
+        if self.verbose:
+            print(f"Season report written to: {report_path}")
+
         return report_path

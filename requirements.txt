@@ -22,8 +22,6 @@ duckdb>=0.8.0              # Fast analytical storage for weather data
 flake8>=6.0.0              # Code quality checking
 coverage>=7.0.0            # Test coverage reporting
 
-# Documentation (existing sphinx setup)
-Sphinx>=7.0.0              # Documentation generation
-
-# Legacy/optional (review for removal)
-# awscli                   # Only needed if using S3 uploads - consider removing
+# Optional development tools (install manually if needed)
+# Sphinx>=7.0.0            # Documentation generation (no active docs build)
+# awscli                   # Only needed if using S3 uploads

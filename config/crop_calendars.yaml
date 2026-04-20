@@ -18,7 +18,7 @@ wheat:
     tillering:
       months: [6, 7, 8]        # Jun-Aug
       description: "Plant development, some frost tolerance"
-      frost_critical: false
+      frost_critical: true
       
     stem_elongation:
       months: [8, 9]           # Aug-Sep
@@ -43,6 +43,18 @@ wheat:
       frost_critical: false
       heat_critical: false
       
+    seeding:
+      months: [4, 5, 6]        # Apr-Jun (Autumn break and germination)
+      description: "Autumn break and germination moisture"
+      rain_critical: true
+      rainfall_role: beneficial
+
+    crop_development:
+      months: [7, 8, 9, 10]    # Jul-Oct (Vegetative and reproductive)
+      description: "Vegetative and reproductive stage moisture"
+      rain_critical: true
+      rainfall_role: beneficial
+
     harvest:
       months: [11, 12, 1]      # Nov-Jan (extends into summer)
       description: "Rainfall risk for quality downgrades"
@@ -102,10 +114,22 @@ thresholds:
       severe: 35.0    # >35°C: Severe impact on grain quality
       
   rainfall:
+    seeding:
+      germination_trigger: 10.0   # mm — minimum single event to trigger germination
+      adequate_break: 25.0        # mm over 7 days — sufficient autumn break
+      marginal_break_mm_7d: 15.0  # mm over 7 days — lower bound of marginal band (15–24.9mm)
+      marginal_low_break_mm_7d: 10.0  # mm over 7 days — lower bound of marginal_low band (10–14.9mm)
+      inadequate_week: 5.0        # mm over 7 days — flag dry spell during seeding (<10mm)
+
+    crop_development:
+      dry_spell_7day: 5.0         # mm — flag if <5mm over 7 days
+      dry_spell_14day: 10.0       # mm — moderate stress if <10mm over 14 days
+      adequate_monthly: 25.0      # mm — benchmark for adequate growing-season rain
+
     harvest:
-      heavy_day: 10.0      # >10mm in single day
-      moderate_period: 15.0 # >15mm over 3 days  
-      severe_period: 25.0   # >25mm over 3 days
+      moderate: 10.0   # >10mm in single day
+      high: 15.0       # >15mm over 3 days
+      severe: 25.0     # >25mm over 3 days
 
 # Notes and assumptions
 metadata:

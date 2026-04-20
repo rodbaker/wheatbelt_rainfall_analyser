@@ -27,6 +27,8 @@ project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from src.common.logging_utils import setup_logging
+from src.common.constants import SILO_QUALITY_CODES, SILO_QUALITY_DEFAULT
+from src.common.file_utils import atomic_csv_write
 
 logger = logging.getLogger(__name__)
 
@@ -247,37 +249,20 @@ class CSVRiskEngine:
         
     def _calculate_confidence(self, quality_code: float) -> float:
         """Calculate confidence score based on SILO quality codes
-        
+
         Args:
             quality_code: SILO data quality code
-            
+
         Returns:
             Confidence score between 0.0 and 1.0
         """
         if pd.isna(quality_code):
-            return 0.5
-            
-        quality_code = int(quality_code)
-        
-        # SILO quality codes
-        if quality_code == 0:      # Observed data
-            return 1.0
-        elif quality_code == 15:   # Interpolated  
-            return 0.8
-        elif quality_code == 25:   # Interpolated from nearby stations
-            return 0.7
-        elif quality_code == 35:   # Synthetic
-            return 0.3
-        elif quality_code == 75:   # Interpolated (lower quality)
-            return 0.6
-        elif quality_code == 999:  # Missing
-            return 0.0
-        else:
-            return 0.5  # Unknown code
+            return SILO_QUALITY_DEFAULT
+        return SILO_QUALITY_CODES.get(int(quality_code), SILO_QUALITY_DEFAULT)
             
     def _export_events(self, events_df: pd.DataFrame, target_date: str):
         """Export detected events to CSV files (M1 format)
-        
+
         Args:
             events_df: DataFrame with all detected events
             target_date: Date processed
@@ -285,25 +270,22 @@ class CSVRiskEngine:
         try:
             # Export consolidated event log
             event_log_path = self.output_dir / "event_log.csv"
-            
-            # Append to existing log or create new (atomic operation)
+
             if event_log_path.exists():
                 existing_df = pd.read_csv(event_log_path)
-                # Remove existing events for this date to avoid duplicates
                 existing_df = existing_df[existing_df['date'] != target_date]
                 combined_df = pd.concat([existing_df, events_df], ignore_index=True)
             else:
                 combined_df = events_df
-                
-            combined_df.to_csv(event_log_path, index=False)
+
+            atomic_csv_write(combined_df, event_log_path)
             logger.info(f"Exported {len(events_df)} events to {event_log_path}")
-            
-            # Export M1 format files (as specified in CLAUDE.md)
+
+            # Export M1 format files
             for event_type in ['frost', 'heat']:
                 type_events = events_df[events_df['event_type'] == event_type].copy()
-                
+
                 if not type_events.empty:
-                    # Create M1 format: station_id, date, min_temp/max_temp, risk_flag
                     if event_type == 'frost':
                         m1_format = pd.DataFrame({
                             'station_id': type_events['station_id'],
@@ -311,20 +293,17 @@ class CSVRiskEngine:
                             'min_temp': type_events['value'],
                             'risk_flag': type_events['severity']
                         })
-                        
-                    else:  # heat
+                    else:
                         m1_format = pd.DataFrame({
                             'station_id': type_events['station_id'],
                             'date': type_events['date'],
                             'max_temp': type_events['value'],
                             'risk_flag': type_events['severity']
                         })
-                    
-                    # Save M1 format file (always overwrite for clean format)
-                    m1_path = self.output_dir / f"{event_type}_events.csv"
-                    m1_format.to_csv(m1_path, index=False)
-                    logger.info(f"Exported {len(type_events)} {event_type} events to M1 format: {m1_path}")
-                    
+
+                    atomic_csv_write(m1_format, self.output_dir / f"{event_type}_events.csv")
+                    logger.info(f"Exported {len(type_events)} {event_type} events to M1 format")
+
         except Exception as e:
             logger.error(f"Failed to export events: {e}")
             raise

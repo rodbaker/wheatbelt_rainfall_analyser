@@ -20,7 +20,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.agents.insight_publisher.report_generator import DailyReportGenerator
+from src.agents.insight_publisher.report_generator import DailyReportGenerator, SeasonReportGenerator
 from src.agents.insight_publisher.export_generator import PowerBIExportGenerator
 
 
@@ -29,14 +29,16 @@ def main():
     parser.add_argument('--daily', action='store_true', help='Generate daily risk digest')
     parser.add_argument('--export-powerbi', action='store_true', help='Generate Power BI exports')
     parser.add_argument('--weekly', action='store_true', help='Generate weekly outlook (future)')
+    parser.add_argument('--season', type=int, metavar='YEAR',
+                        help='Generate full-season summary (e.g. --season 2025 covers Jul 2025–Jun 2026)')
     parser.add_argument('--date', type=str, help='Date to process (YYYY-MM-DD), defaults to today')
     parser.add_argument('--output-dir', type=str, help='Override output directory')
     parser.add_argument('--verbose', '-v', action='store_true', help='Verbose logging')
-    
+
     args = parser.parse_args()
-    
+
     # Default to daily if no specific action provided
-    if not any([args.daily, args.export_powerbi, args.weekly]):
+    if not any([args.daily, args.export_powerbi, args.weekly, args.season]):
         args.daily = True
     
     # Parse date or use today
@@ -88,6 +90,24 @@ def main():
                 traceback.print_exc()
             sys.exit(1)
     
+    # Generate season summary report
+    if args.season:
+        print(f"📅 Generating {args.season}/{str(args.season + 1)[-2:]} season summary...")
+        try:
+            generator = SeasonReportGenerator(
+                season_year=args.season,
+                output_dir=args.output_dir,
+                verbose=args.verbose,
+            )
+            report_path = generator.generate_report()
+            print(f"✅ Season summary generated: {report_path}")
+        except Exception as e:
+            print(f"❌ Error generating season report: {e}")
+            if args.verbose:
+                import traceback
+                traceback.print_exc()
+            sys.exit(1)
+
     # Weekly outlook (placeholder for future implementation)
     if args.weekly:
         print("📅 Weekly outlook generation not yet implemented")

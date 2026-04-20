@@ -1,7 +1,7 @@
 
 # Task Manager
 **PRD:** ./prd.md  
-**Updated:** 2026-03-26 (Data pipeline gap closed: SILO→CSV→DuckDB wired; rolling window bug fixed; all 5 event types confirmed firing)  
+**Updated:** 2026-03-26 (Frost detection bug fixed for Aug tillering stage; WA station expansion to 107 stations; 1,200 duplicate ID rows cleaned; sowing season ready)  
 
 ---
 
@@ -19,6 +19,8 @@
 ## Done
 | ID              | Title                             | Agent          | Completed   | PR/Commit |
 |-----------------|-----------------------------------|----------------|-------------|-----------|
+| T-20260326-002  | Broaden WA station coverage via BOM dataset | silo-wrangler | 2026-03-26 | pending |
+| T-20260326-001  | Full season report via Insight Publisher | insight-publisher | 2026-03-26 | pending |
 | T-20250906-002  | Weather ingest pipeline (SILO/S3 → DuckDB) | infrastructure | 2025-09-08 | pending |
 | T-20250906-004  | Risk Engine implementation (frost/heat detection) | ai-accuracy | 2025-09-08 | pending |
 | T-20250906-003  | Harvest rainfall risk dashboard (7–14d view) | business | 2025-09-09 | pending |
@@ -295,6 +297,60 @@ Claude prints: `OK TO CLOSE: Save is complete. Please close this chat to reset c
   - heat: 6
   - seeding_rain: 0 (expected — Apr–Jun window not in this date range)
 - **Next steps:** Run publisher against event_log.csv; ingest full season data (ingest currently has 6 active-tier stations only, consider BOM dataset for broader coverage); set up cron automation
+- **Blockers:** None
+- **Commit:** pending
+
+### 2026-03-26 — silo-wrangler (WA Station Expansion via BOM Dataset)
+- **Task:** T-20260326-002 — Broaden WA coverage: select core wheatbelt stations, promote to active tier, ingest full season
+- **What changed:**
+  - `config/silo_sources.yaml`: active tier expanded from 6 → 17 WA+ref stations. 13 new WA core wheatbelt stations added (geographic spread south→north, high cropping area)
+  - Stations demoted to unverified (all-interpolated at 240d): WHITE GUMS, KONDININ, SHACKLETON
+  - DARTMOOR SOUTH moved to inactive (0 records returned)
+  - Ingest run: `--tiers active --days 240` → 16/20 stations passed, 3,840 records ingested (Aug 2025–Mar 2026)
+  - Risk engine: `--date-range 2025-08-30 2026-03-25` → 2,003 new events detected
+- **New WA active stations (13):**
+  CHILLINUP (010729), KATTA BAREGA (012312), ESPERANCE (009789), NEWDEGATE RESEARCH STATION (010692), NARROGIN (010614), PINGELLY (010626), QUAIRADING (010628), NUNGARIN (010112), AMERY ACRES (010000), DWELLINGUP (009538), PERTH METRO (009225), DALWALLINU (008297), PERENJORI (008107)
+- **Bug found (next session priority):** `run_risk_engine.py` `_export_events()` upsert on line 323 removes existing events for `target_date` before re-detecting. When re-running over Aug 30–31, 2025, the old M2 severe frost events (105 events from stations like 12071 SALMON GUMS -3.3°C) were removed and NOT re-detected. Root cause unknown — possibly date type mismatch in comparison, or frost detection skipping Aug as non-critical stage. DuckDB has the data (-3.3°C confirmed in DB).
+- **Files touched:**
+  - `config/silo_sources.yaml` (active/unverified/inactive tiers updated)
+- **Next steps:** Fix frost re-detection bug (start here next session); investigate why Aug 30-31 frost detection returns 0 events despite DuckDB having -3.3°C data
+- **Blockers:** Frost event loss bug — do NOT re-run `--date-range` over Aug 2025 until fixed
+- **Commit:** pending
+
+### 2026-03-26 — insight-publisher (Full Season Report)
+- **Task:** T-20260326-001 — Generate full-season risk summary report from event_log.csv
+- **What changed:**
+  - Added `SeasonReportGenerator` class to `report_generator.py` — loads all events for a season window (Jul Y – Jun Y+1), produces monthly breakdown table, season highlights, top stations
+  - Added `--season YEAR` flag to `run_publisher.py` to invoke it
+  - Generated `reports/2025-26_season_summary.md` (912 events, 75 stations, Aug–Dec 2025)
+- **Files touched:**
+  - `src/agents/insight_publisher/report_generator.py` (added `SeasonReportGenerator`)
+  - `src/agents/insight_publisher/run_publisher.py` (added `--season` flag + handler)
+  - `reports/2025-26_season_summary.md` (generated output)
+- **Season highlights captured:**
+  - Coldest frost: -3.3°C at SALMON GUMS RES.STN. on 31 Aug 2025 (severe)
+  - Hottest heat: 39.5°C at WALGETT AIRPORT AWS on 01 Nov 2025
+  - Largest harvest rainfall: 84.6mm at Station 40004 on 16 Nov 2025
+  - 532 development_rain events (Oct 2025 peak — dry spring conditions)
+- **Note:** event_log.csv includes multi-state stations (not WA-only). Station 40004 (QLD/NSW) dominates development_rain count. Consider WA geographic filter in publisher if needed.
+- **Next steps:** Set up cron automation (scripts/cron_schedule.sh is ready); broaden station coverage
+- **Blockers:** None
+- **Commit:** pending
+
+### 2026-03-26 — risk-engine + silo-wrangler (Sowing Season Prep)
+- **Tasks:** Frost detection bug fix + WA station expansion for 2026 sowing season
+- **What changed:**
+  - Fixed `tillering: frost_critical: false` bug in `config/crop_calendars.yaml` — August frosts were silently skipped because the vegetative→tillering stage mapping had frost detection disabled. Changed to `true`.
+  - Re-ran Aug 2025 through risk engine: recovered 443 missing frost events (367 light, 69 moderate, 7 severe) including -3.3°C at SALMON GUMS on Aug 31.
+  - Deleted 1,200 duplicate station ID rows from DuckDB (non-zero-padded format `9225`, `9538` etc. shadowed padded `009225`, `009538`).
+  - Expanded WA station coverage via BOM dataset: `--use-bom-dataset --states "Western Australia" --min-cropping-area 300000 --days 365`. 97 of 166 stations passed quality (58% retention). DuckDB grew from 8,803 → 42,768 rows.
+  - Station coverage: 16 stations → 107 stations current to 2026-03-25, with 97 stations having full Apr–Jun 2025 sowing season data.
+- **Files touched:**
+  - `config/crop_calendars.yaml` (tillering frost_critical: false → true)
+  - `data/weather.duckdb` (1,200 dupes deleted; 35,405 new rows ingested)
+  - `data/derived/event_log.csv` (443 Aug frost events recovered; total 3,555 events)
+  - `data/derived/frost_events.csv` (updated)
+- **Next steps:** Run risk engine over Apr–Jun 2025 to backtest seeding rain detection against last year’s autumn break; set rolling_days back to 40 in silo_sources.yaml for daily runs (or parameterise).
 - **Blockers:** None
 - **Commit:** pending
 

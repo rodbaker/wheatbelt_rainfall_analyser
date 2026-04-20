@@ -36,10 +36,23 @@ stations:
   # TIER 1: Active stations - BOM verified, high quality data
   # These are included by default and have been validated against BOM
   active:
-    "040004": "AMBERLEY AMO"                    # QLD - High quality observed data
+    # --- Western Australia core wheatbelt (geographic spread, south to north) ---
+    # Validated 2026-03-26: 11 WA stations pass quality at 240-day window
+    "010729": "CHILLINUP"                       # WA - Gnowangerup, south (260k ha)
+    "012312": "KATTA BAREGA"                    # WA - Esperance Region, SE (381k ha)
+    "009789": "ESPERANCE"                       # WA - Esperance coastal, high quality
+    "010692": "NEWDEGATE RESEARCH STATION"      # WA - Kulin, agri research station (586k ha)
+    "010614": "NARROGIN"                        # WA - Narrogin, central south
+    "010626": "PINGELLY"                        # WA - Brookton, central south (132k ha)
+    "010628": "QUAIRADING"                      # WA - Cunderdin, central (243k ha)
+    "010112": "NUNGARIN"                        # WA - Mukinbudin, north-central (561k ha)
+    "010000": "AMERY ACRES"                     # WA - Dowerin, north-central (409k ha)
     "009538": "DWELLINGUP"                      # WA - Wheatbelt region, verified active
-    "009789": "ESPERANCE"                       # WA - Coastal, high quality data
     "009225": "PERTH METRO"                     # WA - Urban reference station
+    "008297": "DALWALLINU"                      # WA - Moora, north (407k ha)
+    "008107": "PERENJORI"                       # WA - Morawa, north (480k ha)
+    # --- Non-WA reference stations (retained from M1) ---
+    "040004": "AMBERLEY AMO"                    # QLD - High quality observed data
     "052088": "WALGETT AIRPORT AWS"             # NSW - Verified active AWS
     "055325": "TAMWORTH AIRPORT AWS"            # NSW - Verified active AWS
     
@@ -47,13 +60,17 @@ stations:
   # These stations need validation but may have good data
   unverified:
     "040126": "MARYBOROUGH"                     # QLD - Status needs verification
-    # Add more stations here as they are discovered/tested
+    # WA stations demoted after 2026-03-26 quality check (all-interpolated at 240d window):
+    "009607": "WHITE GUMS"                      # WA - Plantagenet, far south, all interpolated
+    "010583": "KONDININ"                        # WA - Kulin, all interpolated despite high area
+    "010283": "SHACKLETON"                      # WA - Merredin, all interpolated
     
   # TIER 3: Inactive stations - excluded by default unless explicitly requested
   # These have poor data quality due to discontinuation/interpolation
   inactive:
     "040214": "BRISBANE REGIONAL OFFICE"        # QLD - Data ends ~1994
     "040241": "SAMFORD CSIRO"                   # QLD - Data ends ~2003, heavy interpolation
+    "008306": "DARTMOOR SOUTH"                  # WA - Northampton-Mullewa, 0 records returned
     
   # TIER 4: Status unknown - commented out until verified
   # "040223": "BRISBANE AERO"                 # Status unknown
