@@ -55,9 +55,8 @@ reports/
 └── weekly/                     # YYYY-WW_outlook.md
 
 scripts/
-├── cron_schedule.sh            # Daily automation (run after daily ingest)
-├── daily_ingest.py             # Historical/manual ingest helper
-└── backfill_historical.py      # Backfill utility
+├── cron_schedule.sh            # Daily automation — calls all three agents in sequence
+└── build_station_regions.py    # One-off: build data/meta/station_regions.csv
 ```
 
 ---

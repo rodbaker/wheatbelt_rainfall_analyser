@@ -1,92 +1,108 @@
-wheatbelt_rainfall_analyser
-==============================
+# CropForecaster
 
-This project aims to gather, analyze, and prepare historical and ongoing rainfall data for integration into a wheat crop forecasting model. The project follows the `cookiecutter-data-science` template for organization and reproducibility.
+Operational weather monitoring for daily frost, heat stress, and rainfall risk assessment across the Australian wheatbelt. Pulls daily observations from the SILO API (Bureau of Meteorology stations), detects agronomic risk events, and generates markdown risk digests.
 
+---
 
-Project Organization
-------------
+## Architecture
 
-    ├── LICENSE
-    ├── README.md          <- The top-level README for developers using this project.
-    ├── data
-    │   ├── external       <- Data from third party sources (e.g., gridded rainfall data, shapefiles).
-    │   ├── interim        <- Intermediate data that has been transformed.
-    │   ├── processed      <- The final, canonical data sets for modeling.
-    │   ├── raw            <- The original, immutable data dump.
-    │   └── colormaps      <- Color maps for visualisation
-    │
-    ├── docs               <- A default Sphinx project; see sphinx-doc.org for details
-    │   ├── Logpaddock_SILO_API_Reference.pdf  <- Official SILO API documentation
-    │   └── silo_api_usage_guide.md            <- SILO API quickstart guide for CropForecaster
-    │
-    ├── models             <- Trained and serialized models, model predictions, or model summaries
-    │
-    ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-    │                         the creator's initials, and a short `-` delimited description, e.g.
-    │                         `1.0-jqp-initial-data-exploration`.
-    │
-    ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-    │
-    ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-    │   └── figures        <- Generated graphics and figures to be used in reporting
-    │
-    ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-    │                         generated with `pip freeze > requirements.txt`
-    │
-    ├── setup.py           <- makes project pip installable (pip install -e .) so src can be imported
-    ├── src                <- Source code for use in this project.
-    │   ├── __init__.py    <- Makes src a Python module
-    │   │
-    │   ├── data           <- Scripts to download or generate data
-    │   │   └── download_functions.py
-    │   │
-    │   ├── features       <- Scripts to turn raw data into features for modeling
-    │   │   ├── modify_netcdf.py
-    │   │   └── rainfall_functions.py
-    │   │
-    │   ├── models         <- Scripts to train models and then use trained models to make
-    │   │   │                 predictions
-    │   │   ├── predict_model.py
-    │   │   └── train_model.py
-    │   │
-    │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
-    │       ├── plot_data.py
-    │       └── plot_temp.py
-    │
-    └── node_modules     <- node modules required for puppeteer
+Three agents run in sequence each day:
 
+```
+SILO Wrangler  →  Risk Engine  →  Insight Publisher
+(ingest)          (detect)         (report)
+```
 
+| Agent | Entry point | Role |
+|---|---|---|
+| SILO Wrangler | `src/agents/silo_wrangler/run_ingest.py` | Fetch daily SILO data → DuckDB + CSV |
+| Risk Engine | `src/agents/risk_engine/run_risk_engine.py` | Detect frost / heat / rainfall events |
+| Insight Publisher | `src/agents/insight_publisher/run_publisher.py` | Generate daily markdown digest + Power BI exports |
 
+Daily automation: `scripts/cron_schedule.sh` runs all three in order (crontab entry inside the script).
 
-Setup
------
-To set up the project environment, run:
-`pip install -r requirements.txt`
-It is recommended to use a virtual environment (e.g., `venv` or `conda`) to isolate the project dependencies.
+---
 
+## Setup
 
-SILO API Integration
---------------------
-This project uses the SILO API for daily weather data ingestion. Key documentation:
+```bash
+pip install -e .
+cp .env.example .env          # add your SILO_EMAIL
+```
 
-- **API Reference**: [`docs/Logpaddock_SILO_API_Reference.pdf`](docs/Logpaddock_SILO_API_Reference.pdf) - Official SILO API documentation
-- **Quickstart Guide**: [`docs/silo_api_usage_guide.md`](docs/silo_api_usage_guide.md) - CropForecaster-specific API usage examples
+`.env` requires one variable:
+```
+SILO_EMAIL=your.email@example.com
+```
 
-Running the analysis
---------------------
-1.  Download the data using the scripts in `src/data`.
-2.  Explore the data and perform initial analysis using the Jupyter notebooks in the `notebooks` directory.
-3.  Generate features from the raw data using the scripts in `src/features`.
-4.  Train and evaluate models (implementation pending).
+---
 
+## Running
 
-Notebooks
----------
-*   Follow the naming convention: `number-initials-description.ipynb` (e.g., `1.0-jqp-initial-data-exploration.ipynb`).
-*   Each notebook should have a clear purpose and be well-commented.
+```bash
+# Full daily pipeline (ingest → detect → report) for a specific date
+./scripts/cron_schedule.sh --date 2026-05-02
 
+# Individual agents
+python src/agents/silo_wrangler/run_ingest.py --date 2026-05-02
+python src/agents/risk_engine/run_risk_engine.py --date 2026-05-02
+python src/agents/insight_publisher/run_publisher.py --date 2026-05-02
 
---------
+# Date-range ingest (backfill or catch-up)
+python src/agents/silo_wrangler/run_ingest.py --date-range 2026-04-01 2026-04-30
 
-<p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
+# Broader station coverage
+python src/agents/silo_wrangler/run_ingest.py --use-bom-dataset --states "Western Australia" --days 40
+python src/agents/silo_wrangler/run_ingest.py --use-bom-dataset --states "Western Australia" --hybrid
+```
+
+---
+
+## Outputs
+
+| Path | Contents |
+|---|---|
+| `data/weather.duckdb` | Primary weather store (DuckDB) |
+| `data/obs/obs_daily.csv` | Daily observations (CSV mirror) |
+| `data/derived/event_log.csv` | All risk events — consumed by downstream assembler |
+| `data/derived/*_events.csv` | Per-type event logs (frost, heat, rainfall, seeding_rain, development_rain) |
+| `reports/daily/YYYY-MM-DD_risk_digest.md` | Daily markdown risk digest |
+| `reports/weekly/YYYY-WW_outlook.md` | Weekly outlook (M2 automation target) |
+
+The `event_log.csv` and `reports/weekly/` outputs feed a downstream weekly grains market update assembler at `../claude-notebooklm-research/projects/weekly-grains-market/`.
+
+---
+
+## Configuration
+
+| File | Purpose |
+|---|---|
+| `config/silo_sources.yaml` | SILO API config, station tiers, Data Drill grid settings |
+| `config/crop_calendars.yaml` | Growth stages, event thresholds (frost/heat/rainfall) |
+| `config/assumptions.yaml` | Methodology notes |
+| `.env` | SILO credentials (gitignored) |
+
+Station tiers (`active`, `unverified`, `inactive`) control which stations are queried. Override credentials via `config/silo_sources.local.yaml` (gitignored).
+
+---
+
+## Event types
+
+| Type | Role | Active window | Severities |
+|---|---|---|---|
+| `frost` | Damaging | Jul–Oct | light, moderate, severe |
+| `heat` | Damaging | Oct–Dec | stress, severe |
+| `rainfall` | Damaging (harvest) | Nov–Jan | moderate, high, severe |
+| `seeding_rain` | Beneficial | Apr–Jun | adequate, marginal, inadequate |
+| `development_rain` | Beneficial | Jul–Oct | dry_spell, moisture_stress |
+
+All events share a consistent schema — see `CLAUDE.md` for field definitions.
+
+---
+
+## Current limitations
+
+- WA wheatbelt coverage only (SA/VIC/NSW expansion ready but not activated)
+- No test suite (M2 backlog)
+- `data/external/` contains large NetCDF reference files (~1 GB) not used by the daily pipeline — consider external storage
+- Weekly outlook report (`reports/weekly/`) requires a manual trigger; cron automation is the M2 goal
