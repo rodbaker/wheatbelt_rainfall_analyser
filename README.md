@@ -80,6 +80,7 @@ The `event_log.csv` and `reports/weekly/` outputs feed a downstream weekly grain
 | `config/silo_sources.yaml` | SILO API config, station tiers, Data Drill grid settings |
 | `config/crop_calendars.yaml` | Growth stages, event thresholds (frost/heat/rainfall) |
 | `config/assumptions.yaml` | Methodology notes |
+| `config/crop_context.yaml` | ABS crop commodity codes and baseline year for SA2 context integration |
 | `.env` | SILO credentials (gitignored) |
 
 Station tiers (`active`, `unverified`, `inactive`) control which stations are queried. Override credentials via `config/silo_sources.local.yaml` (gitignored).

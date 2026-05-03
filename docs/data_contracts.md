@@ -166,7 +166,47 @@ No current file fully satisfies `rainfall_features_station_season` or `rainfall_
 
 ---
 
-## 7. Open Decisions
+## 7. Contract: `crop_context_sa2` (ABS Agricultural Census)
+
+SA2-level historical crop area, production, and yield context derived from the ABS Agricultural Census. One row per SA2 per financial year per crop.
+
+**Backing store**: `data/meta/crop_context_sa2.csv` (generated artefact — not committed to repo).  
+**Source**: ABS Agricultural Census (`/home/roddyb/projects/ABS Census Data/ag_census.db`).  
+**Config**: `config/crop_context.yaml` (commodity codes, baseline year, output schema).  
+**Baseline year**: 2020-21.
+
+| Field | Type | Description |
+|---|---|---|
+| `sa2_code` | string | ABS SA2 code — treat as string, leading zeros are significant |
+| `sa2_name` | string | SA2 name |
+| `state` | string | Australian state name |
+| `financial_year` | string | ABS financial year (e.g. `2020-21`) |
+| `crop` | string | Crop key matching `config/crop_context.yaml` (e.g. `wheat`) |
+| `area_ha` | float | Harvested area (hectares); null if suppressed by ABS |
+| `production_t` | float | Production (tonnes); null if suppressed |
+| `yield_t_ha` | float | Yield (t/ha); null if suppressed |
+| `area_share` | float | This crop's share of total cropped area in SA2 (0–1) |
+| `area_rse` | string | ABS RSE/quality flag preserved as source text (may be blank, `^`, `*`, `**`, `np`, `..`, dash, or numeric %) |
+| `production_rse` | string | ABS RSE/quality flag preserved as source text |
+| `yield_rse` | string | ABS RSE/quality flag preserved as source text |
+| `source_dataset` | string | Dataset identifier (e.g. `ABS Agricultural Census 2020-21`) |
+| `source_commodity_area` | string | ABS commodity code used for area |
+| `source_commodity_production` | string | ABS commodity code used for production |
+| `source_commodity_yield` | string | ABS commodity code used for yield |
+| `boundary_status` | string | SA2 boundary match status (`matched`, `unmatched`) |
+| `notes` | string | Free-text notes (suppression reason, outliers, etc.) |
+
+**Constraints**:
+- Suppressed or null ABS estimates must be treated as missing, not zero.
+- SA2 codes must remain as strings throughout the pipeline — do not cast to integer.
+- RSE fields (`area_rse`, `production_rse`, `yield_rse`) must not be coerced to numeric — preserve ABS source text.
+- Values are historical census estimates; they do not reflect current-year planted area.
+
+**Crops covered**: wheat, barley, canola, lupins, oats (see `config/crop_context.yaml` for ABS commodity codes).
+
+---
+
+## 8. Open Decisions
 
 The following decisions are needed before contract tables can be generated:
 

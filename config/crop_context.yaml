@@ -1,0 +1,74 @@
+# ABS Crop Context Configuration
+# Defines ABS Agricultural Census commodity codes and integration metadata
+# for historical SA2-level crop area/production context.
+#
+# Source: ABS Agricultural Census (ag_census.db)
+# Source project: /home/roddyb/projects/ABS Census Data/ag_census.db
+# Generated output: data/meta/crop_context_sa2.csv  (not committed — generated artefact)
+#
+# IMPORTANT constraints:
+#   - Values are historical census estimates, not current-year planted area
+#   - Suppressed or null ABS estimates must be treated as missing, not zero
+#   - SA2 codes must be treated as strings (leading zeros are significant)
+
+# Baseline year for current integration
+baseline_year: "2020-21"
+
+# Crop definitions with ABS commodity codes
+# area_code:       ABS series code for harvested area (hectares)
+# production_code: ABS series code for production (tonnes)
+# yield_code:      ABS series code for yield (t/ha)
+crops:
+  wheat:
+    label: "Wheat"
+    area_code: "AGCEREAL_AHAWHT_F"
+    production_code: "AGCEREAL_ATOWHT_F"
+    yield_code: "WHEAT_YIELD_F"
+
+  barley:
+    label: "Barley"
+    area_code: "AGCEREAL_AHABAR_F"
+    production_code: "AGCEREAL_ATOBAR_F"
+    yield_code: "BARLEY_YIELD_F"
+
+  canola:
+    label: "Canola"
+    area_code: "AGOTHCROP_AHACAN_F"
+    production_code: "AGOTHCROP_ATOCAN_F"
+    yield_code: "CANOLA_YIELD_F"
+
+  lupins:
+    label: "Lupins"
+    area_code: "AGOTHCROP_AHALUP_F"
+    production_code: "AGOTHCROP_ATOLUP_F"
+    yield_code: "LUPINS_YIELD_F"
+
+  oats:
+    label: "Oats"
+    area_code: "AGCEREAL_AHAOAT_F"
+    production_code: "AGCEREAL_ATOOAT_F"
+    yield_code: "OATS_YIELD_F"
+
+# Generated output schema
+# File written by the ABS crop context generator (not yet implemented)
+output:
+  path: "data/meta/crop_context_sa2.csv"
+  schema:
+    - sa2_code              # string — ABS SA2 code (treat as string, leading zeros significant)
+    - sa2_name              # string — SA2 name
+    - state                 # string — Australian state name
+    - financial_year        # string — ABS financial year (e.g. "2020-21")
+    - crop                  # string — crop key (e.g. "wheat")
+    - area_ha               # float  — harvested area (hectares); null if suppressed
+    - production_t          # float  — production (tonnes); null if suppressed
+    - yield_t_ha            # float  — yield (t/ha); null if suppressed
+    - area_share            # float  — this crop's share of total cropped area in SA2 (0–1)
+    - area_rse              # string — ABS RSE/quality flag preserved as source text (may be blank, ^, *, **, np, .., or numeric %)
+    - production_rse        # string — ABS RSE/quality flag preserved as source text
+    - yield_rse             # string — ABS RSE/quality flag preserved as source text
+    - source_dataset        # string — dataset identifier (e.g. "ABS Agricultural Census 2020-21")
+    - source_commodity_area       # string — ABS commodity code used for area
+    - source_commodity_production # string — ABS commodity code used for production
+    - source_commodity_yield      # string — ABS commodity code used for yield
+    - boundary_status       # string — SA2 boundary match status (e.g. "matched", "unmatched")
+    - notes                 # string — free-text notes (suppression reason, outliers, etc.)
