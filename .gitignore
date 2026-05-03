@@ -68,6 +68,7 @@ docs/_build/
 *.zip
 *.gz
 data/meta/*.nc
+data/meta/crop_context_sa2.csv
 data/weather.duckdb
 
 # Temporary files

@@ -50,11 +50,12 @@ crops:
     yield_code: "OATS_YIELD_F"
 
 # Generated output schema
-# File written by the ABS crop context generator (not yet implemented)
+# File written by scripts/build_crop_context.py
 output:
   path: "data/meta/crop_context_sa2.csv"
   schema:
-    - sa2_code              # string — ABS SA2 code (treat as string, leading zeros significant)
+    - sa2_code              # string — full 9-digit ABS SA2 code (SA2_MAIN16); treat as string, leading zeros significant; empty string if SA2 could not be resolved
+    - station_sa2_5dig16    # string — 5-digit SA2 code from BOM station metadata (SA2_5DIG16); always populated; use for traceability back to wheatbelt_stations.csv
     - sa2_name              # string — SA2 name
     - state                 # string — Australian state name
     - financial_year        # string — ABS financial year (e.g. "2020-21")
@@ -62,7 +63,7 @@ output:
     - area_ha               # float  — harvested area (hectares); null if suppressed
     - production_t          # float  — production (tonnes); null if suppressed
     - yield_t_ha            # float  — yield (t/ha); null if suppressed
-    - area_share            # float  — this crop's share of total cropped area in SA2 (0–1)
+    - area_share            # float  — this crop's share of total cropped area in SA2 (0–1); null if area_ha is null or total is zero
     - area_rse              # string — ABS RSE/quality flag preserved as source text (may be blank, ^, *, **, np, .., or numeric %)
     - production_rse        # string — ABS RSE/quality flag preserved as source text
     - yield_rse             # string — ABS RSE/quality flag preserved as source text
@@ -70,5 +71,11 @@ output:
     - source_commodity_area       # string — ABS commodity code used for area
     - source_commodity_production # string — ABS commodity code used for production
     - source_commodity_yield      # string — ABS commodity code used for yield
-    - boundary_status       # string — SA2 boundary match status (e.g. "matched", "unmatched")
+    - boundary_status       # string — SA2 resolution status (see boundary_status_values below)
     - notes                 # string — free-text notes (suppression reason, outliers, etc.)
+
+# boundary_status vocabulary
+boundary_status_values:
+  matched:           "SA2_5DIG16 found directly in SA2_ABS_Regions.geojson; SA2_MAIN16 taken from GeoJSON"
+  matched_via_label: "SA2_5DIG16 absent from GeoJSON; SA2_MAIN16 resolved by matching region_label + state prefix in the ABS regions table"
+  unmatched:         "SA2_5DIG16 could not be resolved to a 9-digit ABS code; sa2_code is empty and no ABS data is included for this SA2"

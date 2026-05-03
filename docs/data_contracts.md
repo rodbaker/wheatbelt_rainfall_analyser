@@ -177,7 +177,8 @@ SA2-level historical crop area, production, and yield context derived from the A
 
 | Field | Type | Description |
 |---|---|---|
-| `sa2_code` | string | ABS SA2 code — treat as string, leading zeros are significant |
+| `sa2_code` | string | Full 9-digit ABS SA2 code (`SA2_MAIN16`); treat as string — leading zeros are significant. Empty string if the SA2 could not be resolved (see `boundary_status`). |
+| `station_sa2_5dig16` | string | 5-digit SA2 code from BOM station metadata (`SA2_5DIG16`); always populated. Use for traceability back to `data/meta/wheatbelt_stations.csv`. |
 | `sa2_name` | string | SA2 name |
 | `state` | string | Australian state name |
 | `financial_year` | string | ABS financial year (e.g. `2020-21`) |
@@ -185,7 +186,7 @@ SA2-level historical crop area, production, and yield context derived from the A
 | `area_ha` | float | Harvested area (hectares); null if suppressed by ABS |
 | `production_t` | float | Production (tonnes); null if suppressed |
 | `yield_t_ha` | float | Yield (t/ha); null if suppressed |
-| `area_share` | float | This crop's share of total cropped area in SA2 (0–1) |
+| `area_share` | float | This crop's share of total cropped area in the SA2 (0–1); null if `area_ha` is null or total across configured crops is zero |
 | `area_rse` | string | ABS RSE/quality flag preserved as source text (may be blank, `^`, `*`, `**`, `np`, `..`, dash, or numeric %) |
 | `production_rse` | string | ABS RSE/quality flag preserved as source text |
 | `yield_rse` | string | ABS RSE/quality flag preserved as source text |
@@ -193,12 +194,20 @@ SA2-level historical crop area, production, and yield context derived from the A
 | `source_commodity_area` | string | ABS commodity code used for area |
 | `source_commodity_production` | string | ABS commodity code used for production |
 | `source_commodity_yield` | string | ABS commodity code used for yield |
-| `boundary_status` | string | SA2 boundary match status (`matched`, `unmatched`) |
+| `boundary_status` | string | SA2 resolution status — see vocabulary below |
 | `notes` | string | Free-text notes (suppression reason, outliers, etc.) |
+
+**`boundary_status` vocabulary**:
+
+| Value | Meaning |
+|---|---|
+| `matched` | `SA2_5DIG16` found directly in `SA2_ABS_Regions.geojson`; `SA2_MAIN16` taken from GeoJSON properties |
+| `matched_via_label` | `SA2_5DIG16` absent from GeoJSON; `SA2_MAIN16` resolved by matching `region_label` + state prefix in the ABS `regions` table |
+| `unmatched` | SA2 could not be resolved to a 9-digit ABS code; `sa2_code` is empty and no ABS observations are included |
 
 **Constraints**:
 - Suppressed or null ABS estimates must be treated as missing, not zero.
-- SA2 codes must remain as strings throughout the pipeline — do not cast to integer.
+- Both `sa2_code` (9-digit) and `station_sa2_5dig16` (5-digit) must remain as strings throughout the pipeline — do not cast to integer.
 - RSE fields (`area_rse`, `production_rse`, `yield_rse`) must not be coerced to numeric — preserve ABS source text.
 - Values are historical census estimates; they do not reflect current-year planted area.
 
