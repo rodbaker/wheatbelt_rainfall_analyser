@@ -20,7 +20,7 @@ load_dotenv()
 
 from src.common.config_loader import load_config
 from src.common.logging_utils import setup_logging
-from src.common.stations_loader import load_wheatbelt_stations_for_config
+from src.common.stations_loader import load_wheatbelt_stations_for_config, generate_data_drill_grid
 from src.data.duckdb_storage import DuckDBStorage
 from .api_client import SILOAPIClient
 from .data_processor import WeatherDataProcessor
@@ -40,11 +40,15 @@ logger = logging.getLogger(__name__)
 @click.option('--sample-size', type=int, help='Random sample size from BOM dataset for testing')
 @click.option('--sample-seed', type=int, help='Random seed for reproducible sampling')
 @click.option('--min-cropping-area', type=int, help='Minimum cropping area (hectares) for station filtering')
-@click.option('--dry-run', is_flag=True, help='Run without writing output files')
+@click.option('--dry-run', is_flag=True, help='Run without writing output files (skips Data Drill API calls)')
+@click.option('--hybrid', is_flag=True, help='Gap-fill with SILO Data Drill after PPD station ingestion')
+@click.option('--hybrid-states', help='Comma-separated state names to run Data Drill for (e.g., "Western Australia"). Defaults to all wheatbelt_bounds regions.')
+@click.option('--dd-max-points', type=int, default=None, help='Limit Data Drill grid points (useful for testing)')
 @click.option('--verbose', '-v', is_flag=True, help='Enable verbose logging')
-def run_daily_ingest(config: str, stations: str, days: int, tiers: str, include_poor: bool, 
-                    use_bom_dataset: bool, states: str, sample_size: int, sample_seed: int, 
-                    min_cropping_area: int, dry_run: bool, verbose: bool):
+def run_daily_ingest(config: str, stations: str, days: int, tiers: str, include_poor: bool,
+                    use_bom_dataset: bool, states: str, sample_size: int, sample_seed: int,
+                    min_cropping_area: int, dry_run: bool, hybrid: bool, hybrid_states: str,
+                    dd_max_points: int, verbose: bool):
     """
     Run daily SILO data ingestion for configured stations
     
@@ -254,6 +258,101 @@ def run_daily_ingest(config: str, stations: str, days: int, tiers: str, include_
                     'timestamp': datetime.now().isoformat()
                 })
                 
+        # --- DATA DRILL GAP-FILL (--hybrid mode) ---
+        if hybrid and dry_run:
+            logger.info("Hybrid mode: [DRY RUN] skipping Data Drill API calls — use without --dry-run to ingest")
+        elif hybrid:
+            dd_config = silo_config.get('data_drill', {})
+            bounds_list = dd_config.get('wheatbelt_bounds', [])
+            if hybrid_states:
+                hs = [s.strip() for s in hybrid_states.split(',')]
+                bounds_list = [b for b in bounds_list if b.get('name') in hs]
+                logger.info(f"Data Drill: restricted to {[b['name'] for b in bounds_list]} via --hybrid-states")
+            resolution = dd_config.get('grid_resolution_deg', 0.5)
+            proximity = dd_config.get('proximity_threshold_deg', 0.4)
+
+            # Use all 1,376 wheatbelt stations (not just this run's stations) for
+            # proximity suppression — avoids querying Data Drill near real stations
+            # even if we didn't ingest them today.
+            from src.common.stations_loader import WheatbeltStationsLoader
+            bom_loader = WheatbeltStationsLoader()
+            all_station_coords = bom_loader.get_all_station_coords()
+
+            geojson_path = dd_config.get('wheatbelt_geojson')
+            gap_points = generate_data_drill_grid(
+                bounds_list=bounds_list,
+                resolution=resolution,
+                existing_coords=all_station_coords,
+                proximity_threshold=proximity,
+                geojson_path=geojson_path,
+            )
+            if dd_max_points and len(gap_points) > dd_max_points:
+                logger.info(f"Data Drill: limiting to {dd_max_points} of {len(gap_points)} gap points (--dd-max-points)")
+                gap_points = gap_points[:dd_max_points]
+            logger.info(f"Data Drill: {len(gap_points)} gap points to ingest")
+
+            # Determine date range (reuse same logic as PPD stations)
+            from datetime import datetime as _dt
+            if days:
+                _end = _dt.now().strftime('%Y%m%d')
+                _start = (_dt.now() - __import__('datetime').timedelta(days=days)).strftime('%Y%m%d')
+            elif silo_config['collection']['mode'] == 'rolling_window':
+                _rolling = silo_config['collection']['rolling_days']
+                _end = _dt.now().strftime('%Y%m%d')
+                _start = (_dt.now() - __import__('datetime').timedelta(days=_rolling)).strftime('%Y%m%d')
+            else:
+                _yesterday = (_dt.now() - __import__('datetime').timedelta(days=1)).strftime('%Y%m%d')
+                _start = _yesterday
+                _end = _yesterday
+
+            dd_success = 0
+            dd_failed = 0
+            for lat, lon in gap_points:
+                synthetic_id = f"DD_{lat:.2f}_{lon:.2f}"
+                try:
+                    raw_data = api_client.get_data_drill_data(lat, lon, _start, _end)
+                    if raw_data is None or raw_data.empty:
+                        logger.warning(f"No Data Drill data for ({lat}, {lon})")
+                        dd_failed += 1
+                        continue
+
+                    processed_data = data_processor.process_station_data(raw_data, synthetic_id)
+                    if processed_data.empty:
+                        dd_failed += 1
+                        continue
+
+                    # Skip auto-exclusion for Data Drill: 100% interpolated is expected
+                    filtered_data = quality_checker.filter_by_quality(processed_data)
+
+                    if not dry_run:
+                        success = data_processor.append_to_daily_observations(filtered_data)
+                        if success:
+                            duckdb_df = filtered_data.rename(columns={
+                                'min_temperature': 'min_temp',
+                                'max_temperature': 'max_temp',
+                                'min_temperature_quality': 'min_temp_quality',
+                                'max_temperature_quality': 'max_temp_quality',
+                                'timestamp_processed': 'ingested_at',
+                            })
+                            duckdb_cols = ['station_id', 'date', 'min_temp', 'max_temp', 'rainfall',
+                                           'min_temp_quality', 'max_temp_quality', 'rainfall_quality', 'ingested_at']
+                            storage.upsert_observations(duckdb_df[[c for c in duckdb_cols if c in duckdb_df.columns]])
+                            dd_success += 1
+                            total_records += len(filtered_data)
+                        else:
+                            dd_failed += 1
+                    else:
+                        dd_success += 1
+                        total_records += len(filtered_data)
+                        logger.info(f"[DRY RUN] Would write {len(filtered_data)} Data Drill records for {synthetic_id}")
+
+                except Exception as e:
+                    logger.error(f"Data Drill error for ({lat}, {lon}): {e}", exc_info=True)
+                    dd_failed += 1
+
+            logger.info(f"Data Drill gap-fill: {dd_success} points succeeded, {dd_failed} failed")
+            run_metadata['data_drill'] = {'points_success': dd_success, 'points_failed': dd_failed}
+
         # Complete run metadata
         run_metadata.update({
             'end_time': datetime.now().isoformat(),

@@ -31,6 +31,7 @@ from src.common.config_loader import load_config
 from src.common.logging_utils import setup_logging
 from src.common.date_utils import get_current_crop_stage, get_crop_season
 from src.common.file_utils import atomic_csv_write
+from src.common.stations_loader import WheatbeltStationsLoader
 from src.data.duckdb_storage import DuckDBStorage
 from src.agents.risk_engine.event_detector import WeatherEventDetector
 
@@ -60,7 +61,10 @@ class RiskEngineRunner:
         }
         self.storage = DuckDBStorage(storage_config)
         self.detector = WeatherEventDetector(self.crop_config)
-        
+
+        # Load station → region lookup for event enrichment
+        self._region_lookup = self._load_region_lookup()
+
         logger.info(f"Risk Engine initialized with config from {self.config_path}")
         
     def _load_crop_calendars(self) -> Dict[str, Any]:
@@ -306,6 +310,71 @@ class RiskEngineRunner:
         
         return crop_stage_info
         
+    def _load_region_lookup(self) -> pd.DataFrame:
+        """Load station → SA2/SA3/SA4 region lookup from station_regions.csv."""
+        try:
+            loader = WheatbeltStationsLoader(
+                stations_file=str(project_root / "data" / "meta" / "wheatbelt_stations.csv")
+            )
+            lookup = loader.get_region_lookup()
+            logger.info(f"Loaded region lookup for {len(lookup)} stations")
+            return lookup
+        except Exception as e:
+            logger.warning(f"Could not load region lookup: {e} — events will lack region fields")
+            return pd.DataFrame(columns=['station_id', 'sa2_name', 'sa3_name', 'sa4_name'])
+
+    def _enrich_with_regions(self, events_df: pd.DataFrame) -> pd.DataFrame:
+        """Join SA2/SA3/SA4 region names onto events DataFrame.
+
+        Data Drill station IDs (format DD_{lat}_{lon}) are handled separately via
+        nearest-neighbour SA2 lookup since they have no entry in the region table.
+        """
+        if events_df.empty:
+            return events_df
+
+        events_df = events_df.copy()
+
+        # Separate Data Drill rows from real PPD station rows
+        is_dd = events_df['station_id'].astype(str).str.startswith('DD_')
+        ppd_df = events_df[~is_dd].copy()
+        dd_df = events_df[is_dd].copy()
+
+        # --- Enrich PPD rows via lookup table ---
+        if not ppd_df.empty and not self._region_lookup.empty:
+            ppd_df['station_id'] = ppd_df['station_id'].astype(str).str.zfill(6)
+            ppd_df = ppd_df.merge(self._region_lookup, on='station_id', how='left')
+            for col in ['sa2_name', 'sa3_name', 'sa4_name']:
+                if col in ppd_df.columns:
+                    ppd_df[col] = ppd_df[col].fillna('')
+
+        # --- Enrich Data Drill rows via nearest-neighbour SA2 lookup ---
+        if not dd_df.empty:
+            from src.common.stations_loader import WheatbeltStationsLoader
+            bom_loader = WheatbeltStationsLoader(
+                stations_file=str(project_root / "data" / "meta" / "wheatbelt_stations.csv")
+            )
+            for col in ['sa2_name', 'sa3_name', 'sa4_name']:
+                dd_df[col] = ''
+
+            for idx, row in dd_df.iterrows():
+                # Parse lat/lon from synthetic ID: DD_{lat:.2f}_{lon:.2f}
+                try:
+                    parts = str(row['station_id']).split('_')
+                    lat = float(parts[1])
+                    lon = float(parts[2])
+                    region = bom_loader.get_nearest_sa2(lat, lon)
+                    for col in ['sa2_name', 'sa3_name', 'sa4_name']:
+                        dd_df.at[idx, col] = region.get(col, '')
+                except (IndexError, ValueError):
+                    pass  # Leave empty on parse error
+
+        enriched = pd.concat([ppd_df, dd_df], ignore_index=True)
+
+        # Add region_name as alias for sa2_name (backward compat with assembler)
+        enriched['region_name'] = enriched.get('sa2_name', '')
+
+        return enriched
+
     def _export_events(self, events_df: pd.DataFrame, target_date: str):
         """
         Export detected events to CSV files
@@ -323,6 +392,9 @@ class RiskEngineRunner:
 
         # Normalise new events before writing so dates are always YYYY-MM-DD strings.
         events_df = _normalise_dates(events_df)
+
+        # Enrich with SA2/SA3/SA4 region names
+        events_df = self._enrich_with_regions(events_df)
 
         try:
             # Export consolidated event log

@@ -14,9 +14,11 @@ variables:
   R: "rainfall"           # Rainfall (mm) 
   N: "min_temperature"    # Minimum temperature (°C)
   X: "max_temperature"    # Maximum temperature (°C)
-  V: "vapour_pressure"    # Vapour pressure (hPa) - optional for MVP
-  # D: "solar_radiation"  # Uncomment for future crop modeling
+  # V: "vapour_pressure"    # Vapour pressure (hPa) - not yet used in risk engine; re-enable when wired into ET/heat calculations
+  # J: "solar_radiation"  # Uncomment for future crop modeling (MJ/m²) — NOTE: code is J not D
   # E: "pan_evaporation"  # Uncomment for water balance
+  # H: "rh_at_max_temp"   # Relative humidity at Tmax — useful for heat stress refinement / disease risk
+  # G: "rh_at_min_temp"   # Relative humidity at Tmin — useful for frost dew point / disease risk
 
 # Data collection strategy
 collection:
@@ -111,6 +113,46 @@ bom_dataset:
   
   # Testing examples:
   # python -m src.agents.silo_wrangler.run_ingest --use-bom-dataset --sample-size 10 --dry-run
+
+# Data Drill (grid-based interpolation gap-fill)
+# Activated via --hybrid flag in run_ingest.py
+# Queries any lat/lon point using SILO's 5km interpolation grid (no station required)
+# Used to fill spatial gaps where no PPD station exists within proximity_threshold
+data_drill:
+  endpoint: "https://www.longpaddock.qld.gov.au/cgi-bin/silo/DataDrillDataset.php"
+  grid_resolution_deg: 0.5       # Grid point spacing (~55km). Coarser = fewer calls.
+  proximity_threshold_deg: 0.4   # Skip grid point if any PPD station is within ~44km
+
+  # Exact wheatbelt SA2 polygon boundaries for grid point filtering.
+  # When set, candidate points are tested against the union of all SA2 polygons;
+  # only those inside agricultural boundaries are kept. Rectangular bounds below
+  # act as a fast coarse pre-filter before this shapely test.
+  # Set to null or remove to fall back to rectangular bounds only.
+  wheatbelt_geojson: "data/meta/SA2_ABS_Regions.geojson"
+
+  # Wheatbelt bounding boxes for grid generation (coarse pre-filter; one block per region)
+  # Points outside these bounds are not generated
+  wheatbelt_bounds:
+    - name: "Western Australia"
+      lat_min: -35.0
+      lat_max: -27.5
+      lon_min: 116.0
+      lon_max: 123.0
+    - name: "South Australia"
+      lat_min: -37.0
+      lat_max: -30.0
+      lon_min: 132.0
+      lon_max: 141.0
+    - name: "Victoria"
+      lat_min: -37.5
+      lat_max: -34.0
+      lon_min: 140.5
+      lon_max: 150.0
+    - name: "New South Wales"
+      lat_min: -37.0
+      lat_max: -28.0
+      lon_min: 141.0
+      lon_max: 153.0
 
 # Quality control
 quality:

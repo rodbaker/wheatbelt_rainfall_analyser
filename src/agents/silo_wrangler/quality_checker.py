@@ -282,10 +282,10 @@ class DataQualityChecker:
                 # Handle synthetic data (quality 35)
                 if not self.quality_config['accept_synthetic']:
                     mask &= (filtered_df[quality_col] != 35)
-                    
-                # Handle interpolated data (quality 15)
+
+                # Handle all interpolated variants (15=nearby stations, 25=lower density, 75=lower quality)
                 if not self.quality_config['accept_interpolated']:
-                    mask &= (filtered_df[quality_col] != 15)
+                    mask &= ~filtered_df[quality_col].isin([15, 25, 75])
                     
                 # Apply mask - set filtered values to NaN rather than removing rows
                 filtered_df.loc[~mask, var_name] = None
