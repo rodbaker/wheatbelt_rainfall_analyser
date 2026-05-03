@@ -1,4 +1,9 @@
 #!/bin/bash
+# DEPRECATED (2026-05-03): This cron setup installer calls scripts/daily_ingest.py
+# which imports the stale SILOIngestPipeline. Do not run 'install' — it will wire
+# a broken cron job. The active daily automation is scripts/cron_schedule.sh, which
+# calls the three-agent pipeline (run_ingest.py → run_risk_engine.py → run_publisher.py)
+# directly. Scheduled for archive/ in the next cleanup pass.
 """
 CropForecaster Cron Automation Setup
 

@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# DEPRECATED (2026-05-03): Superseded by src/agents/silo_wrangler/run_ingest.py.
+# Imports SILOIngestPipeline from src/data/silo_ingest.py, which is no longer
+# maintained. Use the canonical entrypoint instead:
+#   python src/agents/silo_wrangler/run_ingest.py --date YYYY-MM-DD
+# Scheduled for archive/ in the next cleanup pass.
+
 """
 Daily Weather Ingest Script
 

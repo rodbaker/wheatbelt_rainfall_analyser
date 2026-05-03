@@ -1,3 +1,9 @@
+# DEPRECATED (2026-05-03): SILOIngestPipeline is superseded by
+# src/agents/silo_wrangler/run_ingest.py (the canonical SILO ingest entrypoint).
+# No active three-agent pipeline code imports this module. Only
+# scripts/daily_ingest.py and scripts/backfill_historical.py reference this class,
+# and both are deprecated. Scheduled for archive/ in the next cleanup pass.
+
 """
 SILO Weather Data Ingestion Pipeline
 
