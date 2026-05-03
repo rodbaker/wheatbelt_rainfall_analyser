@@ -1,7 +1,7 @@
 
 # Task Manager
 **PRD:** ./prd.md  
-**Updated:** 2026-05-03 (Stale ingest pipeline archived; README rewritten to three-agent architecture)  
+**Updated:** 2026-05-03 (Phase 5 — publisher ABS crop context enrichment)  
 
 ---
 
@@ -514,6 +514,26 @@ Claude prints: `OK TO CLOSE: Save is complete. Please close this chat to reset c
 - **Validation:** grep of live files confirms zero references to archived paths outside `archive/` and historical `task_manager.md` session logs
 - **Next steps:** Backlog T-20250906-006 (README) now complete. Remaining doc-cleanup items: Sphinx skeleton in `docs/`; `logs/daily_ingest.log` is a harmless stale artefact from the archived pipeline.
 - **Commit:** `chore(refactor): archive deprecated ingest pipeline and rewrite README`
+
+### 2026-05-03 — insight-publisher (Phase 5: ABS crop context report enrichment)
+- **Task:** Phase 5 — add optional ABS crop context section to daily risk digest without changing risk scoring or event detection
+- **What changed:**
+  - `DailyReportGenerator._load_crop_context()` added — mirrors Phase 4 risk-engine boundary (disabled by default; non-fatal unless required=True; reads `crop_context:` block from `config/crop_calendars.yaml`)
+  - `DailyReportGenerator._generate_abs_crop_context_section(events_df)` added — maps affected station IDs → `SA2_5DIG16` from `wheatbelt_stations.csv` → crop context records via `CropContextLookup.for_station_sa2()`; crops sorted by area_share descending (None area_share after ranked); suppressed/null estimates shown as "not available"; returns `""` when disabled, missing, or no matching SA2
+  - Section wired into `generate_report()` after Disease Watch, before Data Quality
+  - Output is clearly labelled "ABS Crop Context (YYYY-YY baseline)" with caveat that it is historical census data and does not change risk ratings
+  - `tests/test_publisher_crop_context.py` (new): 23 tests covering disabled/missing/required/enabled paths, field types, suppressed values, area_share sort order
+- **Files touched:**
+  - `src/agents/insight_publisher/report_generator.py` (added `import logging`, `logger`, `_load_crop_context`, `_generate_abs_crop_context_section`, wired into `generate_report`)
+  - `tests/test_publisher_crop_context.py` (new)
+- **Test results:** 62 tests, all pass (23 new + 39 pre-existing)
+- **Key constraints met:**
+  - No change to risk scoring, event detection, or core event CSV schema
+  - Missing crop context non-fatal (required=False default)
+  - RSE fields remain strings; suppressed/null area_share → None (not 0)
+  - Disabled by default — no section rendered unless explicitly enabled in config
+- **Next steps:** Phase 6 options — enable crop context in config + generate test report; or weekly report automation (M2)
+- **Commit:** pending
 
 ---
 

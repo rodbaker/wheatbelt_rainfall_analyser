@@ -5,11 +5,14 @@ Generates markdown-based daily risk digests from Risk Engine outputs.
 Provides human-readable summaries of frost, heat, and rainfall events.
 """
 
+import logging
 import yaml
 import pandas as pd
 from datetime import datetime, date
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class DailyReportGenerator:
@@ -44,6 +47,7 @@ class DailyReportGenerator:
         # Load station metadata for enrichment
         self._load_station_metadata()
         self._load_seasonal_context()
+        self._crop_context_lookup = self._load_crop_context()
     
     def _load_station_metadata(self):
         """Load station metadata for enriching reports with names and locations."""
@@ -69,6 +73,60 @@ class DailyReportGenerator:
             if self.verbose:
                 print(f"Warning: Could not load seasonal context: {e}")
             self.seasonal_context = {}
+
+    def _load_crop_context(self):
+        """Load optional ABS crop context lookup (Phase 5 publisher enrichment).
+
+        Mirrors the Phase 4 risk-engine boundary:
+          disabled (default) → returns None, no file access
+          enabled + CSV present → returns CropContextLookup
+          enabled + missing + required=True → raises FileNotFoundError
+          enabled + missing + required=False → warns, returns None
+        """
+        config_path = self.project_root / "config" / "crop_calendars.yaml"
+        try:
+            with open(config_path) as f:
+                crop_config = yaml.safe_load(f)
+        except Exception as e:
+            if self.verbose:
+                logger.warning(f"Could not load crop_calendars.yaml: {e}")
+            return None
+
+        cc_cfg = (crop_config or {}).get('crop_context', {})
+        if not cc_cfg.get('enabled', False):
+            return None
+
+        from src.common.crop_context_loader import load_crop_context_lookup
+
+        default_path = 'data/meta/crop_context_sa2.csv'
+        csv_path = self.project_root / cc_cfg.get('path', default_path)
+        required = cc_cfg.get('required', False)
+
+        if not csv_path.exists():
+            if required:
+                raise FileNotFoundError(
+                    f"Crop context CSV required but not found: {csv_path}. "
+                    "Run scripts/build_crop_context.py to generate it."
+                )
+            logger.warning(
+                f"Crop context enabled but CSV not found: {csv_path} "
+                "— continuing without it"
+            )
+            return None
+
+        try:
+            lookup = load_crop_context_lookup(csv_path)
+            if self.verbose:
+                logger.info(
+                    f"Loaded crop context lookup ({len(lookup.records)} records)"
+                )
+            return lookup
+        except Exception as e:
+            logger.warning(
+                f"Failed to load crop context from {csv_path}: {e} "
+                "— continuing without it"
+            )
+            return None
 
     def _get_station_name(self, station_id: int) -> str:
         """Get human-readable station name from station ID."""
@@ -449,6 +507,99 @@ class DailyReportGenerator:
 
         return section
 
+    def _generate_abs_crop_context_section(self, events_df: pd.DataFrame) -> str:
+        """Generate optional ABS crop context section for affected SA2 regions.
+
+        Returns empty string when disabled, lookup unavailable, or no SA2 data
+        matches. Never modifies risk ratings or implies current-year conditions.
+        """
+        if self._crop_context_lookup is None:
+            return ""
+        if events_df.empty:
+            return ""
+
+        # Collect unique station IDs from today's events
+        if 'station_id' not in events_df.columns:
+            return ""
+        station_ids = events_df['station_id'].dropna().unique()
+        if len(station_ids) == 0:
+            return ""
+
+        # Map station_id → SA2_5DIG16 using loaded station metadata
+        if self.stations_df.empty or 'SA2_5DIG16' not in self.stations_df.columns:
+            return ""
+
+        # Build {sa2_5dig: sa2_name} for affected stations (deduplicated)
+        sa2_map: dict[str, str] = {}
+        for sid in station_ids:
+            match = self.stations_df[self.stations_df['station_id'] == sid]
+            if match.empty:
+                continue
+            row = match.iloc[0]
+            sa2_5dig = str(row.get('SA2_5DIG16', '') or '').strip()
+            sa2_name = str(row.get('SA2_NAME16', '') or '').strip()
+            if sa2_5dig:
+                sa2_map[sa2_5dig] = sa2_name or sa2_5dig
+
+        if not sa2_map:
+            return ""
+
+        # Collect crop context rows per SA2, sorted by area_share desc
+        sa2_blocks: list[str] = []
+        baseline_year: Optional[str] = None
+
+        for sa2_5dig, sa2_name in sorted(sa2_map.items()):
+            records = self._crop_context_lookup.for_station_sa2(sa2_5dig)
+            if not records:
+                continue
+            # Use area_share to rank crops; skip records with None area_share
+            ranked = sorted(
+                [r for r in records if r.area_share is not None],
+                key=lambda r: r.area_share,
+                reverse=True,
+            )
+            unranked = [r for r in records if r.area_share is None]
+            ordered = ranked + unranked
+
+            if not ordered:
+                continue
+
+            # Capture baseline year from first record
+            if baseline_year is None and ordered[0].financial_year:
+                baseline_year = ordered[0].financial_year
+
+            crop_lines: list[str] = []
+            for rec in ordered[:5]:
+                share_str = (
+                    f"{rec.area_share * 100:.0f}% area share"
+                    if rec.area_share is not None
+                    else "area share not available"
+                )
+                area_str = (
+                    f"{rec.area_ha:,.0f} ha"
+                    if rec.area_ha is not None
+                    else "area not available"
+                )
+                crop_lines.append(
+                    f"  - {rec.crop.title()}: {share_str} ({area_str})"
+                )
+
+            sa2_blocks.append(
+                f"**{sa2_name}** (SA2 {sa2_5dig}):\n" + "\n".join(crop_lines)
+            )
+
+        if not sa2_blocks:
+            return ""
+
+        year_label = baseline_year or "historical"
+        section = (
+            f"## ABS Crop Context ({year_label} baseline)\n\n"
+            "_Historical ABS census estimates — not current-year planted area. "
+            "Does not change risk ratings._\n\n"
+        )
+        section += "\n\n".join(sa2_blocks) + "\n\n"
+        return section
+
     def _generate_data_quality_section(self, events_df: pd.DataFrame) -> str:
         """Generate data quality assessment section."""
         if events_df.empty:
@@ -534,6 +685,11 @@ class DailyReportGenerator:
         disease_watch = self._generate_disease_watch_section(events_df)
         if disease_watch:
             report_lines.append(disease_watch)
+
+        # ABS Crop Context (optional historical enrichment — disabled by default)
+        abs_section = self._generate_abs_crop_context_section(events_df)
+        if abs_section:
+            report_lines.append(abs_section)
 
         # Data Quality
         report_lines.append(self._generate_data_quality_section(events_df))
