@@ -128,10 +128,14 @@ class DailyReportGenerator:
             )
             return None
 
-    def _get_station_name(self, station_id: int) -> str:
+    def _get_station_name(self, station_id) -> str:
         """Get human-readable station name from station ID."""
         if not self.stations_df.empty:
-            match = self.stations_df[self.stations_df['station_id'] == station_id]
+            try:
+                station_id_int = int(station_id)
+            except (ValueError, TypeError):
+                station_id_int = station_id
+            match = self.stations_df[self.stations_df['station_id'] == station_id_int]
             if not match.empty:
                 name = match.iloc[0].get('Station name', f"Station {station_id}")
                 state = match.iloc[0].get('STE_NAME16', '')
@@ -532,7 +536,11 @@ class DailyReportGenerator:
         # Build {sa2_5dig: sa2_name} for affected stations (deduplicated)
         sa2_map: dict[str, str] = {}
         for sid in station_ids:
-            match = self.stations_df[self.stations_df['station_id'] == sid]
+            try:
+                sid_int = int(sid)
+            except (ValueError, TypeError):
+                continue
+            match = self.stations_df[self.stations_df['station_id'] == sid_int]
             if match.empty:
                 continue
             row = match.iloc[0]
@@ -570,11 +578,15 @@ class DailyReportGenerator:
 
             crop_lines: list[str] = []
             for rec in ordered[:5]:
-                share_str = (
-                    f"{rec.area_share * 100:.0f}% area share"
-                    if rec.area_share is not None
-                    else "area share not available"
-                )
+                if rec.area_share is not None:
+                    share_pct = rec.area_share * 100
+                    share_str = (
+                        "<1% area share"
+                        if 0 < share_pct < 1
+                        else f"{share_pct:.0f}% area share"
+                    )
+                else:
+                    share_str = "area share not available"
                 area_str = (
                     f"{rec.area_ha:,.0f} ha"
                     if rec.area_ha is not None

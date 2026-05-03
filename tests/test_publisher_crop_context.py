@@ -340,6 +340,14 @@ class TestPublisherCropContextEnabled(unittest.TestCase):
         # area_share=0.60 → "60%"
         self.assertIn("60%", section)
 
+    def test_sub_one_percent_area_share_shows_less_than_one(self):
+        """area_share=0.003 → '<1%' not '0%'."""
+        rows = [{**_minimal_crop_context_rows()[0], "area_share": "0.003"}]
+        gen = self._gen(csv_rows=rows)
+        section = gen._generate_abs_crop_context_section(_minimal_events_df())
+        self.assertIn("<1%", section)
+        self.assertNotIn("0% area share", section)
+
     def test_section_shows_sa2_name(self):
         gen = self._gen()
         section = gen._generate_abs_crop_context_section(_minimal_events_df())
