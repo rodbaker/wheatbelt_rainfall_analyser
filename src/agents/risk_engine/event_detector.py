@@ -32,6 +32,7 @@ class WeatherEventDetector:
         self.thresholds = config['thresholds']
         self.crop_stages = config.get('wheat', {}).get('stages', {})
         self.detection_config = config.get('detection', {})
+        self.seeding_crops = config.get('seeding_crops', {})
         
     def detect_frost_events(self, weather_df: pd.DataFrame, crop_stage_info: Dict[str, Any]) -> pd.DataFrame:
         """
@@ -220,7 +221,14 @@ class WeatherEventDetector:
     def detect_seeding_rainfall(self, weather_df: pd.DataFrame, crop_stage_info: Dict[str, Any],
                                 weather_window: Optional[pd.DataFrame] = None) -> pd.DataFrame:
         """
-        Detect seeding window rainfall events (April–June).
+        Detect seeding window rainfall events, differentiated by crop type.
+
+        Emits one event per station per active crop per date using crop-specific
+        7-day rolling window thresholds. Crops have distinct seeding windows and
+        moisture requirements:
+          - canola:      Mar–Apr, surface moisture sensitive, lower adequate threshold
+          - wheat_barley: Apr–May, can dry seed from ANZAC Day (~Apr 25)
+          - lupins:      Apr–May, deep sowing reduces surface dependence
 
         Args:
             weather_df: Target-date weather rows (one per station)
@@ -231,83 +239,73 @@ class WeatherEventDetector:
             return pd.DataFrame()
 
         target_month = crop_stage_info.get('target_month', 0)
-        if target_month not in [4, 5, 6]:
+
+        # Determine which crops are in their seeding window this month
+        active_crops = {
+            name: cfg for name, cfg in self.seeding_crops.items()
+            if target_month in cfg.get('months', [])
+        }
+        if not active_crops:
             return pd.DataFrame()
 
         window = weather_window if weather_window is not None else weather_df
-        rain_thresholds = self.thresholds['rainfall']['seeding']
         rain_events = []
 
-        for idx, row in weather_df.iterrows():
-            daily_rain = row['rainfall']
-            if pd.isna(daily_rain):
-                continue
+        for crop_name, crop_cfg in active_crops.items():
+            adequate_break = crop_cfg['adequate_break_mm_7d']
+            marginal_break = crop_cfg['marginal_break_mm_7d']
+            marginal_low_break = crop_cfg['marginal_low_break_mm_7d']
 
-            station_id = row['station_id']
-            confidence = self._calculate_event_confidence(row, 'rainfall')
+            for idx, row in weather_df.iterrows():
+                if pd.isna(row['rainfall']):
+                    continue
 
-            # Single-day germination trigger
-            if daily_rain >= rain_thresholds['germination_trigger']:
+                station_id = row['station_id']
+                confidence = self._calculate_event_confidence(row, 'rainfall')
+
+                seven_day_total = self._calculate_rolling_rainfall(
+                    window, row['date'], 7, station_id=station_id
+                )
+                if seven_day_total is None:
+                    continue
+
+                if seven_day_total >= adequate_break:
+                    severity = 'adequate'
+                    threshold = adequate_break
+                elif seven_day_total >= marginal_break:
+                    severity = 'marginal'
+                    threshold = marginal_break
+                elif seven_day_total >= marginal_low_break:
+                    severity = 'marginal_low'
+                    threshold = marginal_low_break
+                elif target_month >= 5:
+                    # Only flag dry spell from May onwards — April dryness is
+                    # normal before the break arrives
+                    severity = 'inadequate'
+                    threshold = marginal_low_break
+                else:
+                    continue  # April dryness — suppress
+
                 rain_events.append(self._build_event_record(
                     row=row,
                     event_type='seeding_rain',
-                    severity='adequate',
-                    value=daily_rain,
-                    threshold=rain_thresholds['germination_trigger'],
+                    severity=severity,
+                    value=seven_day_total,
+                    threshold=threshold,
                     crop_stage='seeding',
                     confidence=confidence,
                     quality_col='rainfall_quality',
-                    accumulation_window=1,
+                    accumulation_window=7,
                     rainfall_role='beneficial',
+                    crop_type=crop_name,
                 ))
-
-            # 7-day rolling window — four-band severity classification:
-            #   adequate     >= 25mm  (sufficient autumn break)
-            #   marginal     >= 15mm, < 25mm  (near-miss)
-            #   marginal_low >= 10mm, < 15mm  (borderline)
-            #   inadequate    < 10mm  (dry spell alarm — only fired from May onwards;
-            #                          April dryness is normal before the break arrives)
-            adequate_break = rain_thresholds['adequate_break']          # 25mm
-            marginal_break = rain_thresholds['marginal_break_mm_7d']    # 15mm
-            marginal_low_break = rain_thresholds['marginal_low_break_mm_7d']  # 10mm
-
-            seven_day_total = self._calculate_rolling_rainfall(window, row['date'], 7, station_id=station_id)
-            if seven_day_total is not None:
-                if seven_day_total >= adequate_break:
-                    severity_7d = 'adequate'
-                    threshold_7d = adequate_break
-                elif seven_day_total >= marginal_break:
-                    severity_7d = 'marginal'
-                    threshold_7d = marginal_break
-                elif seven_day_total >= marginal_low_break:
-                    severity_7d = 'marginal_low'
-                    threshold_7d = marginal_low_break
-                elif target_month >= 5:
-                    # Only raise a dry-spell alarm from May onwards — April is too
-                    # early in the seeding window to flag the absence of a break.
-                    severity_7d = 'inadequate'
-                    threshold_7d = rain_thresholds['inadequate_week']
-                else:
-                    severity_7d = None  # April dryness — suppress
-
-                if severity_7d is not None:
-                    rain_events.append(self._build_event_record(
-                        row=row,
-                        event_type='seeding_rain',
-                        severity=severity_7d,
-                        value=seven_day_total,
-                        threshold=threshold_7d,
-                        crop_stage='seeding',
-                        confidence=confidence,
-                        quality_col='rainfall_quality',
-                        accumulation_window=7,
-                        rainfall_role='beneficial',
-                    ))
 
         result = pd.DataFrame(rain_events)
         if not result.empty:
-            result = result.drop_duplicates(subset=['station_id', 'date', 'event_type', 'severity', 'accumulation_window'])
-        logger.info(f"Detected {len(result)} seeding rainfall events")
+            result = result.drop_duplicates(
+                subset=['station_id', 'date', 'event_type', 'severity', 'crop_type']
+            )
+        logger.info(f"Detected {len(result)} seeding rainfall events ({list(active_crops.keys())} active)")
         return result
 
     def detect_development_rainfall(self, weather_df: pd.DataFrame, crop_stage_info: Dict[str, Any],

@@ -1,0 +1,268 @@
+# WA Seasonal Context
+# Stable agronomic facts that inform risk event interpretation.
+# Updated once per season — not real-time market data.
+#
+# Source: DPIRD 2026 WA Crop Sowing Guide (Bulletin 4937, November 2025)
+# File:   docs/DPIRD-2026-WA-Crop-Sowing-Guide.pdf
+#
+# HOW TO USE:
+#   - report_generator.py: load to add variety risk context to frost/heat events
+#   - weekly assembler: load to add crop mix and disease watch to market commentary
+#   - Update each October when DPIRD releases new bulletin
+#
+# WHAT IS NOT HERE (belongs in assembler, not here):
+#   - Malt premiums and spot prices — change weekly
+#   - Port zone segregation decisions — change seasonally but are market signals
+#   - Season-specific weather outlook — comes from event_log.csv
+
+season: "2026"
+updated: "2025-11"
+source: "DPIRD 2026 WA Crop Sowing Guide — Bulletin 4937"
+
+# ---------------------------------------------------------------------------
+# CROP AREA — WA 2025 estimates (GIWA median 2015–25 unless noted)
+# ---------------------------------------------------------------------------
+crop_area_ha:
+  wheat:
+    total: null                   # Not stated as total in guide; dominant crop
+    note: "Scepter alone ~35% of wheat area; top 10 varieties cover ~85%"
+
+  barley:
+    total: 1_535_000              # Sum of port zone medians
+    by_port_zone:
+      Geraldton:  90_000          # ~6% of state total
+      Kwinana:   555_000          # ~35% of state total
+      Albany:    600_000          # ~38% of state total
+      Esperance: 290_000          # ~18% of state total
+
+  canola:
+    total: 1_650_000              # 2024 actual (DPIRD)
+    note: "Trending earlier — dry seeding from March now common"
+
+  lupins:
+    total_range: [300_000, 400_000]
+    note: "Declined from >1M ha peak (late 1990s); displaced by canola as break crop"
+
+
+# ---------------------------------------------------------------------------
+# VARIETY MIX — used to weight risk severity by exposure
+# ---------------------------------------------------------------------------
+variety_mix:
+  wheat:
+    # Source: Table 1 — proportion (%) of total area sown, WA 2025
+    # Used by: report_generator to contextualise frost/heat exposure
+    # Key insight: top 3 varieties cover 60% of area
+    area_pct_2025:
+      Scepter:          34.8
+      Vixen:            13.6
+      Calibre:          12.4
+      Tomahawk_CL_Plus:  4.4
+      Zen:               4.2
+      Devil:             3.9
+      Ninja:             3.5
+      RockStar:          3.4
+      Brumby:            3.0
+      LRPB_Havoc:        2.2
+      other:            12.6
+
+    # Maturity class of dominant varieties — affects flowering window timing
+    maturity_class:
+      Scepter:          "quick-mid"     # Reference variety for days-to-flowering comparisons
+      Vixen:            "quick"
+      Calibre:          "quick-mid"
+      Tomahawk_CL_Plus: "quick-mid"
+      Zen:              "mid-slow"      # ANW (noodle wheat)
+      Devil:            "quick-mid"
+      Ninja:            "mid-slow"      # ANW (noodle wheat)
+      RockStar:         "mid-slow"
+
+  barley:
+    # Source: GIWA port zone data 2025
+    # Maximus CL = ~66% of state total; dominance "slightly declining"
+    dominant_varieties:
+      - Maximus_CL      # ~66% statewide; only malt variety with segregations in most zones
+      - Neo_CL          # Gaining ground across all zones
+      - Combat          # High-yield feed option; growing in Esperance
+      - Spartacus_CL    # Declining — replaced by newer CL varieties
+      - Beast           # Benchmark in low-yielding non-acid environments
+
+
+# ---------------------------------------------------------------------------
+# DISEASE ALERTS — wheat
+# Severity: high / moderate / watch
+# Risk trend: increasing / stable / declining
+# ---------------------------------------------------------------------------
+disease_alerts:
+  wheat:
+    flag_smut:
+      severity: high
+      risk_trend: increasing
+      summary: >
+        Incidence in 2024 was significantly greater than normal with yield losses
+        in worst-affected paddocks. The 2024 season will have increased inoculum
+        for 2025–26. DPIRD/GRDC project (DAW2506-007RTX) commenced 2025 to update
+        smut ratings on newly released varieties.
+      susceptible_varieties:
+        # SVS = susceptible to very susceptible
+        SVS: [AGT-Hamelin, Brumby, Dale, Devil, LRPB_Vortex, RockStar, Shotgun, Sting, Tomahawk_CL_Plus, Vixen]
+        S:   [Calibre, Dozer_CL_Plus, Hammer_CL_Plus, LRPB_Anvil_CL_Plus, Scepter, Thumper]
+      resistant_varieties:
+        MR:  [AGT-Colt, Denison, RGT_Marsh]
+        RMR: [Catapult]
+      management: "Effective seed dressing is the primary control. Self-sown susceptible volunteers carry infection."
+      report_flag: true          # Include in daily digest when flag smut risk season active
+
+    leaf_rust:
+      severity: moderate
+      risk_trend: stable
+      summary: >
+        Two pathotypes present in WA (2015 and 2017 incursions, both with +Lr37 virulence).
+        Several widely grown varieties are susceptible. Monitor after periods of wet, mild weather.
+      pathotypes:
+        - "104-1,3,4,6,7,8,10,12 +Lr37 (2015 incursion)"
+        - "104-1,3,4,5,7,9,10,12 +Lr37 (2017 incursion)"
+      susceptible_varieties:
+        SVS: [Brumby, LRPB_Vortex, Vixen]
+        S:   [Calibre, Catapult, Devil, Ninja, Tomahawk_CL_Plus, Zen]
+      resistant_varieties:
+        RMR: [AGT-Colt, Cutlass, LRPB_Havoc, LRPB_Sonic, Scepter]
+      report_flag: false
+
+    powdery_mildew:
+      severity: moderate
+      risk_trend: stable
+      summary: >
+        Several of WA's most popular varieties are susceptible (SVS/S). Risk elevated
+        in cool, humid conditions particularly in higher-rainfall wheatbelt.
+      susceptible_varieties:
+        SVS: [Devil, Valiant_CL_Plus, Vixen]
+        S:   [LRPB_Anvil_CL_Plus, Tomahawk_CL_Plus]
+      resistant_varieties:
+        R:   [Brumby, Illabo]
+        RMR: [Wallaroo]
+      management: "Minimum MS rating recommended. Fungicide warranted in susceptible varieties under humid conditions."
+      report_flag: false
+
+    yellow_spot:
+      severity: watch
+      risk_trend: stable
+      summary: >
+        Majority of recent high-yielding varieties rated MRMS. RGT Marsh (MSS) is
+        an exception. Risk elevated after wet winters with heavy stubble burden.
+      susceptible_varieties:
+        SVS: [Yitpi]
+        MSS: [RGT_Marsh, LRPB_Anvil_CL_Plus, Cutlass]
+      report_flag: false
+
+  barley:
+    scald:
+      severity: high
+      risk_trend: increasing
+      summary: >
+        A virulent scald pathotype affecting Spartacus CL, Maximus CL, and Neo CL
+        has become more widespread over the past 2 seasons. These three varieties
+        collectively cover the majority of WA barley area. Increased adoption of
+        susceptible varieties risks a resurgence of scald.
+      new_pathotype: true
+      susceptible_varieties:
+        # Includes varieties now showing field infections despite MR ratings
+        S:    [Beast, Bigfoot_CL, Combat, Laperouse]
+        SVS:  [Litmus]
+        VS:   [Minotaur]
+        MR_field_infections: [Maximus_CL, Neo_CL, Spartacus_CL]  # Pathotype overcoming resistance
+      resistant_varieties:
+        R:  [AGT-Bunyip_IA, Buff, Rosalind, Scope_CL]
+      management: "Fungicide at flag leaf. Avoid susceptible varieties in high-risk environments."
+      report_flag: true
+
+    net_blotch_oxford:
+      severity: high
+      risk_trend: increasing
+      summary: >
+        Oxford virulent NFNB pathotype is increasing in prevalence across WA.
+        Poses serious threat to Neo CL, RGT Atlantis, RGT Planet, and Spinnaker.
+        Fungicide resistance to three groups (DMI, SDHI, QoI) detected in South Stirlings.
+        Nearly the entire barley area is planted to varieties rated MS or lower for this pathotype.
+      new_pathotype: true
+      fungicide_resistance: true
+      susceptible_varieties:
+        MSS_or_worse: [Neo_CL, RGT_Atlantis, RGT_Planet, Spinnaker, Titan_AX]
+      resistant_varieties:
+        MRMS: [Bigfoot_CL, Ember, Kirwan_CL, PegasusAX]
+      report_flag: true
+
+    net_blotch_sfnb:
+      severity: moderate
+      risk_trend: stable
+      summary: >
+        Fungicide resistance to Group 3 DMI and Group 7 SDHI detected in Albany,
+        Esperance, and Kwinana-West port zones. Over 80% of barley area planted
+        to varieties rated MS or lower at the adult stage.
+      fungicide_resistance: true
+      resistant_varieties:
+        MR:   [Combat]
+        MRMS: [AGT-Bunyip_IA, Neo_CL]
+      report_flag: false
+
+    powdery_mildew:
+      severity: high
+      risk_trend: increasing
+      summary: >
+        New PM pathotype has increased susceptibility of Beast, Combat, Commodus CL,
+        and Maximus CL. New virulence to the MlLa gene confirmed in southern WA.
+        Group 3 DMI fungicide efficacy declining due to CYP51 gene mutations.
+        Varieties carrying the mlo gene (RGT Atlantis, RGT Planet, Zena CL) retain
+        durable resistance.
+      new_pathotype: true
+      fungicide_resistance: true
+      susceptible_varieties:
+        newly_susceptible: [Beast, Combat, Commodus_CL, Maximus_CL]
+      resistant_varieties:
+        mlo_gene_durable: [RGT_Atlantis, RGT_Planet, Zena_CL]
+      report_flag: true
+
+    barley_leaf_rust:
+      severity: moderate
+      risk_trend: stable
+      summary: >
+        Majority of barley area planted to varieties rated MS or lower. Yield losses
+        up to 30% from severe infections. Risk elevated in cool, wet spring conditions.
+      susceptible_varieties:
+        S: [Beast, Buff, Combat, Laperouse, Litmus, Minotaur, Rocket_CL]
+      resistant_varieties:
+        MR: [Rosalind]
+      report_flag: false
+
+
+# ---------------------------------------------------------------------------
+# SMUT SEASON ALERT — cross-crop, elevated for 2025-26
+# ---------------------------------------------------------------------------
+smut_season_alert:
+  active: true
+  crops: [wheat, barley]
+  diseases:
+    wheat: "flag smut"
+    barley: "loose smut"
+  risk_level: "elevated"
+  reason: >
+    2024 incidence was significantly greater than normal with confirmed yield losses.
+    The 2024 season has elevated inoculum carry-forward. Many newly released varieties
+    lack current ratings (DPIRD/GRDC project DAW2506-007RTX underway to address this).
+  management: >
+    Effective seed dressing is the primary control. Avoid untreated seed.
+    Self-sown volunteers from susceptible varieties are a significant inoculum source.
+
+
+# ---------------------------------------------------------------------------
+# REPORT INTEGRATION NOTES
+# ---------------------------------------------------------------------------
+# Fields with report_flag: true are candidates for inclusion in daily/weekly
+# digests when the associated weather event (frost, rainfall) occurs during
+# the relevant crop stage.
+#
+# Suggested logic in report_generator.py:
+#   - Frost event at flowering + Scepter dominant + scald alert active
+#     → add note: "dominant varieties include Scepter (quick-mid maturity);
+#       flag smut pressure elevated for 2025–26 season"
+#   - Heat event at grain fill + powdery mildew watch active
+#     → no additional flag (report_flag: false for PM)

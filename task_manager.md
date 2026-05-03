@@ -1,7 +1,7 @@
 
 # Task Manager
 **PRD:** ./prd.md  
-**Updated:** 2026-04-20 (Seeding rain backtest Apr–Jun 2025; fixed date string bug in _export_events; gated inadequate events to May+)  
+**Updated:** 2026-05-03 (Stale ingest pipeline archived; README rewritten to three-agent architecture)  
 
 ---
 
@@ -19,6 +19,7 @@
 ## Done
 | ID              | Title                             | Agent          | Completed   | PR/Commit |
 |-----------------|-----------------------------------|----------------|-------------|-----------|
+| T-20260422-001  | Full hybrid ingest run (WA BOM + Data Drill gap-fill) | silo-wrangler | 2026-04-22 | pending |
 | T-20260326-002  | Broaden WA station coverage via BOM dataset | silo-wrangler | 2026-03-26 | pending |
 | T-20260326-001  | Full season report via Insight Publisher | insight-publisher | 2026-03-26 | pending |
 | T-20250906-002  | Weather ingest pipeline (SILO/S3 → DuckDB) | infrastructure | 2025-09-08 | pending |
@@ -378,6 +379,141 @@ Claude prints: `OK TO CLOSE: Save is complete. Please close this chat to reset c
 - **Next steps:** Cron automation install; update CLAUDE.md to document marginal/marginal_low severities
 - **Blockers:** None
 - **Commit:** pending
+
+### 2026-04-22 — silo-wrangler (SILO Data Drill hybrid ingest)
+- **Task:** Investigate SILO interpolation for wider coverage; implement hybrid PPD + Data Drill ingest
+- **Context:** Analysis showed only 33% of 0.5° grid cells across WA wheatbelt have a real BOM station. SILO’s Data Drill endpoint (`DataDrillDataset.php`) returns gridded interpolated data for any lat/lon without a physical station.
+- **What changed:**
+  - `config/silo_sources.yaml`: Added `data_drill:` block — endpoint, `grid_resolution_deg: 0.5` (~55km), `proximity_threshold_deg: 0.4`, and bounding boxes for WA/SA/VIC/NSW
+  - `src/agents/silo_wrangler/api_client.py`: Added `get_data_drill_data(lat, lon, start, finish)` method using `DataDrillDataset.php`
+  - `src/common/stations_loader.py`: Added `get_all_station_coords()`, `get_nearest_sa2(lat, lon)`, and module-level `generate_data_drill_grid()` — builds regular grid, suppresses points within proximity_threshold of any BOM station
+  - `src/agents/silo_wrangler/run_ingest.py`: Added `--hybrid` flag and `--dd-max-points N` (for testing). Dry-run skips Data Drill API calls. After PPD loop, generates 691 gap points, queries Data Drill for each, writes with synthetic IDs (`DD_{lat:.2f}_{lon:.2f}`)
+  - `src/agents/risk_engine/run_risk_engine.py`: `_enrich_with_regions()` now handles `DD_` station IDs — parses lat/lon from synthetic ID, does nearest-neighbour SA2 lookup via `get_nearest_sa2()`
+- **Grid stats:** 1,208 candidate points across 4 states → 691 gap points after suppressing the 517 covered by BOM stations (0.5° resolution, 0.4° proximity threshold)
+- **Data Drill quality codes:** Returns 25 (lower density interpolation) and 75 (secondary interpolation) — both already in the `interpolated_count` bucket of quality_checker. Confidence scoring applies correctly.
+- **Tested:**
+  - `--hybrid --dd-max-points 5 --days 2 --stations 009789`: 1 PPD station + 1 valid land point (`DD_-35.00_116.50`, Margaret River area) successfully wrote to obs_daily.csv + DuckDB. 4 coastal/ocean points returned 0 records (gracefully skipped).
+  - Ocean/no-data points: SILO returns metadata rows only → YYYY-MM-DD column is float NaN → fixed with `.astype(str)` before `.str.match()`
+- **Known issue to address next session:** The grid starts from the bounding box corner (WA lat=-35, lon=114.5) which includes coastal/ocean points. These fail gracefully (0 records) but waste ~10-15 API calls per run. Options: tighten bounding box lon_min to ~116.0, or accept the waste (only ~15 of 691 points are coastal).
+- **Files touched:**
+  - `config/silo_sources.yaml`
+  - `src/agents/silo_wrangler/api_client.py`
+  - `src/common/stations_loader.py`
+  - `src/agents/silo_wrangler/run_ingest.py`
+  - `src/agents/risk_engine/run_risk_engine.py`
+- **Next steps:** Tighten WA bounding box to avoid coastal waste; run a full hybrid ingest (`--use-bom-dataset --states "Western Australia" --hybrid`) to see total coverage; consider adding state filter to `--hybrid` so you can run Data Drill for WA only
+- **Blockers:** None — hybrid pipeline functional end-to-end
+- **Commit:** pending
+
+### 2026-04-22 — silo-wrangler + risk-engine (Data Drill tightening + station ID normalisation + Esperance test)
+- **Tasks:** Three items from previous session’s next-steps list
+- **What changed:**
+  1. **WA bounding box tightened**: `lon_min: 114.5 → 116.0` in `silo_sources.yaml` — removes ~15 wasted coastal API calls per hybrid run
+  2. **`--hybrid-states` flag added** to `run_ingest.py` — filters Data Drill bounding boxes to named states only (e.g. `--hybrid-states "Western Australia"`), leaving other regions unaffected
+  3. **GeoJSON polygon filter added** to `generate_data_drill_grid()` in `stations_loader.py` — `SA2_ABS_Regions.geojson` (190 wheatbelt SA2 features) used as an exact point-in-polygon test after the coarse rectangular pre-filter. Uses shapely 2.x `unary_union` + `Point.contains()`. Path configured via `data_drill.wheatbelt_geojson` in `silo_sources.yaml`. WA result: 240 → 62 (polygon filter) → 1 genuine gap point after proximity suppression.
+  4. **Station ID normalisation — DuckDB migration**: Discovered 4,960 rows stored with short station IDs (`8002`, `9542` etc.) from Sep 2025 ingest runs before zero-padding convention was established. Deleted 3,200 duplicate rows (padded form already existed), renamed remaining 1,760 to zero-padded form. Verified 0 short-id rows remain.
+  5. **`data_processor.py` guard added**: `station_id.zfill(6)` applied before setting column, gated to non-`DD_` IDs — prevents recurrence.
+  6. **Esperance region test**: Ingested 8 Esperance stations (`--stations "009542,012071,009739,..."`, `--days 21`). 3 passed quality. April 3 event (33.8mm at Esperance Aero) correctly detected as `adequate` seeding_rain. 7-day rolling window stays adequate through Apr 9, fades to marginal by Apr 14. Detection quality: PASS.
+- **Files touched:**
+  - `config/silo_sources.yaml` (`lon_min` tightened; `wheatbelt_geojson` path added)
+  - `src/common/stations_loader.py` (`generate_data_drill_grid()` — optional `geojson_path` param with shapely filter)
+  - `src/agents/silo_wrangler/run_ingest.py` (`--hybrid-states` flag; pass `geojson_path` from config)
+  - `src/agents/silo_wrangler/data_processor.py` (`station_id.zfill(6)` guard)
+  - `data/weather.duckdb` (migration: 4,960 short-id rows normalised)
+- **Data Drill grid (WA, post-changes):** 240 rectangular → 62 inside SA2 polygons → 1 genuine gap at (-33.5, 119.0)
+- **Next steps:** Run the first full hybrid ingest: `python -m src.agents.silo_wrangler.run_ingest --use-bom-dataset --states "Western Australia" --hybrid --hybrid-states "Western Australia"`; consider extending GeoJSON filter to SA/VIC/NSW bounds (currently only WA SA2s in file); historical short-id entries in event_log (10,730 rows) will self-correct on next full risk engine re-run over historical dates
+- **Blockers:** None
+- **Commit:** pending
+
+### 2026-04-22 — silo-wrangler (Full hybrid ingest run)
+- **Task:** T-20260422-001 — First production hybrid ingest: WA BOM stations + Data Drill gap-fill
+- **What changed:** Executed the first full hybrid ingest across all 277 WA BOM stations with Data Drill gap-fill active. No code changes — pure execution and validation.
+- **Results:**
+  - PPD: 120/277 stations passed quality (43% pass rate); 4,840 records ingested
+  - 157 stations failed: mix of "no data returned" (station inactive/offline) and confidence < 0.3 (all-synthetic data)
+  - Data Drill: 240 rectangular → 62 polygon-filtered → 1 genuine gap at (-33.5, 119.0); 40 records written
+  - DuckDB: 42,768 → 43,398 rows (+630 net); 107 → 158 unique stations (+51)
+  - DD_ rows in DB: 42 (40 new + 2 from prior test run)
+  - Run time: ~6 min 27 sec (09:41:51 → 09:48:18)
+- **Pass rate note:** 43% vs 58% from the 365-day run (sowing season prep session). Expected — 40-day April window catches more interpolated stations during the autumn transition period.
+- **Data Drill pipeline validated end-to-end:** grid generation → polygon filter → proximity suppression → API call → quality check → obs_daily.csv + DuckDB write. All steps confirmed working in production.
+- **Files touched:** None (execution only)
+- **Next steps:** Run risk engine over the new Apr data to pick up seeding rain events (we’re now in the Apr–Jun seeding window); consider running full historical short-ID cleanup via `--date-range` risk engine re-run; extend GeoJSON polygon filter to SA/VIC/NSW for multi-state hybrid coverage
+- **Blockers:** None
+- **Commit:** pending
+
+### 2026-04-22 — insight-publisher (DPIRD 2026 Sowing Guide integration)
+- **Task:** Ingest DPIRD 2026 WA Crop Sowing Guide; calibrate crop calendar to WA; build seasonal disease/variety context file
+- **What changed:**
+  - Copied `DPIRD-2026-WA-Crop-Sowing-Guide-Full-lr.pdf` (9MB, 269 pages) from Windows OneDrive to `docs/`
+  - Converted to markdown (`docs/DPIRD-2026-WA-Crop-Sowing-Guide.md`, 814KB / 8,811 lines) via pdf-to-markdown skill
+  - `config/crop_calendars.yaml`: updated source metadata from "southeastern Australian conditions" to WA wheatbelt + DPIRD 2026 citation; extended lupins seeding months `[4,5]` → `[4,5,6]` (per DPIRD Table 9 — all agzones include June); added inline evidence comments on wheat/barley/canola sowing windows
+  - `data/meta/wa_seasonal_context.yaml` (new): machine-readable annual context file for report_generator and weekly assembler — crop area estimates, variety mix (wheat 2025 % by variety with maturity class; barley by port zone), disease alerts with susceptible/resistant variety lists, `report_flag` for report integration, smut season elevated alert
+- **Key data extracted from DPIRD guide:**
+  - Wheat: Scepter 34.8% of area; top 3 varieties (Scepter/Vixen/Calibre) = 60% of WA wheat
+  - Barley: Maximus CL ~66% statewide, slightly declining; Albany (600k ha) + Kwinana (555k ha) = 73% of WA barley
+  - 4 `report_flag: true` disease alerts: wheat flag smut (high/increasing), barley scald new pathotype (high/increasing), barley Oxford NFNB (high/increasing + fungicide resistance), barley powdery mildew new pathotype (high/increasing)
+  - Smut season alert active for 2025-26 (elevated inoculum carry-forward from 2024)
+- **Files touched:**
+  - `docs/DPIRD-2026-WA-Crop-Sowing-Guide.pdf` (new)
+  - `docs/DPIRD-2026-WA-Crop-Sowing-Guide.md` (new)
+  - `config/crop_calendars.yaml` (updated)
+  - `data/meta/wa_seasonal_context.yaml` (new)
+- **Next steps:** Wire `report_flag: true` alerts into `report_generator.py` — add disease watch note to daily digest when related weather event occurs during active crop stage; start new session for this
+- **Blockers:** None
+- **Commit:** pending
+
+### 2026-04-22 — insight-publisher (Disease Watch section)
+- **Task:** Wire `report_flag: true` alerts from `data/meta/wa_seasonal_context.yaml` into daily digest
+- **What changed:**
+  - Added `_load_seasonal_context()` to `DailyReportGenerator.__init__` — loads `wa_seasonal_context.yaml` at startup; silently degrades to `{}` if file missing
+  - Added `_generate_disease_watch_section(events_df)` — fires when today has frost or rainfall events AND diseases with `report_flag: true` exist. Renders: trigger line (with crop stage if present), cross-crop smut season alert, then one block per flagged disease showing severity, risk trend, `⚠` badges for `new_pathotype`/`fungicide_resistance`, summary, susceptible varieties by rating (capped at 6 + overflow count), management note. Returns `""` (suppressed) when no triggering events.
+  - Wired into `generate_report()` after Seasonal Moisture section, before Data Quality
+  - Added `import yaml` at top of file
+- **Files touched:**
+  - `src/agents/insight_publisher/report_generator.py`
+- **Diseases triggered (live smoke test, 2024-09-07 frost at flowering):**
+  - Smut Season Alert (Wheat, Barley) — elevated
+  - Wheat Flag Smut — High risk, increasing
+  - Barley Scald ⚠ new pathotype — High risk, increasing
+  - Barley Net Blotch Oxford ⚠ new pathotype, fungicide resistance — High risk, increasing
+  - Barley Powdery Mildew ⚠ new pathotype, fungicide resistance — High risk, increasing
+- **Next steps:** Update CLAUDE.md to document marginal/marginal_low seeding_rain severities (gap noted in Apr 20 session); install cron automation; consider adding a Disease Watch line to the Executive Summary when the section fires
+- **Blockers:** None
+- **Commit:** pending
+
+### 2026-05-03 — infrastructure (Stale ingest entrypoint deprecation)
+- **Task:** Refactor validation pass — deprecate stale ingest entrypoints
+- **What changed:** Added `# DEPRECATED` notices to four stale files; no code moved or deleted.
+- **Validation result:** `grep` confirms zero active `src/` imports of `src.data.silo_ingest`.
+- **Files touched:**
+  - `src/data/silo_ingest.py` (deprecation notice before module docstring)
+  - `scripts/daily_ingest.py` (deprecation notice after shebang)
+  - `scripts/backfill_historical.py` (deprecation notice after shebang)
+  - `config/cron_schedule.sh` (deprecation notice — critical: running `install` would have wired a broken cron job)
+- **Stale chain confirmed:** `config/cron_schedule.sh` → `scripts/daily_ingest.py` → `src/data/silo_ingest.py::SILOIngestPipeline`. No path in the active three-agent pipeline touches any of these files.
+- **Active chain confirmed:** `scripts/cron_schedule.sh` → `run_ingest.py` → `run_risk_engine.py` → `run_publisher.py`.
+- **Next steps:** Move all four deprecated files to `archive/` (next cleanup pass); rewrite `README.md` to describe three-agent architecture (T-20250906-006 in backlog).
+- **Commit:** `chore(refactor): deprecate stale ingest entrypoints`
+
+### 2026-05-03 — infrastructure (Archive deprecated ingest pipeline + README rewrite)
+- **Task:** Move deprecated ingest entrypoints to archive; rewrite README to current architecture
+- **What changed:**
+  - 4 files moved to `archive/deprecated_ingest_pipeline/` via `git mv` (history preserved)
+  - `docs/repo_inventory.md`: removed stale rows from source/scripts tables; added archive entries; updated key findings summary (H-severity items marked resolved)
+  - `CLAUDE.md`: removed `daily_ingest.py` and `backfill_historical.py` from `scripts/` section
+  - `README.md`: full rewrite — three-agent architecture, setup, three CLI commands, outputs table, config/env, current limitations
+- **Files touched:**
+  - `config/cron_schedule.sh` → `archive/deprecated_ingest_pipeline/config/cron_schedule.sh`
+  - `scripts/daily_ingest.py` → `archive/deprecated_ingest_pipeline/scripts/daily_ingest.py`
+  - `scripts/backfill_historical.py` → `archive/deprecated_ingest_pipeline/scripts/backfill_historical.py`
+  - `src/data/silo_ingest.py` → `archive/deprecated_ingest_pipeline/src/data/silo_ingest.py`
+  - `docs/repo_inventory.md` (updated)
+  - `CLAUDE.md` (scripts section)
+  - `README.md` (full rewrite)
+- **Validation:** grep of live files confirms zero references to archived paths outside `archive/` and historical `task_manager.md` session logs
+- **Next steps:** Backlog T-20250906-006 (README) now complete. Remaining doc-cleanup items: Sphinx skeleton in `docs/`; `logs/daily_ingest.log` is a harmless stale artefact from the archived pipeline.
+- **Commit:** `chore(refactor): archive deprecated ingest pipeline and rewrite README`
 
 ---
 

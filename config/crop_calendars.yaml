@@ -1,6 +1,7 @@
 # Crop Calendar Configuration
 # Used by Risk Engine agent for event detection timing
-# Based on general Australian wheat growing seasons
+# Calibrated to WA wheatbelt conditions — source: DPIRD 2026 WA Crop Sowing Guide
+# (docs/DPIRD-2026-WA-Crop-Sowing-Guide.pdf) + SILO climate data
 
 # Wheat growing stages and typical timing
 wheat:
@@ -115,11 +116,11 @@ thresholds:
       
   rainfall:
     seeding:
-      germination_trigger: 10.0   # mm — minimum single event to trigger germination
-      adequate_break: 25.0        # mm over 7 days — sufficient autumn break
-      marginal_break_mm_7d: 15.0  # mm over 7 days — lower bound of marginal band (15–24.9mm)
-      marginal_low_break_mm_7d: 10.0  # mm over 7 days — lower bound of marginal_low band (10–14.9mm)
-      inadequate_week: 5.0        # mm over 7 days — flag dry spell during seeding (<10mm)
+      germination_trigger: 10.0   # mm — minimum single event to trigger germination (CSV engine only)
+      adequate_break: 25.0        # mm over 7 days — sufficient autumn break (CSV engine only)
+      marginal_break_mm_7d: 15.0  # mm over 7 days — lower bound of marginal band (CSV engine only)
+      marginal_low_break_mm_7d: 10.0  # mm over 7 days — lower bound of marginal_low band (CSV engine only)
+      inadequate_week: 5.0        # mm over 7 days — flag dry spell during seeding (CSV engine only)
 
     crop_development:
       dry_spell_7day: 5.0         # mm — flag if <5mm over 7 days
@@ -131,16 +132,49 @@ thresholds:
       high: 15.0       # >15mm over 3 days
       severe: 25.0     # >25mm over 3 days
 
+# Per-crop seeding window definitions (used by DuckDB-backed risk engine)
+# Each crop has its own active months and 7-day moisture thresholds
+seeding_crops:
+  canola:
+    months: [3, 4]                   # Mar–Apr: early seeder, surface moisture sensitive
+    adequate_break_mm_7d: 15.0       # Canola needs moist seedbed — lower adequate threshold
+    marginal_break_mm_7d: 10.0
+    marginal_low_break_mm_7d: 7.0
+    description: "Canola autumn break — surface moisture critical, dry seeding trending earlier (DPIRD 2026)"
+
+  wheat_barley:
+    months: [4, 5]                   # Apr–May: peak yield from late Apr–early May (DPIRD TOS trials, 2020–24)
+                                     # Barley: mid-Apr to mid-May for main season; quick varieties to Jun in north
+    adequate_break_mm_7d: 25.0       # Needs more for reliable germination post dry-sowing
+    marginal_break_mm_7d: 15.0
+    marginal_low_break_mm_7d: 10.0
+    description: "Wheat/barley seeding — ANZAC Day dry sow pivot (late Apr–May optimal per DPIRD 2026)"
+
+  lupins:
+    months: [4, 5, 6]               # Late Apr–early Jun: DPIRD Table 9 (all agzones)
+                                     # High-rainfall zones (Agzone 1,2,6): late Apr–early Jun
+                                     # Low-medium zones (Agzone 3,4,5): late Apr–mid-May
+    adequate_break_mm_7d: 20.0
+    marginal_break_mm_7d: 12.0
+    marginal_low_break_mm_7d: 8.0
+    description: "Lupins — deep sowing option; sowing window late Apr–early Jun per DPIRD 2026 Table 9"
+
 # Notes and assumptions
 metadata:
-  source: "General Australian wheat calendar - simplified for MVP"
+  source: "DPIRD 2026 WA Crop Sowing Guide (Bulletin 4937, November 2025)"
+  source_file: "docs/DPIRD-2026-WA-Crop-Sowing-Guide.pdf"
   assumptions:
-    - "Based on southeastern Australian conditions"
-    - "Regional variations not fully implemented"  
-    - "Stage timing approximate - varies by variety and year"
+    - "Calibrated to WA wheatbelt conditions (Agzones 1–6)"
+    - "Wheat sowing window: peak yield late Apr–early May (DPIRD TOS trials, Mullewa/Merredin/Katanning/Grass Patch 2020–24)"
+    - "Barley sowing: mid-Apr to mid-May for main season; quick varieties (e.g. Rocket CL) suit late May–Jun in northern wheatbelt"
+    - "Canola sowing: trending earlier — dry seeding from Mar common; surface moisture critical"
+    - "Lupin sowing: late Apr–early Jun per DPIRD Table 9 (Recommended sowing times by Agzone)"
+    - "Stage timing approximate — varies by variety maturity class and year"
     - "Thresholds based on industry literature review"
-  
+    - "Regional Agzone variations not fully implemented — single WA wheatbelt calendar used"
+
   validation_needed:
-    - "Compare with actual planting/harvest dates"
-    - "Validate thresholds against known damage events"
-    - "Refine regional variations with local expertise"
+    - "Validate stage month boundaries against station-level observed planting/harvest dates"
+    - "Validate thresholds against known damage events in event_log.csv"
+    - "Implement Agzone-specific stage adjustments (Agzones 1–6 defined by DPIRD)"
+    - "Consider variety maturity class (quick vs mid-slow vs slow) in phenology windows"

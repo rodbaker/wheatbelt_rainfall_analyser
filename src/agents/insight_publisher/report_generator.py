@@ -5,6 +5,7 @@ Generates markdown-based daily risk digests from Risk Engine outputs.
 Provides human-readable summaries of frost, heat, and rainfall events.
 """
 
+import yaml
 import pandas as pd
 from datetime import datetime, date
 from pathlib import Path
@@ -42,6 +43,7 @@ class DailyReportGenerator:
         
         # Load station metadata for enrichment
         self._load_station_metadata()
+        self._load_seasonal_context()
     
     def _load_station_metadata(self):
         """Load station metadata for enriching reports with names and locations."""
@@ -56,7 +58,18 @@ class DailyReportGenerator:
         except Exception as e:
             print(f"Warning: Could not load station metadata: {e}")
             self.stations_df = pd.DataFrame()
-    
+
+    def _load_seasonal_context(self):
+        """Load wa_seasonal_context.yaml for disease alert context."""
+        context_path = self.data_dir / "meta" / "wa_seasonal_context.yaml"
+        try:
+            with open(context_path) as f:
+                self.seasonal_context = yaml.safe_load(f)
+        except Exception as e:
+            if self.verbose:
+                print(f"Warning: Could not load seasonal context: {e}")
+            self.seasonal_context = {}
+
     def _get_station_name(self, station_id: int) -> str:
         """Get human-readable station name from station ID."""
         if not self.stations_df.empty:
@@ -174,6 +187,88 @@ class DailyReportGenerator:
         
         return section + "\n"
     
+    def _generate_seeding_rain_section(self, events_df: pd.DataFrame) -> str:
+        """Generate seeding rain section grouped by crop type then SA2 region."""
+        seeding_events = events_df[events_df['event_type'] == 'seeding_rain']
+
+        if seeding_events.empty:
+            return "**No seeding rain events detected**\n"
+
+        severity_order = ['adequate', 'marginal', 'marginal_low', 'inadequate']
+
+        crop_labels = {
+            'canola': 'Canola (Mar–Apr window)',
+            'wheat_barley': 'Wheat/Barley (Apr–May, ANZAC Day dry sow)',
+            'lupins': 'Lupins/Legumes (Apr–May, deep sow option)',
+        }
+
+        n_stations = seeding_events['station_id'].nunique()
+        section = f"**{len(seeding_events)} seeding rain event(s)** across **{n_stations} station(s)**:\n\n"
+
+        has_crop_type = 'crop_type' in seeding_events.columns and seeding_events['crop_type'].notna().any()
+        has_sa2 = 'sa2_name' in seeding_events.columns and seeding_events['sa2_name'].notna().any()
+
+        def _sa2_block(crop_events: pd.DataFrame) -> str:
+            """Build a severity-tiered SA2 regional breakdown for a subset of events."""
+            sev_rank = {s: i for i, s in enumerate(severity_order)}
+            block = ""
+
+            if has_sa2 and crop_events['sa2_name'].notna().any():
+                sa2_summary = (
+                    crop_events
+                    .assign(_rank=crop_events['severity'].map(sev_rank))
+                    .sort_values('_rank')
+                    .groupby('sa2_name', sort=False)
+                    .agg(
+                        best_severity=('severity', 'first'),
+                        max_value=('value', 'max'),
+                        station_count=('station_id', 'nunique'),
+                        sa3_name=('sa3_name', 'first'),
+                        threshold=('threshold', 'first'),
+                    )
+                    .reset_index()
+                )
+                sa2_summary['_rank'] = sa2_summary['best_severity'].map(sev_rank)
+                sa2_summary = sa2_summary.sort_values('_rank')
+
+                for sev in severity_order:
+                    tier = sa2_summary[sa2_summary['best_severity'] == sev]
+                    if tier.empty:
+                        continue
+                    thresh = tier.iloc[0]['threshold']
+                    block += f"*{sev.replace('_', '-').title()} (≥{thresh:.0f}mm/7d):*\n"
+                    for _, row in tier.iterrows():
+                        context = f" ({row['sa3_name']})" if pd.notna(row.get('sa3_name')) else ""
+                        block += (
+                            f"- **{row['sa2_name']}**{context}: "
+                            f"{row['max_value']:.1f}mm max, {int(row['station_count'])} station(s)\n"
+                        )
+                    block += "\n"
+            else:
+                # Fallback: list by station
+                for _, event in crop_events.iterrows():
+                    station_name = self._get_station_name(event['station_id'])
+                    block += f"- **{station_name}**: {event['value']:.1f}mm ({event['severity']})\n"
+                block += "\n"
+
+            return block
+
+        if has_crop_type:
+            # Group by crop type in defined order
+            crop_order = ['canola', 'wheat_barley', 'lupins']
+            for crop in crop_order:
+                crop_events = seeding_events[seeding_events['crop_type'] == crop]
+                if crop_events.empty:
+                    continue
+                label = crop_labels.get(crop, crop.replace('_', ' ').title())
+                section += f"**{label}:**\n"
+                section += _sa2_block(crop_events)
+        else:
+            # Legacy events without crop_type — flat SA2 breakdown
+            section += _sa2_block(seeding_events)
+
+        return section
+
     def _generate_rainfall_section(self, events_df: pd.DataFrame) -> str:
         """Generate rainfall events section of the report."""
         rainfall_events = events_df[events_df['event_type'] == 'rainfall']
@@ -256,6 +351,104 @@ class DailyReportGenerator:
 
         return section + "\n"
 
+    def _generate_disease_watch_section(self, events_df: pd.DataFrame) -> str:
+        """Generate Disease Watch section when frost or rainfall events trigger it.
+
+        Fires when today has frost OR any rainfall events AND at least one disease
+        alert carries report_flag: true in wa_seasonal_context.yaml.
+        """
+        if not self.seasonal_context:
+            return ""
+
+        has_frost = not events_df.empty and (events_df['event_type'] == 'frost').any()
+        has_rainfall = not events_df.empty and events_df['event_type'].isin(
+            ['rainfall', 'seeding_rain', 'development_rain']
+        ).any()
+
+        if not (has_frost or has_rainfall):
+            return ""
+
+        disease_alerts = self.seasonal_context.get('disease_alerts', {})
+        smut_alert = self.seasonal_context.get('smut_season_alert', {})
+
+        # Collect diseases with report_flag: true
+        flagged = []
+        for crop, diseases in disease_alerts.items():
+            for disease_name, alert in diseases.items():
+                if alert.get('report_flag', False):
+                    flagged.append((crop, disease_name, alert))
+
+        if not flagged and not smut_alert.get('active'):
+            return ""
+
+        # Build trigger context line
+        trigger_parts = []
+        if has_frost:
+            frost_events = events_df[events_df['event_type'] == 'frost']
+            n = len(frost_events)
+            if 'crop_stage' in frost_events.columns:
+                stages = frost_events['crop_stage'].dropna().unique()
+                stage_str = f" during {', '.join(stages)}" if len(stages) > 0 else ""
+            else:
+                stage_str = ""
+            trigger_parts.append(f"{n} frost event(s){stage_str}")
+        if has_rainfall:
+            rain_events = events_df[events_df['event_type'].isin(
+                ['rainfall', 'seeding_rain', 'development_rain']
+            )]
+            trigger_parts.append(f"{len(rain_events)} rainfall event(s)")
+
+        section = "## Disease Watch\n\n"
+        section += f"*Triggered by: {'; '.join(trigger_parts)}*\n\n"
+
+        # Cross-crop smut season alert
+        if smut_alert.get('active'):
+            crops = ', '.join(c.title() for c in smut_alert.get('crops', []))
+            section += f"**Smut Season Alert — {crops}** | {smut_alert.get('risk_level', 'elevated').title()} risk\n\n"
+            reason = smut_alert.get('reason', '').strip()
+            if reason:
+                section += f"{reason}\n\n"
+            mgmt = smut_alert.get('management', '').strip()
+            if mgmt:
+                section += f"Management: {mgmt}\n\n"
+
+        # Per-disease entries
+        for crop, disease_name, alert in flagged:
+            severity = alert.get('severity', 'unknown').title()
+            trend = alert.get('risk_trend', 'unknown')
+            display_name = disease_name.replace('_', ' ').title()
+            flags = []
+            if alert.get('new_pathotype'):
+                flags.append('new pathotype')
+            if alert.get('fungicide_resistance'):
+                flags.append('fungicide resistance detected')
+            flag_str = f" ⚠ {', '.join(flags)}" if flags else ""
+
+            section += f"**{crop.title()} — {display_name}**{flag_str} | {severity} risk | Trend: {trend}\n\n"
+
+            summary = alert.get('summary', '').strip()
+            if summary:
+                section += f"{summary}\n\n"
+
+            # Susceptible varieties grouped by rating
+            susc = alert.get('susceptible_varieties', {})
+            if susc:
+                for rating, varieties in susc.items():
+                    if not isinstance(varieties, list) or not varieties:
+                        continue
+                    names = [v.replace('_', ' ') for v in varieties]
+                    line = f"- Susceptible ({rating}): {', '.join(names[:6])}"
+                    if len(names) > 6:
+                        line += f" (+{len(names) - 6} more)"
+                    section += line + "\n"
+                section += "\n"
+
+            mgmt = alert.get('management', '').strip()
+            if mgmt:
+                section += f"Management: {mgmt}\n\n"
+
+        return section
+
     def _generate_data_quality_section(self, events_df: pd.DataFrame) -> str:
         """Generate data quality assessment section."""
         if events_df.empty:
@@ -329,8 +522,18 @@ class DailyReportGenerator:
         report_lines.append("### 🌧️ Harvest Rainfall Risk")
         report_lines.append(self._generate_rainfall_section(events_df))
 
+        # Seeding Rain Events (Apr–Jun)
+        if stats['seeding_rain_events'] > 0 or self.date.month in [4, 5, 6]:
+            report_lines.append("### 🌱 Seeding Rainfall (Apr–Jun)")
+            report_lines.append(self._generate_seeding_rain_section(events_df))
+
         # Seasonal Moisture Tracker (year-round)
         report_lines.append(self._generate_seasonal_moisture_section(events_df))
+
+        # Disease Watch (frost or rainfall events + report_flag: true alerts)
+        disease_watch = self._generate_disease_watch_section(events_df)
+        if disease_watch:
+            report_lines.append(disease_watch)
 
         # Data Quality
         report_lines.append(self._generate_data_quality_section(events_df))

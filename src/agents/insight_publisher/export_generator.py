@@ -58,26 +58,32 @@ class PowerBIExportGenerator:
             self.stations_df = pd.DataFrame()
     
     def _enrich_with_station_metadata(self, events_df: pd.DataFrame) -> pd.DataFrame:
-        """Enrich events data with station metadata for geographic analysis."""
-        if self.stations_df.empty:
-            return events_df
-        
-        # Merge with station metadata
-        enriched_df = events_df.merge(
-            self.stations_df[['station_id', 'Station name', 'Lat', 'Lon', 'SA2_NAME16', 'STE_NAME16']], 
-            on='station_id', 
-            how='left'
-        )
-        
-        # Standardize column names for Power BI
-        enriched_df = enriched_df.rename(columns={
-            'Station name': 'station_name',
-            'Lat': 'latitude',
-            'Lon': 'longitude',
-            'SA2_NAME16': 'region_name',
-            'STE_NAME16': 'state_name'
-        })
-        
+        """Enrich events data with station metadata for geographic analysis.
+
+        SA2/SA3 region names are already present in event_log.csv (written by the
+        risk engine). This method only adds station_name, lat/lon, and state_name
+        from the stations CSV, then maps the pre-enriched sa2_name → region_name
+        for backward compatibility.
+        """
+        if not self.stations_df.empty:
+            enriched_df = events_df.merge(
+                self.stations_df[['station_id', 'Station name', 'Lat', 'Lon', 'STE_NAME16']],
+                on='station_id',
+                how='left'
+            )
+            enriched_df = enriched_df.rename(columns={
+                'Station name': 'station_name',
+                'Lat': 'latitude',
+                'Lon': 'longitude',
+                'STE_NAME16': 'state_name'
+            })
+        else:
+            enriched_df = events_df.copy()
+
+        # Map pre-enriched sa2_name → region_name for Power BI / assembler compat
+        if 'region_name' not in enriched_df.columns:
+            enriched_df['region_name'] = enriched_df.get('sa2_name', '')
+
         return enriched_df
     
     def _load_all_events(self) -> pd.DataFrame:
@@ -139,10 +145,11 @@ class PowerBIExportGenerator:
         export_df['date'] = pd.to_datetime(export_df['date']).dt.date
         export_df['detected_at'] = pd.to_datetime(export_df['detected_at'])
         
-        # Ensure consistent column order (include new phenology fields)
+        # Ensure consistent column order (include new phenology and region fields)
         column_order = [
-            'station_id', 'station_name', 'latitude', 'longitude', 
-            'region_name', 'state_name', 'date', 'event_type', 
+            'station_id', 'station_name', 'latitude', 'longitude',
+            'region_name', 'sa2_name', 'sa3_name', 'sa4_name', 'state_name',
+            'date', 'event_type',
             'severity', 'value', 'threshold', 'confidence', 'data_quality',
             'crop_stage', 'phenology_risk_multiplier', 'flowering_window_active',
             'days_since_flowering_start', 'risk_score', 'detected_at', 'export_timestamp'
