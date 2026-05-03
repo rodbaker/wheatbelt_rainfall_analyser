@@ -159,6 +159,13 @@ seeding_crops:
     marginal_low_break_mm_7d: 8.0
     description: "Lupins — deep sowing option; sowing window late Apr–early Jun per DPIRD 2026 Table 9"
 
+# Optional ABS crop context integration
+# Phase 4 plumbing — disabled by default, no behavior change when disabled
+crop_context:
+  enabled: false
+  path: data/meta/crop_context_sa2.csv
+  required: false
+
 # Notes and assumptions
 metadata:
   source: "DPIRD 2026 WA Crop Sowing Guide (Bulletin 4937, November 2025)"

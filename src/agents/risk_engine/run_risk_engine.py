@@ -32,6 +32,10 @@ from src.common.logging_utils import setup_logging
 from src.common.date_utils import get_current_crop_stage, get_crop_season
 from src.common.file_utils import atomic_csv_write
 from src.common.stations_loader import WheatbeltStationsLoader
+from src.common.crop_context_loader import (
+    load_crop_context_lookup,
+    CropContextLookup,
+)
 from src.data.duckdb_storage import DuckDBStorage
 from src.agents.risk_engine.event_detector import WeatherEventDetector
 
@@ -64,6 +68,9 @@ class RiskEngineRunner:
 
         # Load station → region lookup for event enrichment
         self._region_lookup = self._load_region_lookup()
+
+        # Optional ABS crop context lookup (Phase 4 plumbing — unused until Phase 5)
+        self._crop_context_lookup: Optional[CropContextLookup] = self._load_crop_context()
 
         logger.info(f"Risk Engine initialized with config from {self.config_path}")
         
@@ -322,6 +329,49 @@ class RiskEngineRunner:
         except Exception as e:
             logger.warning(f"Could not load region lookup: {e} — events will lack region fields")
             return pd.DataFrame(columns=['station_id', 'sa2_name', 'sa3_name', 'sa4_name'])
+
+    def _load_crop_context(self) -> Optional[CropContextLookup]:
+        """Load ABS crop context lookup if enabled in config.
+
+        Behaviour is governed by crop_context in crop_calendars.yaml:
+          enabled=false  → returns None, no file access attempted
+          enabled=true, required=false, missing → warning, returns None
+          enabled=true, required=true,  missing → raises FileNotFoundError
+          enabled=true, file present    → returns CropContextLookup
+        """
+        cc_cfg = self.crop_config.get('crop_context', {})
+        if not cc_cfg.get('enabled', False):
+            return None
+
+        default_path = 'data/meta/crop_context_sa2.csv'
+        csv_path = project_root / cc_cfg.get('path', default_path)
+        required = cc_cfg.get('required', False)
+
+        if not csv_path.exists():
+            if required:
+                raise FileNotFoundError(
+                    f"Crop context CSV required but not found: {csv_path}. "
+                    "Run scripts/build_crop_context.py to generate it."
+                )
+            logger.warning(
+                "Crop context enabled but CSV not found: "
+                f"{csv_path} — continuing without it"
+            )
+            return None
+
+        try:
+            lookup = load_crop_context_lookup(csv_path)
+            logger.info(
+                f"Loaded crop context lookup "
+                f"({len(lookup.records)} records) from {csv_path}"
+            )
+            return lookup
+        except Exception as e:
+            logger.warning(
+                f"Failed to load crop context from {csv_path}: "
+                f"{e} — continuing without it"
+            )
+            return None
 
     def _enrich_with_regions(self, events_df: pd.DataFrame) -> pd.DataFrame:
         """Join SA2/SA3/SA4 region names onto events DataFrame.
