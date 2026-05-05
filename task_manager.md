@@ -1,13 +1,14 @@
 
 # Task Manager
 **PRD:** ./prd.md  
-**Updated:** 2026-05-03 (Phase 5 — publisher ABS crop context enrichment)  
+**Updated:** 2026-05-05 (SA2 Rainfall Analytics Foundation)  
 
 ---
 
 ## Backlog
 | ID              | Title                                           | Agent          | Priority | Size | Notes |
 |-----------------|-------------------------------------------------|----------------|----------|------|-------|
+| T-20260505-001  | SA2 coverage metadata fields                    | infrastructure | P1       | S    | Add season_coverage_ratio, sowing_window_coverage_ratio, in_crop_coverage_ratio, feature_quality_flag to build_sa2_rainfall_features.py. Needed before ABS/yield interpretation — autumn_break_status=absent is ambiguous without knowing Apr–Jun data completeness. |
 | T-20250906-005  | Config & secrets hygiene                        | infrastructure | P2       | S    | env.sample; no secrets in repo |
 | T-20250906-006  | Readme: "How to run CropForecaster locally"     | business       | P2       | S    | Onboard future collaborators |
 
@@ -534,6 +535,50 @@ Claude prints: `OK TO CLOSE: Save is complete. Please close this chat to reset c
   - Disabled by default — no section rendered unless explicitly enabled in config
 - **Next steps:** Phase 6 options — enable crop context in config + generate test report; or weekly report automation (M2)
 - **Commit:** pending
+
+### 2026-05-03 — insight-publisher (Phase 6: crop context validation + bug fixes)
+- **Task:** Phase 6 — validate Phase 5 output path using real `crop_context_sa2.csv` and inspect generated markdown; fix any presentation issues found
+- **What changed:**
+  - **Bug fixed:** Station IDs in `event_log.csv` are zero-padded strings (`’008002’`) but `wheatbelt_stations.csv` has them as `int64` (`8002`). All SA2 lookups in `_generate_abs_crop_context_section` silently returned no matches, so the section always rendered as an empty string. Fixed by converting `sid` to `int` before the stations_df comparison; synthetic `DD_` grid-point IDs skip via `except (ValueError, TypeError)`. Same normalisation applied to `_get_station_name` for consistency.
+  - **Presentation fix:** `area_share = 0.003` (e.g. Plantagenet lupins: 248 ha) was displaying as `"0% area share"`. Now shows `"<1% area share"` for any non-zero share that rounds to zero. Also caught Northampton-Mullewa-Greenough oats in the same run.
+  - **1 new test added:** `test_sub_one_percent_area_share_shows_less_than_one` — verifies `area_share=0.003` → `<1%`, not `0% area share`.
+- **Files touched:**
+  - `src/agents/insight_publisher/report_generator.py` (station ID int normalisation in 2 methods; `<1%` display logic)
+  - `tests/test_publisher_crop_context.py` (1 new test)
+- **Validation run:**
+  - Temporarily set `crop_context.enabled: true`, ran `run_publisher.py --date 2026-04-01`
+  - 330 seeding_rain events → 21 SA2 blocks rendered with crops ranked by area share descending
+  - Suppressed ABS values correctly show "area share not available / area not available" (e.g. Esperance wheat/lupins)
+  - Caveat line present: "Historical ABS census estimates — not current-year planted area. Does not change risk ratings."
+  - Config reverted to `enabled: false` before commit; `data/meta/crop_context_sa2.csv` confirmed gitignored/unstaged
+- **Test results:** 63 tests, all pass (24 crop-context tests + 39 pre-existing)
+- **Commit:** `ead3e12 fix(publisher): normalize station IDs and fix sub-1% area share display`
+
+### 2026-05-05 — infrastructure + risk-engine + insight-publisher (SA2 Rainfall Analytics Foundation)
+- **Task:** SA2 rainfall feature builder foundation — Phase 0 reliability fix + Phase 1 design doc + Phase 2 first implementation
+- **What changed:**
+  - **Phase 0:** Fixed cron/ingest `--date` mismatch. `scripts/cron_schedule.sh` passes `--date $TARGET_DATE` but `run_ingest.py` only accepted `--days`. Added `--date TEXT` option to `run_ingest.py`; both per-station fetch loop and hybrid-mode date range now honour it. Existing options (`--days`, rolling-window) still work unchanged.
+  - **Phase 0 test:** Added `test_silo_wrangler_date_option` to `tests/test_cli_smoke.py` — verifies `--date` appears in help output.
+  - **Phase 1:** Created `docs/sa2_rainfall_features_plan.md` — target schema, season-year definition, phenological windows, aggregation rules, and open decisions from `data_contracts.md`.
+  - **Phase 2:** Created `scripts/build_sa2_rainfall_features.py` — reads `data/weather.duckdb`, joins station metadata from `data/meta/wheatbelt_stations.csv` + `data/meta/station_regions.csv`, computes station-level seasonal features (monthly totals, windowed totals, autumn break detection, dry spell metrics, quality score), aggregates to SA2 via simple mean, writes `data/features/rainfall_features_sa2_season.csv` using `atomic_csv_write`.
+  - **Phase 2 tests:** Created `tests/test_sa2_rainfall_features.py` — 29 tests across season-year assignment, monthly aggregation, dry spell metrics, autumn break detection (early/on_time/late/absent), SA2 grouping, station ID normalisation, output schema, quality score.
+- **Files touched:**
+  - `src/agents/silo_wrangler/run_ingest.py` (added `--date` option; date routing in per-station loop + hybrid mode)
+  - `tests/test_cli_smoke.py` (1 new test)
+  - `docs/sa2_rainfall_features_plan.md` (new)
+  - `scripts/build_sa2_rainfall_features.py` (new)
+  - `tests/test_sa2_rainfall_features.py` (new, 29 tests)
+  - `task_manager.md` (this entry)
+- **Test results:** 33 tests pass (4 smoke + 29 SA2 feature tests)
+- **Design decisions made:**
+  - v1 uses `simple_mean` aggregation; `area_weighted_mean` deferred to Phase 3 (after ABS join)
+  - Data Drill `DD_*` stations excluded from SA2 aggregation in v1
+  - Anomaly/percentile/decile columns deferred — not in v1 output
+  - `data/obs/obs_daily.csv` not used as input; DuckDB is sole source
+- **Phase 3 (ABS join):** Not implemented — defer until Phase 2 tested against real data
+- **Next steps:** Run `scripts/build_sa2_rainfall_features.py --season-year 2025 --dry-run` once DuckDB has 2025 season data; wire into `cron_schedule.sh` after Phase 3 design is confirmed
+- **Blockers:** None
+- **Commit:** `feat(sa2): SA2 rainfall feature builder foundation with --date fix and 29 tests`
 
 ---
 

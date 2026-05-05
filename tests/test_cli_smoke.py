@@ -28,6 +28,12 @@ class TestCliHelp(unittest.TestCase):
             f"No expected marker found:\n{output}",
         )
 
+    def test_silo_wrangler_date_option(self):
+        """--date option must be present so cron_schedule.sh --date passes work."""
+        result = _run_help("src.agents.silo_wrangler.run_ingest")
+        output = result.stdout + result.stderr
+        self.assertIn("--date", output, "--date option missing from run_ingest help")
+
     def test_risk_engine_help(self):
         result = _run_help("src.agents.risk_engine.run_risk_engine")
         output = result.stdout + result.stderr

@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 @click.command()
 @click.option('--config', '-c', default='config/silo_sources.yaml', help='Path to SILO configuration file')
+@click.option('--date', 'target_date', default=None, help='Fetch data for a specific date (YYYY-MM-DD). Overrides --days and rolling-window mode.')
 @click.option('--stations', '-s', help='Comma-separated station IDs to process (overrides config)')
 @click.option('--days', '-d', type=int, help='Number of days to retrieve (overrides config)')
 @click.option('--tiers', default='active', help='Station tiers to include: active,unverified,inactive,all (default: active)')
@@ -45,7 +46,7 @@ logger = logging.getLogger(__name__)
 @click.option('--hybrid-states', help='Comma-separated state names to run Data Drill for (e.g., "Western Australia"). Defaults to all wheatbelt_bounds regions.')
 @click.option('--dd-max-points', type=int, default=None, help='Limit Data Drill grid points (useful for testing)')
 @click.option('--verbose', '-v', is_flag=True, help='Enable verbose logging')
-def run_daily_ingest(config: str, stations: str, days: int, tiers: str, include_poor: bool,
+def run_daily_ingest(config: str, target_date: str, stations: str, days: int, tiers: str, include_poor: bool,
                     use_bom_dataset: bool, states: str, sample_size: int, sample_seed: int,
                     min_cropping_area: int, dry_run: bool, hybrid: bool, hybrid_states: str,
                     dd_max_points: int, verbose: bool):
@@ -60,6 +61,8 @@ def run_daily_ingest(config: str, stations: str, days: int, tiers: str, include_
     setup_logging(log_level)
     
     logger.info("Starting SILO Wrangler daily ingestion")
+    if target_date:
+        logger.info(f"Target date override: {target_date}")
     
     try:
         # Load configuration
@@ -152,7 +155,11 @@ def run_daily_ingest(config: str, stations: str, days: int, tiers: str, include_
             
             try:
                 # Determine date range based on collection mode
-                if days:
+                if target_date:
+                    # Explicit date override — fetch exactly one day
+                    _d = target_date.replace('-', '')
+                    raw_data = api_client.get_daily_data(station_id, _d, _d)
+                elif days:
                     # CLI override
                     raw_data = api_client.get_rolling_window_data(station_id, days)
                 elif silo_config['collection']['mode'] == 'rolling_window':
@@ -293,7 +300,11 @@ def run_daily_ingest(config: str, stations: str, days: int, tiers: str, include_
 
             # Determine date range (reuse same logic as PPD stations)
             from datetime import datetime as _dt
-            if days:
+            if target_date:
+                _d = target_date.replace('-', '')
+                _start = _d
+                _end = _d
+            elif days:
                 _end = _dt.now().strftime('%Y%m%d')
                 _start = (_dt.now() - __import__('datetime').timedelta(days=days)).strftime('%Y%m%d')
             elif silo_config['collection']['mode'] == 'rolling_window':
