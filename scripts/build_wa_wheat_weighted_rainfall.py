@@ -74,6 +74,7 @@ OUTPUT_COLS = [
     "excluded_insufficient_season_sa2s",
     "excluded_no_data_sa2s",
     "excluded_complete_no_area_sa2s",
+    "area_fallback_caveat",
     "generated_at",
 ]
 
@@ -108,16 +109,18 @@ def build_summary_row(season_df: pd.DataFrame) -> dict:
     insufficient = wheat[wheat["rainfall_feature_quality_flag"] == "insufficient_season"]
     no_data = wheat[wheat["rainfall_feature_quality_flag"] == "no_data"]
 
-    eligible = complete[complete["area_ha"].notna()]
-    complete_no_area = complete[complete["area_ha"].isna()]
+    # area_ha_for_weighting uses 2015-16 fallback for SA2s where 2020-21 is suppressed (np)
+    weight_col = "area_ha_for_weighting" if "area_ha_for_weighting" in complete.columns else "area_ha"
+    eligible = complete[complete[weight_col].notna()]
+    complete_no_area = complete[complete[weight_col].isna()]
 
     # Area totals
-    qgis_mapped_ha = wheat["area_ha"].sum()  # sum over all 28; nulls ignored by pandas
-    eligible_ha = eligible["area_ha"].sum()
+    qgis_mapped_ha = wheat[weight_col].sum()  # sum over all 28; nulls ignored by pandas
+    eligible_ha = eligible[weight_col].sum()
     coverage_share = (eligible_ha / qgis_mapped_ha) if qgis_mapped_ha > 0 else None
 
     # Area-weighted metrics
-    weights = eligible["area_ha"]
+    weights = eligible[weight_col]
     weighted = {}
     for metric in WEIGHTED_METRICS:
         col = f"{metric}_wt"
@@ -128,6 +131,21 @@ def build_summary_row(season_df: pd.DataFrame) -> dict:
 
     def _names(df: pd.DataFrame) -> str:
         return "; ".join(sorted(df["sa2_name"].tolist()))
+
+    # Build caveat string for SA2s using historical fallback area
+    fallback_col = "area_is_fallback" if "area_is_fallback" in eligible.columns else None
+    if fallback_col:
+        fallback_rows = eligible[eligible[fallback_col].astype(str).isin(["True", "true", "1"])]
+        if not fallback_rows.empty:
+            fb_names = "; ".join(sorted(fallback_rows["sa2_name"].tolist()))
+            area_fallback_caveat = (
+                f"Uses 2015-16 ABS fallback area for {fb_names} "
+                f"because 2020-21 wheat area was not published."
+            )
+        else:
+            area_fallback_caveat = ""
+    else:
+        area_fallback_caveat = ""
 
     return {
         "season_year": season_year,
@@ -147,6 +165,7 @@ def build_summary_row(season_df: pd.DataFrame) -> dict:
         "excluded_insufficient_season_sa2s": _names(insufficient),
         "excluded_no_data_sa2s": _names(no_data),
         "excluded_complete_no_area_sa2s": _names(complete_no_area),
+        "area_fallback_caveat": area_fallback_caveat,
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
 
@@ -184,6 +203,8 @@ def print_report(row: dict) -> None:
         print(f"Complete, no ABS area:  {row['excluded_complete_no_area_sa2s']}")
     if row["excluded_insufficient_season_sa2s"]:
         print(f"Insufficient season:    {row['excluded_insufficient_season_sa2s']}")
+    if row.get("area_fallback_caveat"):
+        print(f"Area caveat:  {row['area_fallback_caveat']}")
     print()
 
 

@@ -41,6 +41,19 @@ def _make_db(financial_year="2020-21") -> sqlite3.Connection:
             n_businesses REAL,
             n_businesses_rse TEXT
         );
+        CREATE TABLE sa2_correspondence_2011_2021 (
+            sa2_maincode_2011 TEXT NOT NULL,
+            sa2_name_2011 TEXT,
+            sa2_code_2021 TEXT NOT NULL,
+            sa2_name_2021 TEXT,
+            via_sa2_2016 TEXT NOT NULL,
+            ratio_2011_to_2016 REAL,
+            ratio_2016_to_2021 REAL,
+            ratio_2011_to_2021 REAL NOT NULL,
+            indiv_to_region_qlty TEXT,
+            overall_quality_indicator TEXT,
+            bmos_null_flag TEXT
+        );
     """)
     conn.execute(
         "INSERT INTO census_years VALUES (3, ?, '2022-07-26', 40000, '3', 'test.csv')",
@@ -480,3 +493,188 @@ class TestWaQgisUniverse(unittest.TestCase):
 
         result = build_join(feat_df, ctx_df)
         self.assertEqual(result["abs_sa2_code"].nunique(), 28)
+
+
+# ---------------------------------------------------------------------------
+# Fallback area tests
+# ---------------------------------------------------------------------------
+
+# Test fixture constants — real-world WA null SA2s with Good correspondence.
+_NULL_2021_CODE = "511011275"   # Esperance Surrounds (null 2020-21 wheat area)
+_GOOD_2011_CODE = "508011195"   # Esperance Region (2011 predecessor)
+_FALLBACK_AREA = 389141.8       # 2015-16 wheat area for Esperance Region
+_FALLBACK_YEAR_ID = 2
+_FALLBACK_FY = "2015-16"
+_WHEAT_AREA_CODE = "AGCEREAL_AHAWHT_F"
+
+
+def _make_fallback_db() -> sqlite3.Connection:
+    """In-memory DB with both census years, a null 2020-21 SA2, and a Good correspondence."""
+    conn = _make_db()  # includes 2020-21 year_id=3, Merredin with non-null wheat area
+
+    # Add 2015-16 census year
+    conn.execute(
+        "INSERT INTO census_years VALUES (2, '2015-16', '2017-10-31', 40000, '2011', 'test_2016.csv')"
+    )
+    # 2011 ASGS region for Esperance Region
+    conn.execute(
+        "INSERT INTO regions VALUES (?, 'Esperance Region', 9, '2011', '2011')",
+        (_GOOD_2011_CODE,)
+    )
+    # 2021 ASGS region for Esperance Surrounds (null 2020-21 wheat obs)
+    conn.execute(
+        "INSERT INTO regions VALUES (?, 'Esperance Surrounds', 9, '2021', '2021')",
+        (_NULL_2021_CODE,)
+    )
+    # 2015-16 wheat area for the 2011 predecessor
+    conn.execute(
+        "INSERT INTO observations (year_id, region_code, commodity_code, estimate, rse, n_businesses, n_businesses_rse) "
+        "VALUES (?, ?, ?, ?, '', NULL, '')",
+        (_FALLBACK_YEAR_ID, _GOOD_2011_CODE, _WHEAT_AREA_CODE, _FALLBACK_AREA)
+    )
+    # Good-quality correspondence: 2011 Esperance Region → 2021 Esperance Surrounds
+    conn.execute(
+        "INSERT INTO sa2_correspondence_2011_2021 VALUES (?, 'Esperance Region', ?, 'Esperance Surrounds', "
+        "?, 0.9999, 1.0, 0.9999, 'Good', 'Good', '0')",
+        (_GOOD_2011_CODE, _NULL_2021_CODE, _NULL_2021_CODE)
+    )
+    # Poor correspondence for a second SA2 — should not produce a fallback
+    conn.execute(
+        "INSERT INTO regions VALUES ('511041291', 'Morawa', 9, '2021', '2021')"
+    )
+    conn.execute(
+        "INSERT INTO sa2_correspondence_2011_2021 VALUES ('508051216', 'Morawa Old', '511041291', 'Morawa', "
+        "'511041291', 1.0, 1.0, 1.0, 'Poor', 'Poor', '0')"
+    )
+    conn.commit()
+    return conn
+
+
+_FALLBACK_SA2S = {
+    "51275": {"sa2_name": "Esperance Surrounds", "state": "Western Australia"},
+    "51291": {"sa2_name": "Morawa", "state": "Western Australia"},
+}
+_FALLBACK_MAP = {
+    "51275": _NULL_2021_CODE,
+    "51291": "511041291",
+}
+_FALLBACK_CFG = {"baseline_year": "2020-21", "crops": _CROPS}
+
+
+class TestLoadFallbackAreas(unittest.TestCase):
+
+    def setUp(self):
+        self.conn = _make_fallback_db()
+
+    def tearDown(self):
+        self.conn.close()
+
+    def test_good_correspondence_returns_fallback(self):
+        result = bcc.load_fallback_areas(
+            self.conn, _FALLBACK_YEAR_ID, _FALLBACK_FY,
+            _WHEAT_AREA_CODE, [_NULL_2021_CODE],
+        )
+        self.assertIn(_NULL_2021_CODE, result)
+        self.assertAlmostEqual(result[_NULL_2021_CODE]["area_ha"], _FALLBACK_AREA)
+
+    def test_fallback_source_year_is_2015_16(self):
+        result = bcc.load_fallback_areas(
+            self.conn, _FALLBACK_YEAR_ID, _FALLBACK_FY,
+            _WHEAT_AREA_CODE, [_NULL_2021_CODE],
+        )
+        self.assertEqual(result[_NULL_2021_CODE]["source_year"], "2015-16")
+
+    def test_fallback_reason_mentions_source_year(self):
+        result = bcc.load_fallback_areas(
+            self.conn, _FALLBACK_YEAR_ID, _FALLBACK_FY,
+            _WHEAT_AREA_CODE, [_NULL_2021_CODE],
+        )
+        self.assertIn("2015-16", result[_NULL_2021_CODE]["reason"])
+
+    def test_poor_correspondence_excluded(self):
+        result = bcc.load_fallback_areas(
+            self.conn, _FALLBACK_YEAR_ID, _FALLBACK_FY,
+            _WHEAT_AREA_CODE, ["511041291"],
+        )
+        self.assertNotIn("511041291", result)
+
+    def test_empty_input_returns_empty(self):
+        result = bcc.load_fallback_areas(
+            self.conn, _FALLBACK_YEAR_ID, _FALLBACK_FY,
+            _WHEAT_AREA_CODE, [],
+        )
+        self.assertEqual(result, {})
+
+
+class TestFallbackFieldsInBuildRows(unittest.TestCase):
+
+    def setUp(self):
+        self.conn = _make_fallback_db()
+
+    def tearDown(self):
+        self.conn.close()
+
+    def _esp_wheat(self) -> dict:
+        rows, _ = bcc.build_rows(_FALLBACK_SA2S, _FALLBACK_MAP, self.conn, _FALLBACK_CFG)
+        row = next(r for r in rows if r["station_sa2_5dig16"] == "51275" and r["crop"] == "wheat")
+        return row
+
+    def test_area_ha_official_is_null(self):
+        """area_ha_official must preserve the null 2020-21 value."""
+        r = self._esp_wheat()
+        self.assertIsNone(r["area_ha_official"])
+
+    def test_area_ha_is_null(self):
+        """Original area_ha field must also remain null (backwards compat)."""
+        r = self._esp_wheat()
+        self.assertIsNone(r["area_ha"])
+
+    def test_area_ha_for_weighting_populated_from_fallback(self):
+        r = self._esp_wheat()
+        self.assertAlmostEqual(r["area_ha_for_weighting"], _FALLBACK_AREA)
+
+    def test_area_is_fallback_true(self):
+        r = self._esp_wheat()
+        self.assertTrue(r["area_is_fallback"])
+
+    def test_area_source_year_is_fallback_year(self):
+        r = self._esp_wheat()
+        self.assertEqual(r["area_source_year"], "2015-16")
+
+    def test_area_fallback_reason_not_empty(self):
+        r = self._esp_wheat()
+        self.assertNotEqual(r["area_fallback_reason"], "")
+        self.assertIn("2015-16", r["area_fallback_reason"])
+
+    def test_non_null_sa2_does_not_use_fallback(self):
+        """Merredin has real 2020-21 wheat area — fallback fields must not be set."""
+        rows, _ = bcc.build_rows(_STATION_SA2S, _GEOJSON_MAP, self.conn, _FALLBACK_CFG)
+        merredin = next(r for r in rows if r["station_sa2_5dig16"] == "51017" and r["crop"] == "wheat")
+        self.assertFalse(merredin["area_is_fallback"])
+        self.assertAlmostEqual(merredin["area_ha_for_weighting"], merredin["area_ha"])
+        self.assertEqual(merredin["area_source_year"], "2020-21")
+
+    def test_fallback_only_for_wheat_not_barley(self):
+        """Barley has no correspondence fallback — barley area_ha_for_weighting stays null."""
+        rows, _ = bcc.build_rows(_FALLBACK_SA2S, _FALLBACK_MAP, self.conn, _FALLBACK_CFG)
+        barley = next(r for r in rows if r["station_sa2_5dig16"] == "51275" and r["crop"] == "barley")
+        self.assertFalse(barley["area_is_fallback"])
+        self.assertIsNone(barley["area_ha_for_weighting"])
+
+    def test_poor_correspondence_sa2_has_no_fallback(self):
+        """Morawa has Poor correspondence — area_ha_for_weighting must remain null."""
+        rows, _ = bcc.build_rows(_FALLBACK_SA2S, _FALLBACK_MAP, self.conn, _FALLBACK_CFG)
+        morawa = next(r for r in rows if r["station_sa2_5dig16"] == "51291" and r["crop"] == "wheat")
+        self.assertFalse(morawa["area_is_fallback"])
+        self.assertIsNone(morawa["area_ha_for_weighting"])
+
+    def test_fallback_count_in_stats(self):
+        rows, stats = bcc.build_rows(_FALLBACK_SA2S, _FALLBACK_MAP, self.conn, _FALLBACK_CFG)
+        # Only Esperance Surrounds wheat gets a fallback (Morawa is Poor, barley has no correspondence)
+        self.assertEqual(stats["fallback_count"], 1)
+
+    def test_all_output_cols_present(self):
+        rows, _ = bcc.build_rows(_FALLBACK_SA2S, _FALLBACK_MAP, self.conn, _FALLBACK_CFG)
+        for row in rows:
+            for col in bcc.OUTPUT_COLS:
+                self.assertIn(col, row, f"Missing column {col!r}")

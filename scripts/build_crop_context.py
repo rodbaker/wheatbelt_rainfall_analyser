@@ -31,6 +31,11 @@ OUTPUT_COLS = [
     "financial_year",
     "crop",
     "area_ha",
+    "area_ha_official",
+    "area_ha_for_weighting",
+    "area_source_year",
+    "area_is_fallback",
+    "area_fallback_reason",
     "production_t",
     "yield_t_ha",
     "area_share",
@@ -188,6 +193,52 @@ def batch_query_observations(
     return {(r[0], r[1]): (r[2], r[3]) for r in cur.fetchall()}
 
 
+def load_fallback_areas(
+    conn: sqlite3.Connection,
+    fallback_year_id: int,
+    fallback_financial_year: str,
+    area_commodity_code: str,
+    sa2_codes_2021: list,
+) -> dict:
+    """Return {sa2_code_2021: {'area_ha': float, 'source_year': str, 'reason': str}}
+    for SA2s that have a Good-quality 2011→2021 correspondence and a non-null
+    2015-16 estimate. Only SA2s in sa2_codes_2021 are considered.
+    """
+    if not sa2_codes_2021:
+        return {}
+    ph = ",".join(["?"] * len(sa2_codes_2021))
+    cur = conn.cursor()
+    cur.execute(
+        f"SELECT c.sa2_code_2021, c.sa2_maincode_2011, c.sa2_name_2011, "
+        f"       c.ratio_2011_to_2021, c.overall_quality_indicator "
+        f"FROM sa2_correspondence_2011_2021 c "
+        f"WHERE c.sa2_code_2021 IN ({ph}) "
+        f"  AND c.overall_quality_indicator = 'Good'",
+        sa2_codes_2021,
+    )
+    correspondences = cur.fetchall()
+
+    result = {}
+    for code_2021, code_2011, name_2011, ratio, quality in correspondences:
+        cur.execute(
+            "SELECT estimate FROM observations "
+            "WHERE year_id=? AND region_code=? AND commodity_code=?",
+            (fallback_year_id, code_2011, area_commodity_code),
+        )
+        row = cur.fetchone()
+        if row and row[0] is not None:
+            result[code_2021] = {
+                "area_ha": row[0],
+                "source_year": fallback_financial_year,
+                "reason": (
+                    f"Uses {fallback_financial_year} ABS fallback area "
+                    f"(2011 SA2 '{name_2011}', ratio={ratio:.4f}); "
+                    f"2020-21 wheat area not published (np)"
+                ),
+            }
+    return result
+
+
 def build_rows(
     geojson_sa2s: dict,
     geojson_map: dict,
@@ -203,6 +254,22 @@ def build_rows(
     crops = cfg["crops"]
     year_id = get_year_id(abs_conn, baseline_year)
     source_dataset = f"ABS Agricultural Census {baseline_year}"
+
+    # Pre-load 2015-16 fallback areas for wheat (only crop with suppressed np values)
+    fallback_financial_year = "2015-16"
+    try:
+        fallback_year_id = get_year_id(abs_conn, fallback_financial_year)
+    except ValueError:
+        fallback_year_id = None
+    wheat_area_code = crops.get("wheat", {}).get("area_code", "AGCEREAL_AHAWHT_F")
+    fallback_areas: dict = {}
+    if fallback_year_id is not None:
+        # All 2021 SA2 codes in our universe (WA uses 9-digit 2021 codes directly)
+        all_2021_codes = list(geojson_map.values())
+        fallback_areas = load_fallback_areas(
+            abs_conn, fallback_year_id, fallback_financial_year,
+            wheat_area_code, all_2021_codes,
+        )
 
     sa2_5digs = sorted(geojson_sa2s.keys())
 
@@ -296,6 +363,21 @@ def build_rows(
             else:
                 area_share = None
 
+            # Fallback area fields — wheat only, when 2020-21 is null
+            resolved_main = sa2_to_main.get(code_5)
+            fb = fallback_areas.get(resolved_main) if resolved_main and crop_key == "wheat" else None
+            if area_ha is None and fb is not None:
+                area_ha_for_weighting = fb["area_ha"]
+                area_source_year = fb["source_year"]
+                area_is_fallback = True
+                area_fallback_reason = fb["reason"]
+                row_notes.append(f"area_ha_for_weighting from {fb['source_year']} fallback")
+            else:
+                area_ha_for_weighting = area_ha
+                area_source_year = baseline_year if area_ha is not None else ""
+                area_is_fallback = False
+                area_fallback_reason = ""
+
             rows.append(
                 {
                     "sa2_code": sa2_to_main.get(code_5, ""),
@@ -305,6 +387,11 @@ def build_rows(
                     "financial_year": baseline_year,
                     "crop": crop_key,
                     "area_ha": area_ha,
+                    "area_ha_official": area_ha,
+                    "area_ha_for_weighting": area_ha_for_weighting,
+                    "area_source_year": area_source_year,
+                    "area_is_fallback": area_is_fallback,
+                    "area_fallback_reason": area_fallback_reason,
                     "production_t": production_t,
                     "yield_t_ha": yield_t_ha,
                     "area_share": area_share,
@@ -320,12 +407,14 @@ def build_rows(
                 }
             )
 
+    applied_fallbacks = [r for r in rows if r.get("area_is_fallback")]
     stats = {
         "n_geojson_sa2s": len(sa2_5digs),
         "n_mapped_to_abs": len(matched_5digs),
         "unmatched_sa2s": unmatched_sa2s,
         "n_rows": len(rows),
         "null_counts": null_counts,
+        "fallback_count": len(applied_fallbacks),
     }
     return rows, stats
 
@@ -438,6 +527,12 @@ def print_summary(
     print("\nNull/suppressed counts by metric:")
     for metric, count in stats["null_counts"].items():
         print(f"  {metric:<16} {count}")
+    fallback_count = stats.get("fallback_count", 0)
+    if fallback_count:
+        print(f"\nHistorical area fallbacks applied (wheat, 2015-16): {fallback_count}")
+        for r in rows:
+            if r.get("area_is_fallback"):
+                print(f"  {r['sa2_code']}  {r['sa2_name']:<35}  {r['area_ha_for_weighting']:,.0f} ha  (2015-16)")
     print("\nTop crop by area per state:")
     for state, (crop, total) in top_crop_by_area_per_state(rows).items():
         print(f"  {state:<25} {crop:<10} {total:,.0f} ha")

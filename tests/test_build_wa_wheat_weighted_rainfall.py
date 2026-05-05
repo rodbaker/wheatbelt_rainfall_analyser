@@ -17,13 +17,18 @@ from build_wa_wheat_weighted_rainfall import build_summary_row, weighted_mean, W
 # ---------------------------------------------------------------------------
 
 def _row(**kwargs) -> dict:
-    """Return a wheat row with sensible defaults, overridden by kwargs."""
+    """Return a wheat row with sensible defaults, overridden by kwargs.
+
+    area_ha_for_weighting mirrors area_ha unless explicitly passed — so existing tests
+    that set area_ha=None to exercise the 'no area' path still work correctly.
+    """
     defaults = {
         "state": "Western Australia",
         "crop": "wheat",
         "sa2_name": "TestRegion",
         "abs_sa2_code": "509021240",
         "area_ha": 100_000.0,
+        "area_is_fallback": False,
         "rainfall_feature_quality_flag": "complete",
         "season_year": 2025,
         "sowing_window_rain_mm": 90.0,
@@ -36,7 +41,10 @@ def _row(**kwargs) -> dict:
         "dry_spell_days_7d_lt_5mm": 100.0,
         "dry_spell_days_14d_lt_10mm": 80.0,
     }
-    return {**defaults, **kwargs}
+    merged = {**defaults, **kwargs}
+    if "area_ha_for_weighting" not in kwargs:
+        merged["area_ha_for_weighting"] = merged["area_ha"]
+    return merged
 
 
 def _df(rows: list[dict]) -> pd.DataFrame:
@@ -220,3 +228,87 @@ class TestSummaryRowNameLists:
         rows = [_row(season_year=2025.0)]
         result = build_summary_row(_df(rows))
         assert result["season_year"] == 2025
+
+
+# ---------------------------------------------------------------------------
+# Fallback area weighting
+# ---------------------------------------------------------------------------
+
+class TestFallbackWeighting:
+    """area_ha_for_weighting (2015-16 fallback) is used instead of area_ha when area_ha is null."""
+
+    def test_null_area_ha_with_fallback_weight_counts_as_eligible(self):
+        rows = [
+            # area_ha is null but area_ha_for_weighting has a fallback value
+            _row(sa2_name="Esperance Surrounds", area_ha=None,
+                 area_ha_for_weighting=389_141.0, area_is_fallback=True),
+        ]
+        result = build_summary_row(_df(rows))
+        assert result["n_sa2s_eligible"] == 1
+
+    def test_null_area_ha_without_fallback_excluded(self):
+        rows = [
+            _row(sa2_name="Geraldton - North", area_ha=None,
+                 area_ha_for_weighting=None, area_is_fallback=False),
+        ]
+        result = build_summary_row(_df(rows))
+        assert result["n_sa2s_eligible"] == 0
+        assert result["n_sa2s_complete_no_area"] == 1
+
+    def test_weights_use_area_ha_for_weighting(self):
+        rows = [
+            _row(sa2_name="Dowerin",    area_ha=400_000.0, area_ha_for_weighting=400_000.0,
+                 sowing_window_rain_mm=90.0),
+            _row(sa2_name="Esperance Surrounds", area_ha=None,
+                 area_ha_for_weighting=389_141.0, area_is_fallback=True,
+                 sowing_window_rain_mm=80.0),
+        ]
+        result = build_summary_row(_df(rows))
+        total_w = 400_000.0 + 389_141.0
+        expected = (400_000.0 * 90.0 + 389_141.0 * 80.0) / total_w
+        assert result["sowing_window_rain_mm_wt"] == pytest.approx(expected, rel=1e-4)
+
+    def test_qgis_mapped_area_includes_fallback_weight(self):
+        rows = [
+            _row(sa2_name="Dowerin",    area_ha=400_000.0, area_ha_for_weighting=400_000.0),
+            _row(sa2_name="Esperance Surrounds", area_ha=None,
+                 area_ha_for_weighting=389_141.0, area_is_fallback=True),
+        ]
+        result = build_summary_row(_df(rows))
+        assert result["qgis_wheat_area_mapped_ha"] == pytest.approx(789_141.0, rel=1e-4)
+
+    def test_area_fallback_caveat_populated_for_fallback_sa2s(self):
+        rows = [
+            _row(sa2_name="Esperance Surrounds", area_ha=None,
+                 area_ha_for_weighting=389_141.0, area_is_fallback=True),
+            _row(sa2_name="Morawa", area_ha=None,
+                 area_ha_for_weighting=560_623.0, area_is_fallback=True),
+        ]
+        result = build_summary_row(_df(rows))
+        assert "Esperance Surrounds" in result["area_fallback_caveat"]
+        assert "Morawa" in result["area_fallback_caveat"]
+        assert "2020-21" in result["area_fallback_caveat"]
+
+    def test_area_fallback_caveat_empty_when_no_fallback(self):
+        rows = [_row(sa2_name="Dowerin", area_ha=400_000.0,
+                     area_ha_for_weighting=400_000.0, area_is_fallback=False)]
+        result = build_summary_row(_df(rows))
+        assert result["area_fallback_caveat"] == ""
+
+    def test_caveat_excludes_no_data_sa2_with_fallback_area(self):
+        """Geraldton-North: has fallback area but no_data rainfall — must not appear in caveat."""
+        rows = [
+            _row(sa2_name="Esperance Surrounds", area_ha=None,
+                 area_ha_for_weighting=389_141.0, area_is_fallback=True),
+            _row(sa2_name="Geraldton - North", area_ha=None,
+                 area_ha_for_weighting=1_200.0, area_is_fallback=True,
+                 rainfall_feature_quality_flag="no_data"),
+        ]
+        result = build_summary_row(_df(rows))
+        # Geraldton - North is no_data → not in eligible → not in caveat
+        assert "Geraldton" not in result["area_fallback_caveat"]
+        assert "Esperance Surrounds" in result["area_fallback_caveat"]
+
+    def test_area_fallback_caveat_in_output_cols(self):
+        from build_wa_wheat_weighted_rainfall import OUTPUT_COLS
+        assert "area_fallback_caveat" in OUTPUT_COLS

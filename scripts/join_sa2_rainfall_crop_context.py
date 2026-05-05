@@ -65,6 +65,11 @@ CROP_CONTEXT_COLS = [
     "financial_year",     # becomes crop_context_year
     "crop",
     "area_ha",
+    "area_ha_official",
+    "area_ha_for_weighting",
+    "area_source_year",
+    "area_is_fallback",
+    "area_fallback_reason",
     "production_t",
     "yield_t_ha",
     "area_share",
