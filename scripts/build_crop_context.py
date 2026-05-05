@@ -90,6 +90,24 @@ def load_station_sa2s(stations_path: Path) -> dict:
     return result
 
 
+def load_geojson_sa2s(geojson_path: Path) -> dict:
+    """Return {SA2_5DIG16: {sa2_name, state}} for all SA2s in GeoJSON boundary file.
+
+    This is the authoritative SA2 universe — not filtered by station metadata.
+    """
+    with open(geojson_path) as f:
+        gj = json.load(f)
+    result = {}
+    for feat in gj["features"]:
+        p = feat["properties"]
+        code = p["SA2_5DIG16"]
+        result[code] = {
+            "sa2_name": p["SA2_NAME16"],
+            "state": p["STE_NAME16"],
+        }
+    return result
+
+
 def load_geojson_mapping(geojson_path: Path) -> dict:
     """Return {SA2_5DIG16: SA2_MAIN16} from GeoJSON boundary file."""
     with open(geojson_path) as f:
@@ -150,18 +168,22 @@ def batch_query_observations(
 
 
 def build_rows(
-    station_sa2s: dict,
+    geojson_sa2s: dict,
     geojson_map: dict,
     abs_conn: sqlite3.Connection,
     cfg: dict,
 ) -> tuple[list[dict], dict]:
-    """Build output rows and collect validation stats."""
+    """Build output rows and collect validation stats.
+
+    geojson_sa2s drives the SA2 universe — {sa2_5dig: {sa2_name, state}}.
+    Station metadata is not consulted here; the GeoJSON boundary is authoritative.
+    """
     baseline_year = cfg["baseline_year"]
     crops = cfg["crops"]
     year_id = get_year_id(abs_conn, baseline_year)
     source_dataset = f"ABS Agricultural Census {baseline_year}"
 
-    sa2_5digs = sorted(station_sa2s.keys())
+    sa2_5digs = sorted(geojson_sa2s.keys())
 
     # Resolve each station SA2 to a 9-digit MAIN code
     sa2_to_main = {}
@@ -173,7 +195,7 @@ def build_rows(
             sa2_to_main[code_5] = geojson_map[code_5]
             boundary_status[code_5] = "matched"
         else:
-            info = station_sa2s[code_5]
+            info = geojson_sa2s[code_5]
             main = fallback_main_code(abs_conn, info["sa2_name"], info["state"])
             if main:
                 sa2_to_main[code_5] = main
@@ -211,7 +233,7 @@ def build_rows(
     null_counts: dict[str, int] = {"area_ha": 0, "production_t": 0, "yield_t_ha": 0}
 
     for code_5 in sa2_5digs:
-        info = station_sa2s[code_5]
+        info = geojson_sa2s[code_5]
         bstatus = boundary_status[code_5]
 
         for crop_key, crop_def in crops.items():
@@ -278,7 +300,7 @@ def build_rows(
             )
 
     stats = {
-        "n_station_sa2s": len(sa2_5digs),
+        "n_geojson_sa2s": len(sa2_5digs),
         "n_mapped_to_abs": len(matched_5digs),
         "unmatched_sa2s": unmatched_sa2s,
         "n_rows": len(rows),
@@ -300,15 +322,33 @@ def top_crop_by_area_per_state(rows: list[dict]) -> dict:
     return result
 
 
-def print_summary(rows: list[dict], stats: dict) -> None:
+def query_wa_wheat_nonnull_count(conn: sqlite3.Connection, year_id: int) -> int:
+    """Return count of WA SA2s with non-null wheat area in the ABS census."""
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT COUNT(DISTINCT r.region_code) "
+        "FROM regions r "
+        "JOIN observations o ON o.region_code = r.region_code "
+        "WHERE o.year_id=? AND r.region_code LIKE '5%' "
+        "  AND LENGTH(r.region_code)=9 "
+        "  AND o.commodity_code='AGCEREAL_AHAWHT_F' "
+        "  AND o.estimate IS NOT NULL",
+        (year_id,),
+    )
+    return cur.fetchone()[0]
+
+
+def print_summary(rows: list[dict], stats: dict, wa_wheat_abs_count: Optional[int] = None) -> None:
     print("\n--- Validation Summary ---")
-    print(f"Station SA2s found:    {stats['n_station_sa2s']}")
-    print(f"Mapped to ABS:         {stats['n_mapped_to_abs']}")
+    print(f"GeoJSON (wheat boundary) SA2s: {stats['n_geojson_sa2s']}")
+    if wa_wheat_abs_count is not None:
+        print(f"ABS WA wheat non-null SA2s:    {wa_wheat_abs_count}  (universe is GeoJSON clip, not this)")
+    print(f"Mapped to ABS:                 {stats['n_mapped_to_abs']}")
     if stats["unmatched_sa2s"]:
         print(f"Unmatched SA2s ({len(stats['unmatched_sa2s'])}): {stats['unmatched_sa2s']}")
     else:
-        print("Unmatched SA2s:        0")
-    print(f"Rows to write:         {stats['n_rows']}")
+        print("Unmatched SA2s:                0")
+    print(f"Rows written:                  {stats['n_rows']}")
     print("\nNull/suppressed counts by metric:")
     for metric, count in stats["null_counts"].items():
         print(f"  {metric:<16} {count}")
@@ -336,20 +376,21 @@ def main() -> int:
         print(f"ERROR: Config not found: {args.config}", file=sys.stderr)
         return 1
 
-    stations_path = REPO_ROOT / "data" / "meta" / "wheatbelt_stations.csv"
     geojson_path = REPO_ROOT / "data" / "meta" / "SA2_ABS_Regions.geojson"
 
     cfg = load_config(args.config)
-    station_sa2s = load_station_sa2s(stations_path)
+    geojson_sa2s = load_geojson_sa2s(geojson_path)
     geojson_map = load_geojson_mapping(geojson_path)
 
     abs_conn = sqlite3.connect(args.abs_db)
     try:
-        rows, stats = build_rows(station_sa2s, geojson_map, abs_conn, cfg)
+        year_id = get_year_id(abs_conn, cfg["baseline_year"])
+        wa_wheat_abs_count = query_wa_wheat_nonnull_count(abs_conn, year_id)
+        rows, stats = build_rows(geojson_sa2s, geojson_map, abs_conn, cfg)
     finally:
         abs_conn.close()
 
-    print_summary(rows, stats)
+    print_summary(rows, stats, wa_wheat_abs_count=wa_wheat_abs_count)
 
     if args.dry_run:
         print("Dry run — output file not written.")

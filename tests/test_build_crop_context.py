@@ -268,3 +268,55 @@ class TestBuildCropContext(unittest.TestCase):
         # WA Merredin has wheat=50000 > barley=10000
         self.assertIn("Western Australia", top)
         self.assertEqual(top["Western Australia"][0], "wheat")
+
+
+class TestGeojsonAsUniverse(unittest.TestCase):
+    """Verify that GeoJSON — not station metadata — drives the SA2 universe."""
+
+    def setUp(self):
+        self.conn = _make_db()
+        # geojson_sa2s includes Albany Region (51226) which has no station in metadata
+        self.geojson_sa2s = {
+            "51017": {"sa2_name": "Merredin", "state": "Western Australia"},
+            "51226": {"sa2_name": "Albany Region", "state": "Western Australia"},
+        }
+        self.geojson_map = {
+            "51017": "501031017",
+            "51226": "509011226",
+        }
+
+    def tearDown(self):
+        self.conn.close()
+
+    def test_sa2_without_station_metadata_is_included(self):
+        """An SA2 present in GeoJSON but absent from station metadata must appear in output."""
+        rows, _ = bcc.build_rows(self.geojson_sa2s, self.geojson_map, self.conn, _CFG)
+        five_digs = {r["station_sa2_5dig16"] for r in rows}
+        self.assertIn("51226", five_digs, "Albany Region (GeoJSON-only) must appear in output")
+
+    def test_albany_region_retained(self):
+        """Albany Region (51226 / 509011226) is retained when GeoJSON is the universe."""
+        rows, _ = bcc.build_rows(self.geojson_sa2s, self.geojson_map, self.conn, _CFG)
+        albany_rows = [r for r in rows if r["station_sa2_5dig16"] == "51226"]
+        self.assertTrue(len(albany_rows) > 0)
+        self.assertEqual(albany_rows[0]["sa2_name"], "Albany Region")
+
+    def test_station_metadata_not_universe_limiter(self):
+        """Passing only station SA2s would miss Albany; GeoJSON-sourced universe includes it."""
+        # Station metadata universe — missing Albany
+        station_only_sa2s = {"51017": {"sa2_name": "Merredin", "state": "Western Australia"}}
+        rows_station, _ = bcc.build_rows(station_only_sa2s, self.geojson_map, self.conn, _CFG)
+        five_digs_station = {r["station_sa2_5dig16"] for r in rows_station}
+
+        # GeoJSON universe — includes Albany
+        rows_geojson, _ = bcc.build_rows(self.geojson_sa2s, self.geojson_map, self.conn, _CFG)
+        five_digs_geojson = {r["station_sa2_5dig16"] for r in rows_geojson}
+
+        self.assertNotIn("51226", five_digs_station, "station-only universe must miss Albany")
+        self.assertIn("51226", five_digs_geojson, "GeoJSON universe must include Albany")
+
+    def test_sa2_codes_are_strings(self):
+        """sa2_code values must be strings, not integers, to preserve leading digits."""
+        rows, _ = bcc.build_rows(self.geojson_sa2s, self.geojson_map, self.conn, _CFG)
+        for r in rows:
+            self.assertIsInstance(r["sa2_code"], str, f"sa2_code must be str, got {type(r['sa2_code'])}")
