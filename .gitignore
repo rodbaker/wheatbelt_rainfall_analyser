@@ -6,8 +6,9 @@ __pycache__/
 # CropForecaster operational outputs (3-agent system)
 logs/*.jsonl
 data/obs/*.csv
-data/derived/*.csv  
+data/derived/*.csv
 data/exports/*.csv
+data/features/*.csv
 reports/daily/*.md
 reports/weekly/*.md
 

@@ -34,6 +34,10 @@ DEFAULT_STATIONS_META = "data/meta/wheatbelt_stations.csv"
 DEFAULT_STATION_REGIONS = "data/meta/station_regions.csv"
 DEFAULT_MIN_COVERAGE = 0.8
 
+# Fixed days in sowing (Apr–Jun) and in-crop (May–Oct) windows — none contain Feb
+SOWING_WINDOW_DAYS = 91    # Apr(30)+May(31)+Jun(30)
+IN_CROP_WINDOW_DAYS = 184  # May(31)+Jun(30)+Jul(31)+Aug(31)+Sep(30)+Oct(31)
+
 # Autumn break status boundaries (WA wheatbelt defaults)
 AUTUMN_BREAK_EARLY_CUTOFF = (5, 15)   # before May 15 → early
 AUTUMN_BREAK_LATE_CUTOFF = (6, 15)    # after Jun 15 → late
@@ -236,6 +240,13 @@ def _station_season_record(station_id: str, season_year: int,
     # Data quality
     quality_score = _quality_score(grp)
 
+    # Coverage ratios
+    sowing_obs = len(_window_rows(grp, season_year, 4, 6, 0))
+    in_crop_obs = len(_window_rows(grp, season_year, 5, 10, 0))
+    sowing_coverage = sowing_obs / SOWING_WINDOW_DAYS
+    in_crop_coverage = in_crop_obs / IN_CROP_WINDOW_DAYS
+    quality_flag = _feature_quality_flag(coverage, sowing_coverage, in_crop_coverage, min_coverage)
+
     return {
         'station_id': station_id,
         'season_year': season_year,
@@ -253,6 +264,10 @@ def _station_season_record(station_id: str, season_year: int,
         'dry_spell_days_7d_lt_5mm': dry_7d,
         'dry_spell_days_14d_lt_10mm': dry_14d,
         'data_quality_score': quality_score,
+        'season_coverage_ratio': round(coverage, 4),
+        'sowing_window_coverage_ratio': round(sowing_coverage, 4),
+        'in_crop_coverage_ratio': round(in_crop_coverage, 4),
+        'feature_quality_flag': quality_flag,
     }
 
 
@@ -339,12 +354,31 @@ def _quality_score(grp: pd.DataFrame) -> float:
     return float(scores.mean())
 
 
+def _feature_quality_flag(season_cov: float, sowing_cov: float,
+                           in_crop_cov: float, min_coverage: float) -> str:
+    """
+    Classify feature completeness from three coverage ratios.
+
+    Priority (worst first): insufficient_season > insufficient_sowing_window
+    > partial > complete. 'no_data' is reserved for callers that need to signal
+    total absence before this function is reached.
+    """
+    if season_cov < min_coverage:
+        return 'insufficient_season'
+    if sowing_cov < min_coverage:
+        return 'insufficient_sowing_window'
+    if in_crop_cov < min_coverage:
+        return 'partial'
+    return 'complete'
+
+
 # ---------------------------------------------------------------------------
 # SA2 aggregation
 # ---------------------------------------------------------------------------
 
 def aggregate_to_sa2(station_features: pd.DataFrame,
-                     station_map: pd.DataFrame) -> pd.DataFrame:
+                     station_map: pd.DataFrame,
+                     min_coverage: float = DEFAULT_MIN_COVERAGE) -> pd.DataFrame:
     """Aggregate station-level seasonal features to SA2 level via simple mean."""
     df = station_features.merge(
         station_map[['station_id', 'sa2_code', 'sa2_name', 'state_name']],
@@ -353,9 +387,10 @@ def aggregate_to_sa2(station_features: pd.DataFrame,
     )
     df = df[df['sa2_code'].notna() & (df['sa2_code'] != '')].copy()
 
-    numeric_cols = [c for c in df.columns
-                    if c not in ('station_id', 'season_year', 'sa2_code', 'sa2_name',
-                                 'state_name', 'autumn_break_date', 'autumn_break_status')]
+    non_numeric = ('station_id', 'season_year', 'sa2_code', 'sa2_name',
+                   'state_name', 'autumn_break_date', 'autumn_break_status',
+                   'feature_quality_flag')
+    numeric_cols = [c for c in df.columns if c not in non_numeric]
 
     def agg_group(grp):
         row = {}
@@ -374,6 +409,12 @@ def aggregate_to_sa2(station_features: pd.DataFrame,
         row['autumn_break_status'] = statuses.mode().iloc[0] if not statuses.empty else 'absent'
         breaks = grp['autumn_break_date'].dropna()
         row['autumn_break_date'] = breaks.min() if not breaks.empty else None
+
+        # Derive SA2-level quality flag from mean coverage ratios
+        s_cov = row.get('season_coverage_ratio') or 0.0
+        sw_cov = row.get('sowing_window_coverage_ratio') or 0.0
+        ic_cov = row.get('in_crop_coverage_ratio') or 0.0
+        row['feature_quality_flag'] = _feature_quality_flag(s_cov, sw_cov, ic_cov, min_coverage)
 
         return pd.Series(row)
 
@@ -408,7 +449,10 @@ def build_output(sa2_df: pd.DataFrame, pipeline_version: str) -> pd.DataFrame:
         'grain_fill_rain_mm', 'harvest_rain_mm',
         'autumn_break_date', 'autumn_break_7d_mm', 'autumn_break_status',
         'dry_spell_days_7d_lt_5mm', 'dry_spell_days_14d_lt_10mm',
-        'data_quality_score', 'source_dataset', 'pipeline_version', 'created_at',
+        'data_quality_score',
+        'season_coverage_ratio', 'sowing_window_coverage_ratio', 'in_crop_coverage_ratio',
+        'feature_quality_flag',
+        'source_dataset', 'pipeline_version', 'created_at',
     ]
     present = [c for c in ordered_cols if c in sa2_df.columns]
     extra = [c for c in sa2_df.columns if c not in ordered_cols]
@@ -462,7 +506,7 @@ def main(season_year, output, db_path, stations_meta, station_regions,
         return
 
     logger.info("Aggregating to SA2")
-    sa2_df = aggregate_to_sa2(station_features, station_map)
+    sa2_df = aggregate_to_sa2(station_features, station_map, min_coverage)
     logger.info("SA2 features: %d rows", len(sa2_df))
 
     out_df = build_output(sa2_df, pipeline_version)

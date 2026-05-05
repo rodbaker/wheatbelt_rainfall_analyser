@@ -31,8 +31,11 @@ from scripts.build_sa2_rainfall_features import (
     _detect_autumn_break,
     _dry_spell_days,
     _quality_score,
+    _feature_quality_flag,
     load_station_sa2_map,
     PIPELINE_VERSION,
+    SOWING_WINDOW_DAYS,
+    IN_CROP_WINDOW_DAYS,
 )
 
 
@@ -272,7 +275,10 @@ class TestOutputSchema(unittest.TestCase):
         'grain_fill_rain_mm', 'harvest_rain_mm',
         'autumn_break_date', 'autumn_break_7d_mm', 'autumn_break_status',
         'dry_spell_days_7d_lt_5mm', 'dry_spell_days_14d_lt_10mm',
-        'data_quality_score', 'source_dataset', 'pipeline_version', 'created_at',
+        'data_quality_score',
+        'season_coverage_ratio', 'sowing_window_coverage_ratio', 'in_crop_coverage_ratio',
+        'feature_quality_flag',
+        'source_dataset', 'pipeline_version', 'created_at',
     ]
 
     def _build_sample(self):
@@ -309,6 +315,75 @@ class TestOutputSchema(unittest.TestCase):
     def test_aggregation_method_value(self):
         out = self._build_sample()
         self.assertEqual(out['aggregation_method'].iloc[0], 'simple_mean')
+
+
+class TestCoverageMetadata(unittest.TestCase):
+
+    def _full_season_features(self, daily_rain=2.0, quality=0):
+        obs = _full_season_obs('010001', 2025, daily_rain=daily_rain, quality=quality)
+        return compute_station_season_features(obs, min_coverage=0.8)
+
+    def test_coverage_fields_present_in_station_features(self):
+        result = self._full_season_features()
+        self.assertFalse(result.empty)
+        for col in ('season_coverage_ratio', 'sowing_window_coverage_ratio',
+                    'in_crop_coverage_ratio', 'feature_quality_flag'):
+            self.assertIn(col, result.columns, f"Missing column: {col}")
+
+    def test_full_season_obs_gives_complete_flag(self):
+        result = self._full_season_features()
+        self.assertEqual(result.iloc[0]['feature_quality_flag'], 'complete')
+
+    def test_season_coverage_ratio_near_one_for_full_obs(self):
+        result = self._full_season_features()
+        self.assertAlmostEqual(result.iloc[0]['season_coverage_ratio'], 1.0, places=2)
+
+    def test_sowing_window_coverage_ratio_constants(self):
+        # Apr(30)+May(31)+Jun(30) = 91
+        self.assertEqual(SOWING_WINDOW_DAYS, 91)
+        # May(31)+Jun(30)+Jul(31)+Aug(31)+Sep(30)+Oct(31) = 184
+        self.assertEqual(IN_CROP_WINDOW_DAYS, 184)
+
+    def test_sowing_window_coverage_ratio_near_one_for_full_obs(self):
+        result = self._full_season_features()
+        self.assertAlmostEqual(result.iloc[0]['sowing_window_coverage_ratio'], 1.0, places=2)
+
+    def test_in_crop_coverage_ratio_near_one_for_full_obs(self):
+        result = self._full_season_features()
+        self.assertAlmostEqual(result.iloc[0]['in_crop_coverage_ratio'], 1.0, places=2)
+
+    def test_feature_quality_flag_insufficient_season(self):
+        self.assertEqual(_feature_quality_flag(0.5, 1.0, 1.0, 0.8), 'insufficient_season')
+
+    def test_feature_quality_flag_insufficient_sowing_window(self):
+        self.assertEqual(_feature_quality_flag(1.0, 0.5, 1.0, 0.8), 'insufficient_sowing_window')
+
+    def test_feature_quality_flag_partial(self):
+        self.assertEqual(_feature_quality_flag(1.0, 1.0, 0.5, 0.8), 'partial')
+
+    def test_feature_quality_flag_complete(self):
+        self.assertEqual(_feature_quality_flag(1.0, 1.0, 1.0, 0.8), 'complete')
+
+    def test_feature_quality_flag_priority_season_beats_sowing(self):
+        # When both season and sowing are insufficient, season takes priority
+        self.assertEqual(_feature_quality_flag(0.5, 0.5, 0.5, 0.8), 'insufficient_season')
+
+    def test_sa2_aggregation_propagates_coverage_fields(self):
+        obs = _full_season_obs('010001', 2025, daily_rain=2.0)
+        station_features = compute_station_season_features(obs, min_coverage=0.5)
+        station_map = pd.DataFrame({
+            'station_id': ['010001'],
+            'sa2_code': ['51238'],
+            'sa2_name': ['Test SA2'],
+            'state_name': ['Western Australia'],
+        })
+        sa2_df = aggregate_to_sa2(station_features, station_map, min_coverage=0.8)
+        self.assertFalse(sa2_df.empty)
+        row = sa2_df.iloc[0]
+        self.assertIn('season_coverage_ratio', sa2_df.columns)
+        self.assertIn('feature_quality_flag', sa2_df.columns)
+        self.assertAlmostEqual(row['season_coverage_ratio'], 1.0, places=2)
+        self.assertEqual(row['feature_quality_flag'], 'complete')
 
 
 class TestDataQualityScore(unittest.TestCase):
