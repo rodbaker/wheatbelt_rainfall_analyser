@@ -320,3 +320,163 @@ class TestGeojsonAsUniverse(unittest.TestCase):
         rows, _ = bcc.build_rows(self.geojson_sa2s, self.geojson_map, self.conn, _CFG)
         for r in rows:
             self.assertIsInstance(r["sa2_code"], str, f"sa2_code must be str, got {type(r['sa2_code'])}")
+
+
+# ---------------------------------------------------------------------------
+# WA QGIS universe loader
+# ---------------------------------------------------------------------------
+
+_WA_UNIVERSE_CSV = """\
+SA2_CODE21,SA2_NAME21
+501021007,Capel
+501031017,Bridgetown - Boyup Brook
+509011226,Albany Surrounds
+509011229,Gnowangerup
+509011230,Katanning
+509011231,Kojonup
+509011234,Plantagenet
+509021236,Chittering
+509021237,Cunderdin
+509021238,Dowerin
+509021239,Gingin - Dandaragan
+509021240,Merredin
+509021241,Moora
+509021242,Mukinbudin
+509021243,Northam
+509021244,Toodyay
+509021245,York - Beverley
+509031246,Brookton
+509031247,Kulin
+509031249,Narrogin
+509031250,Wagin
+511011274,Esperance
+511011275,Esperance Surrounds
+511041285,Geraldton
+511041287,Geraldton - North
+511041289,Irwin
+511041291,Morawa
+511041292,Northampton - Mullewa - Greenough
+"""
+
+_EXCLUDED_FROM_QGIS = [
+    "501011003",  # Busselton Region
+    "501031018",  # Donnybrook - Balingup
+    "509031248",  # Murray
+    "511021276",  # Carnarvon
+    "511021277",  # Exmouth
+    "511041290",  # Meekatharra
+]
+
+
+def _write_wa_universe(tmp_path) -> Path:
+    p = tmp_path / "wa_wheatbelt_sa2_universe_2021.csv"
+    p.write_text(_WA_UNIVERSE_CSV)
+    return p
+
+
+class TestWaQgisUniverse(unittest.TestCase):
+    """Tests for load_wa_wheatbelt_universe and QGIS-sourced WA crop context."""
+
+    def setUp(self):
+        import tempfile
+        self._tmp = tempfile.mkdtemp()
+        self._universe_path = Path(self._tmp) / "wa_universe.csv"
+        self._universe_path.write_text(_WA_UNIVERSE_CSV)
+        self.conn = _make_db()
+
+    def tearDown(self):
+        self.conn.close()
+        import shutil
+        shutil.rmtree(self._tmp, ignore_errors=True)
+
+    # 1. Loader returns exactly 28 rows
+    def test_loader_returns_28_sa2s(self):
+        sa2s, sa2_map = bcc.load_wa_wheatbelt_universe(self._universe_path)
+        self.assertEqual(len(sa2s), 28)
+        self.assertEqual(len(sa2_map), 28)
+
+    # 2. Capel, Esperance, Geraldton-North are included
+    def test_capel_included(self):
+        sa2s, sa2_map = bcc.load_wa_wheatbelt_universe(self._universe_path)
+        self.assertIn("501021007", sa2_map.values())
+
+    def test_esperance_included(self):
+        sa2s, sa2_map = bcc.load_wa_wheatbelt_universe(self._universe_path)
+        self.assertIn("511011274", sa2_map.values())
+
+    def test_geraldton_north_included(self):
+        sa2s, sa2_map = bcc.load_wa_wheatbelt_universe(self._universe_path)
+        self.assertIn("511041287", sa2_map.values())
+
+    # 3. ABS-excluded edge regions absent from QGIS universe
+    def test_excluded_regions_not_in_universe(self):
+        _, sa2_map = bcc.load_wa_wheatbelt_universe(self._universe_path)
+        main_codes = set(sa2_map.values())
+        for code in _EXCLUDED_FROM_QGIS:
+            self.assertNotIn(code, main_codes, f"{code} must be excluded from WA universe")
+
+    # 4. Null-area QGIS regions are retained in build output
+    def test_null_area_qgis_regions_retained(self):
+        """Esperance Surrounds, Geraldton-North, Morawa have null ABS area but must appear in output."""
+        sa2s, sa2_map = bcc.load_wa_wheatbelt_universe(self._universe_path)
+        rows, _ = bcc.build_rows(sa2s, sa2_map, self.conn, _CFG)
+        present_main = {r["sa2_code"] for r in rows}
+        for code in ("511011275", "511041287", "511041291"):
+            self.assertIn(code, present_main, f"{code} must be retained even with null area")
+
+    # 5. QGIS names override ABS/GeoJSON names where they differ
+    def test_albany_surrounds_name_used(self):
+        sa2s, sa2_map = bcc.load_wa_wheatbelt_universe(self._universe_path)
+        rows, _ = bcc.build_rows(sa2s, sa2_map, self.conn, _CFG)
+        albany = next((r for r in rows if r["sa2_code"] == "509011226"), None)
+        if albany:
+            self.assertEqual(albany["sa2_name"], "Albany Surrounds")
+
+    def test_esperance_surrounds_name_used(self):
+        sa2s, sa2_map = bcc.load_wa_wheatbelt_universe(self._universe_path)
+        rows, _ = bcc.build_rows(sa2s, sa2_map, self.conn, _CFG)
+        esp = next((r for r in rows if r["sa2_code"] == "511011275"), None)
+        if esp:
+            self.assertEqual(esp["sa2_name"], "Esperance Surrounds")
+
+    # 6. SA2 codes remain strings
+    def test_sa2_codes_are_strings(self):
+        sa2s, sa2_map = bcc.load_wa_wheatbelt_universe(self._universe_path)
+        for code_5, code_21 in sa2_map.items():
+            self.assertIsInstance(code_5, str)
+            self.assertIsInstance(code_21, str)
+        rows, _ = bcc.build_rows(sa2s, sa2_map, self.conn, _CFG)
+        for r in rows:
+            self.assertIsInstance(r["sa2_code"], str)
+            self.assertIsInstance(r["station_sa2_5dig16"], str)
+
+    # 7. Crop context output has 28 WA SA2s × configured crops
+    def test_crop_context_28_sa2s_times_crops(self):
+        sa2s, sa2_map = bcc.load_wa_wheatbelt_universe(self._universe_path)
+        rows, _ = bcc.build_rows(sa2s, sa2_map, self.conn, _CFG)
+        n_crops = len(_CFG["crops"])
+        self.assertEqual(len(rows), 28 * n_crops)
+
+    # 8. Join output (via build_join) preserves all 28 WA SA2s
+    def test_join_preserves_all_28_wa_sa2s(self):
+        import sys
+        sys.path.insert(0, str(REPO_ROOT / "scripts"))
+        from join_sa2_rainfall_crop_context import build_join
+        import pandas as pd
+
+        sa2s, sa2_map = bcc.load_wa_wheatbelt_universe(self._universe_path)
+        rows, _ = bcc.build_rows(sa2s, sa2_map, self.conn, _CFG)
+
+        # Build a crop-context DataFrame from the wheat rows only (one crop for simplicity)
+        wheat_rows = [r for r in rows if r["crop"] == "wheat"]
+        ctx_df = pd.DataFrame(wheat_rows).rename(columns={"sa2_code": "abs_sa2_code_raw"})
+        # join_sa2_rainfall_crop_context expects columns: sa2_code, station_sa2_5dig16, ...
+        ctx_df["sa2_code"] = ctx_df["abs_sa2_code_raw"]
+        ctx_df["financial_year"] = "2020-21"
+
+        # Empty features — all rows get no_data
+        feat_df = pd.DataFrame(columns=["sa2_code", "season_year", "station_count",
+                                         "aggregation_method", "feature_quality_flag"])
+
+        result = build_join(feat_df, ctx_df)
+        self.assertEqual(result["abs_sa2_code"].nunique(), 28)

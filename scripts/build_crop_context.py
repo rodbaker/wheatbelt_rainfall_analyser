@@ -21,6 +21,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ABS_DB = Path("/home/roddyb/projects/ABS Census Data/ag_census.db")
 DEFAULT_CONFIG = REPO_ROOT / "config" / "crop_context.yaml"
 DEFAULT_OUTPUT = REPO_ROOT / "data" / "meta" / "crop_context_sa2.csv"
+DEFAULT_WA_UNIVERSE = REPO_ROOT / "data" / "meta" / "wa_wheatbelt_sa2_universe_2021.csv"
 
 OUTPUT_COLS = [
     "sa2_code",
@@ -116,6 +117,26 @@ def load_geojson_mapping(geojson_path: Path) -> dict:
         feat["properties"]["SA2_5DIG16"]: feat["properties"]["SA2_MAIN16"]
         for feat in gj["features"]
     }
+
+
+def load_wa_wheatbelt_universe(path: Path) -> tuple[dict, dict]:
+    """Load the QGIS 28-region WA wheatbelt SA2 universe.
+
+    Returns:
+        sa2s_dict: {sa2_5dig: {sa2_name, state}} — universe keyed by 5-digit compat code
+        sa2_main_map: {sa2_5dig: SA2_CODE21} — 9-digit code for ABS lookup
+    """
+    sa2s: dict = {}
+    sa2_map: dict = {}
+    with open(path) as f:
+        for row in csv.DictReader(f):
+            code21 = row["SA2_CODE21"].strip()
+            name21 = row["SA2_NAME21"].strip()
+            # Derive 5-digit compatibility code: state prefix + last 4 digits
+            sa2_5dig = code21[0] + code21[-4:]
+            sa2s[sa2_5dig] = {"sa2_name": name21, "state": "Western Australia"}
+            sa2_map[sa2_5dig] = code21
+    return sa2s, sa2_map
 
 
 def fallback_main_code(conn: sqlite3.Connection, sa2_name: str, state_name: str) -> Optional[str]:
@@ -338,10 +359,75 @@ def query_wa_wheat_nonnull_count(conn: sqlite3.Connection, year_id: int) -> int:
     return cur.fetchone()[0]
 
 
-def print_summary(rows: list[dict], stats: dict, wa_wheat_abs_count: Optional[int] = None) -> None:
+def query_wa_wheat_nonnull_regions(conn: sqlite3.Connection, year_id: int) -> dict:
+    """Return {region_code: region_label} for all WA SA2s with non-null wheat area."""
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT r.region_code, r.region_label "
+        "FROM regions r "
+        "JOIN observations o ON o.region_code = r.region_code "
+        "WHERE o.year_id=? AND r.region_code LIKE '5%' "
+        "  AND LENGTH(r.region_code)=9 "
+        "  AND o.commodity_code='AGCEREAL_AHAWHT_F' "
+        "  AND o.estimate IS NOT NULL",
+        (year_id,),
+    )
+    return {row[0]: row[1] for row in cur.fetchall()}
+
+
+def compute_wa_diagnostics(
+    wa_sa2s: dict,
+    wa_map: dict,
+    rows: list[dict],
+    abs_conn: sqlite3.Connection,
+    year_id: int,
+) -> dict:
+    """Compute WA-specific diagnostics for --dry-run output."""
+    qgis_main_codes = set(wa_map.values())
+
+    wa_wheat_rows = [
+        r for r in rows
+        if r["state"] == "Western Australia" and r["crop"] == "wheat"
+    ]
+    qgis_nonnull = [r for r in wa_wheat_rows if r["area_ha"] is not None]
+    qgis_null = [(r["sa2_code"], r["sa2_name"]) for r in wa_wheat_rows if r["area_ha"] is None]
+
+    abs_wa_regions = query_wa_wheat_nonnull_regions(abs_conn, year_id)
+    excluded = {code: label for code, label in abs_wa_regions.items() if code not in qgis_main_codes}
+
+    return {
+        "qgis_count": len(wa_sa2s),
+        "qgis_nonnull_wheat_count": len(qgis_nonnull),
+        "abs_nonnull_count": len(abs_wa_regions),
+        "abs_excluded": excluded,
+        "qgis_null_regions": qgis_null,
+    }
+
+
+def print_summary(
+    rows: list[dict],
+    stats: dict,
+    wa_wheat_abs_count: Optional[int] = None,
+    wa_diag: Optional[dict] = None,
+) -> None:
     print("\n--- Validation Summary ---")
-    print(f"GeoJSON (wheat boundary) SA2s: {stats['n_geojson_sa2s']}")
-    if wa_wheat_abs_count is not None:
+
+    if wa_diag:
+        print("\nWA Universe (QGIS 28-region):")
+        print(f"  WA QGIS universe:                     {wa_diag['qgis_count']} SA2s")
+        print(f"  WA QGIS with non-null ABS wheat area: {wa_diag['qgis_nonnull_wheat_count']}")
+        print(f"  ABS WA wheat non-null total:          {wa_diag['abs_nonnull_count']}")
+        excl = wa_diag["abs_excluded"]
+        print(f"  ABS non-null regions excluded by QGIS ({len(excl)}):")
+        for code, label in sorted(excl.items()):
+            print(f"    {code}  {label}")
+        null_rgns = wa_diag["qgis_null_regions"]
+        print(f"  QGIS regions with null wheat area ({len(null_rgns)}):")
+        for code, name in sorted(null_rgns):
+            print(f"    {code}  {name}")
+
+    print(f"\nTotal universe SA2s: {stats['n_geojson_sa2s']}")
+    if wa_wheat_abs_count is not None and wa_diag is None:
         print(f"ABS WA wheat non-null SA2s:    {wa_wheat_abs_count}  (universe is GeoJSON clip, not this)")
     print(f"Mapped to ABS:                 {stats['n_mapped_to_abs']}")
     if stats["unmatched_sa2s"]:
@@ -377,20 +463,36 @@ def main() -> int:
         return 1
 
     geojson_path = REPO_ROOT / "data" / "meta" / "SA2_ABS_Regions.geojson"
+    wa_universe_path = DEFAULT_WA_UNIVERSE
+
+    if not wa_universe_path.exists():
+        print(f"ERROR: WA universe file not found: {wa_universe_path}", file=sys.stderr)
+        return 1
 
     cfg = load_config(args.config)
-    geojson_sa2s = load_geojson_sa2s(geojson_path)
-    geojson_map = load_geojson_mapping(geojson_path)
+
+    # WA: authoritative universe from QGIS 28-region list (2021 ASGS codes)
+    wa_sa2s, wa_map = load_wa_wheatbelt_universe(wa_universe_path)
+
+    # Non-WA: universe from GeoJSON wheat boundary (2016 ASGS codes)
+    geojson_sa2s_all = load_geojson_sa2s(geojson_path)
+    geojson_map_all = load_geojson_mapping(geojson_path)
+    non_wa_sa2s = {k: v for k, v in geojson_sa2s_all.items() if v["state"] != "Western Australia"}
+    non_wa_map = {k: geojson_map_all[k] for k in non_wa_sa2s if k in geojson_map_all}
+
+    # Combined universe: WA from QGIS, all other states from GeoJSON
+    universe_sa2s = {**non_wa_sa2s, **wa_sa2s}
+    universe_map = {**non_wa_map, **wa_map}
 
     abs_conn = sqlite3.connect(args.abs_db)
     try:
         year_id = get_year_id(abs_conn, cfg["baseline_year"])
-        wa_wheat_abs_count = query_wa_wheat_nonnull_count(abs_conn, year_id)
-        rows, stats = build_rows(geojson_sa2s, geojson_map, abs_conn, cfg)
+        rows, stats = build_rows(universe_sa2s, universe_map, abs_conn, cfg)
+        wa_diag = compute_wa_diagnostics(wa_sa2s, wa_map, rows, abs_conn, year_id)
     finally:
         abs_conn.close()
 
-    print_summary(rows, stats, wa_wheat_abs_count=wa_wheat_abs_count)
+    print_summary(rows, stats, wa_diag=wa_diag)
 
     if args.dry_run:
         print("Dry run — output file not written.")

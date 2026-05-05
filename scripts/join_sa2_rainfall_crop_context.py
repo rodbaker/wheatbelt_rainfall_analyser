@@ -166,10 +166,9 @@ def report_coverage(merged: pd.DataFrame) -> None:
                 matched_sa2, distinct_sa2,
                 100 * matched_sa2 / distinct_sa2 if distinct_sa2 else 0)
 
-    if distinct_sa2 != 25 and merged["state"].iloc[0] == "Western Australia":
+    if distinct_sa2 != 28 and merged["state"].iloc[0] == "Western Australia":
         logger.warning(
-            "Expected 25 WA wheat SA2s from local crop context; got %d. "
-            "User's QGIS layer has 28 — 28-vs-25 source-universe mismatch unresolved.",
+            "Expected 28 WA SA2s (QGIS universe); got %d.",
             distinct_sa2,
         )
 
