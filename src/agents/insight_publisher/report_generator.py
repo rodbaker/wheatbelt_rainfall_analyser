@@ -10,7 +10,7 @@ import yaml
 import pandas as pd
 from datetime import datetime, date
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -979,9 +979,25 @@ class WeeklyReportGenerator:
         ("dry_spell_days_14d_lt_10mm_wt", "Dry spells (14d <10mm)",       "days"),
     ]
 
-    def __init__(self, season_year: int, output_dir: Optional[str] = None, verbose: bool = False):
+    _MONTH_NAMES = [
+        '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ]
+
+    _BASELINE_DISCLOSURE = (
+        "Historical comparison uses available local monthly rainfall files: 2005 and 2011–2025."
+    )
+
+    def __init__(
+        self,
+        season_year: int,
+        output_dir: Optional[str] = None,
+        verbose: bool = False,
+        today: Optional[date] = None,
+    ):
         self.season_year = season_year
         self.verbose = verbose
+        self._today = today
 
         self.project_root = Path(__file__).parent.parent.parent.parent
         self.output_dir = Path(output_dir) if output_dir else self.project_root / "reports" / "weekly"
@@ -989,6 +1005,9 @@ class WeeklyReportGenerator:
 
         self.weighted_summary_path = (
             self.project_root / "data" / "features" / "wa_wheat_area_weighted_rainfall_summary.csv"
+        )
+        self.monthly_decile_path = (
+            self.project_root / "data" / "features" / "wa_wheat_weighted_monthly_rainfall_deciles.csv"
         )
 
     def _make_season_label(self) -> str:
@@ -1074,6 +1093,130 @@ class WeeklyReportGenerator:
 
         return section
 
+    def _load_monthly_deciles(self) -> pd.DataFrame:
+        """Load monthly decile rows for season_year. Returns empty DataFrame if unavailable."""
+        if not self.monthly_decile_path.exists():
+            return pd.DataFrame()
+        try:
+            df = pd.read_csv(self.monthly_decile_path)
+            return df[df['year'] == self.season_year].copy()
+        except Exception as e:
+            if self.verbose:
+                logger.warning("Could not load monthly deciles: %s", e)
+            return pd.DataFrame()
+
+    @staticmethod
+    def _period_label(month: int) -> str:
+        if month <= 3:
+            return "pre-seeding"
+        if month <= 10:
+            return "growing season"
+        return "harvest"
+
+    def _generate_monthly_decile_section(self) -> str:
+        """Build the Monthly Rainfall Compared With History markdown section."""
+        df = self._load_monthly_deciles()
+        today = self._today or datetime.now().date()
+        current_year = today.year
+        current_month = today.month if self.season_year == current_year else 13
+
+        by_month = {} if df.empty else {int(r['month']): r for _, r in df.iterrows()}
+
+        header = "## Monthly Rainfall Compared With History\n\n"
+        header += (
+            "| Month | Rainfall | Median | Decile | Label | Diff from Median |\n"
+            "|-------|----------|--------|--------|-------|------------------|\n"
+        )
+
+        rows: List[str] = []
+        monthly_caveat: str = ""
+        mixed_source_note: str = ""
+        low_coverage_note: str = ""
+
+        for m in range(1, 13):
+            period = self._period_label(m)
+            is_mtd = (m == current_month)
+            is_future = (m > current_month) and (self.season_year == current_year)
+            month_label = self._MONTH_NAMES[m]
+            if is_mtd:
+                cell_month = f"{month_label} ({period}, MTD)"
+            else:
+                cell_month = f"{month_label} ({period})"
+
+            if is_future or m not in by_month:
+                rows.append(f"| {cell_month} | — | — | — | — | — |")
+                continue
+
+            r = by_month[m]
+            quality_flag = str(r.get('climatology_quality_flag', ''))
+            curr_src = str(r.get('current_rainfall_source', ''))
+
+            # Rainfall-only rows: partial months and low-coverage months.
+            # Decile comparison is suppressed — MTD totals cannot be ranked against
+            # full-month distributions; low-coverage months use a different SA2 mix.
+            is_rainfall_only = (
+                quality_flag == 'partial_month'
+                or quality_flag.startswith('low_coverage')
+            )
+            rain_val = r.get('rainfall_mm_wt')
+            has_rainfall = rain_val is not None and not pd.isna(rain_val)
+
+            if is_rainfall_only:
+                if has_rainfall:
+                    rows.append(f"| {cell_month} | {float(rain_val):.1f} mm | — | — | — | — |")
+                else:
+                    rows.append(f"| {cell_month} | — | — | — | — | — |")
+                if quality_flag.startswith('low_coverage') and not low_coverage_note:
+                    low_coverage_note = (
+                        "Low SA2 coverage (< 80% of wheat area): decile and median "
+                        "not computed for these months."
+                    )
+            elif quality_flag == 'ok':
+                rainfall = float(rain_val)
+                median = float(r['historical_median_mm_wt'])
+                decile = int(r['rainfall_decile'])
+                label = str(r['rainfall_decile_label'])
+                diff = rainfall - median
+                diff_str = f"+{diff:.1f}" if diff >= 0 else f"{diff:.1f}"
+                rows.append(
+                    f"| {cell_month} | {rainfall:.1f} mm | {median:.1f} mm "
+                    f"| {decile} | {label} | {diff_str} mm |"
+                )
+            else:
+                # null_weighted_rainfall, insufficient_history, etc.
+                if has_rainfall:
+                    rows.append(f"| {cell_month} | {float(rain_val):.1f} mm | — | — | — | — |")
+                else:
+                    rows.append(f"| {cell_month} | — | — | — | — | — |")
+
+            # Capture mixed-source disclosure when current year uses station daily data
+            if not mixed_source_note and curr_src and curr_src not in ('monthly_rain_netCDF', 'nan', ''):
+                hist_src = str(r.get('historical_baseline_source', 'monthly_rain_netCDF'))
+                mixed_source_note = (
+                    f"Current year rainfall: {curr_src} (daily station data aggregated to SA2). "
+                    f"Historical decile baseline: {hist_src} (SILO monthly NetCDF grid)."
+                )
+
+            # Capture monthly fallback caveat from the first row that has one
+            if not monthly_caveat:
+                raw = r.get('area_fallback_caveat', '')
+                if raw and not pd.isna(raw):
+                    monthly_caveat = str(raw).strip()
+
+        section = header + "\n".join(rows) + "\n\n"
+        section += f"_{self._BASELINE_DISCLOSURE}_\n"
+
+        if mixed_source_note:
+            section += f"\n_Source: {mixed_source_note}_\n"
+
+        if low_coverage_note:
+            section += f"\n_Coverage caveat: {low_coverage_note}_\n"
+
+        if monthly_caveat:
+            section += f"\n_Monthly area caveat: {monthly_caveat}_\n"
+
+        return section
+
     def generate_report(self) -> Path:
         """Generate the weekly outlook markdown and return its path."""
         row = self._load_weighted_summary()
@@ -1100,6 +1243,8 @@ class WeeklyReportGenerator:
             )
         else:
             lines.append(self._generate_wa_wheat_section(row))
+
+        lines.append(self._generate_monthly_decile_section())
 
         lines += [
             "---",

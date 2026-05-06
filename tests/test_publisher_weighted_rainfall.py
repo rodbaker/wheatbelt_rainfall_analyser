@@ -92,6 +92,8 @@ class _TempProject:
 def _make_generator(project: _TempProject, season_year: int = 2025) -> WeeklyReportGenerator:
     gen = WeeklyReportGenerator(season_year=season_year, output_dir=str(project.weekly_dir))
     gen.weighted_summary_path = project.summary_path
+    # Redirect monthly decile path to temp dir so real project CSV doesn't bleed in
+    gen.monthly_decile_path = project.root / "data" / "features" / "wa_wheat_weighted_monthly_rainfall_deciles.csv"
     return gen
 
 

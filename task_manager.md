@@ -1,7 +1,7 @@
 
 # Task Manager
 **PRD:** ./prd.md  
-**Updated:** 2026-05-05 (SA2 Rainfall Analytics Foundation)  
+**Updated:** 2026-05-06 (Calendar crop-year season definition)  
 
 ---
 
@@ -553,6 +553,32 @@ Claude prints: `OK TO CLOSE: Save is complete. Please close this chat to reset c
   - Config reverted to `enabled: false` before commit; `data/meta/crop_context_sa2.csv` confirmed gitignored/unstaged
 - **Test results:** 63 tests, all pass (24 crop-context tests + 39 pre-existing)
 - **Commit:** `ead3e12 fix(publisher): normalize station IDs and fix sub-1% area share display`
+
+### 2026-05-06 — insight-publisher + infrastructure (Calendar crop-year season definition)
+- **Task:** Replace Apr–Mar cross-year season framing with Jan–Dec calendar crop-year model
+- **What changed:**
+  - `assign_season_year` → `date.year` (all months stay in same year, no Jan–Mar offset)
+  - `season_date_range` → Jan 1 to Dec 31
+  - Coverage denominator uses station's own last-observation date (not future dates or `today`) for both season-level and sub-window (sowing Apr–Jun, in-crop May–Oct) coverage ratios. This ensures in-progress seasons are assessed to latest available data only.
+  - `pre_seeding_rain_mm` (Jan–Mar) added as new feature column throughout: SA2 features → crop context join → weighted summary → weekly report
+  - `harvest_rain_mm` is now Nov–Dec only (previously Nov–Dec + Jan of next year)
+  - Weekly report heading changed to `"# WA Wheat Rainfall — 2026 Season to Date"` — no slash-year labels
+  - Season summary window, monthly breakdown, filename and heading all updated to Jan–Dec
+  - Coverage footnote updated: "Coverage assessed to latest available rainfall observation date"
+  - Backlog note added in `build_wa_wheat_weighted_rainfall.py` for `latest_obs_date` field
+  - 206 tests pass; full pipeline verified for 2026-05-06
+- **Files touched:**
+  - `scripts/build_sa2_rainfall_features.py`
+  - `scripts/build_wa_wheat_weighted_rainfall.py`
+  - `scripts/join_sa2_rainfall_crop_context.py` (added `pre_seeding_rain_mm` to `RAINFALL_FEATURE_COLS`)
+  - `src/agents/insight_publisher/report_generator.py`
+  - `src/agents/insight_publisher/run_publisher.py`
+  - `tests/test_sa2_rainfall_features.py`
+  - `tests/test_publisher_weighted_rainfall.py` (new)
+- **Test results:** 206 tests, all pass
+- **Backlog items raised:**
+  - `latest_obs_date` not yet in weighted summary CSV (noted in backlog comment)
+- **Commit:** `b70f8de feat(season): use calendar crop-year rainfall windows`
 
 ### 2026-05-05 — infrastructure + risk-engine + insight-publisher (SA2 Rainfall Analytics Foundation)
 - **Task:** SA2 rainfall feature builder foundation — Phase 0 reliability fix + Phase 1 design doc + Phase 2 first implementation

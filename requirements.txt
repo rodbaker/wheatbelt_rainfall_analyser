@@ -17,6 +17,8 @@ python-dotenv>=0.5.1       # Environment variable management
 # geopandas>=0.13.0        # Statistical Division boundary processing (add when needed)
 # matplotlib>=3.7.0        # Optional visualization generation (add when needed)
 duckdb>=0.8.0              # Fast analytical storage for weather data
+xarray>=2023.0             # NetCDF climatology reading
+netCDF4>=1.6.0             # HDF5/NetCDF4 file backend for xarray
 
 # Development and quality tools
 flake8>=6.0.0              # Code quality checking
