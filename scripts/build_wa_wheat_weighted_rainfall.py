@@ -33,6 +33,7 @@ DEFAULT_OUTPUT = REPO_ROOT / "data" / "features" / "wa_wheat_area_weighted_rainf
 
 # Rainfall metrics to area-weight (all in mm or days)
 WEIGHTED_METRICS = [
+    "pre_seeding_rain_mm",
     "sowing_window_rain_mm",
     "in_crop_rain_mm",
     "rainfall_total_apr_oct_mm",
@@ -43,6 +44,15 @@ WEIGHTED_METRICS = [
     "dry_spell_days_7d_lt_5mm",
     "dry_spell_days_14d_lt_10mm",
 ]
+
+# BACKLOG: Add latest_obs_date to OUTPUT_COLS (max observation date across eligible SA2s).
+# Once present in the summary CSV, surface it in WeeklyReportGenerator._generate_wa_wheat_section
+# alongside the coverage line so readers know the exact date rainfall data runs to.
+
+# BACKLOG: Rename qgis_wheat_area_mapped_ha before reporter-facing consumers
+# harden against this column name. Suggested names: mapped_area_for_weighting_ha
+# or total_weight_area_ha. Update OUTPUT_COLS, build_summary_row, print_report,
+# WeeklyReportGenerator, and any downstream assembler that reads this column.
 
 OUTPUT_COLS = [
     "season_year",
@@ -60,6 +70,7 @@ OUTPUT_COLS = [
     "qgis_wheat_area_mapped_ha",
     "coverage_share",
     # Area-weighted rainfall metrics
+    "pre_seeding_rain_mm_wt",
     "sowing_window_rain_mm_wt",
     "in_crop_rain_mm_wt",
     "rainfall_total_apr_oct_mm_wt",
@@ -185,15 +196,16 @@ def print_report(row: dict) -> None:
     print(f"  Coverage share:               {cov}")
     print(f"\nArea-weighted rainfall metrics:")
     metrics = [
-        ("Sowing window rain",     "sowing_window_rain_mm_wt",        "mm"),
-        ("In-crop rain",           "in_crop_rain_mm_wt",               "mm"),
-        ("Apr–Oct total",          "rainfall_total_apr_oct_mm_wt",     "mm"),
-        ("May–Oct total",          "rainfall_total_may_oct_mm_wt",     "mm"),
-        ("Flowering rain",         "flowering_rain_mm_wt",             "mm"),
-        ("Grain fill rain",        "grain_fill_rain_mm_wt",            "mm"),
-        ("Harvest rain",           "harvest_rain_mm_wt",               "mm"),
-        ("Dry spells (7d <5mm)",   "dry_spell_days_7d_lt_5mm_wt",      "days"),
-        ("Dry spells (14d <10mm)", "dry_spell_days_14d_lt_10mm_wt",    "days"),
+        ("Pre-seeding rain (Jan–Mar)", "pre_seeding_rain_mm_wt",          "mm"),
+        ("Sowing window rain",         "sowing_window_rain_mm_wt",        "mm"),
+        ("In-crop rain",               "in_crop_rain_mm_wt",              "mm"),
+        ("Growing season (Apr–Oct)",   "rainfall_total_apr_oct_mm_wt",    "mm"),
+        ("Growing season (May–Oct)",   "rainfall_total_may_oct_mm_wt",    "mm"),
+        ("Flowering rain",             "flowering_rain_mm_wt",            "mm"),
+        ("Grain fill rain",            "grain_fill_rain_mm_wt",           "mm"),
+        ("Harvest rain (Nov–Dec)",     "harvest_rain_mm_wt",              "mm"),
+        ("Dry spells (7d <5mm)",       "dry_spell_days_7d_lt_5mm_wt",     "days"),
+        ("Dry spells (14d <10mm)",     "dry_spell_days_14d_lt_10mm_wt",   "days"),
     ]
     for label, key, unit in metrics:
         val = row.get(key)

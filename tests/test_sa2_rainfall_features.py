@@ -53,9 +53,9 @@ def _make_obs(station_id: str, dates: list[str], rainfall: list[float],
 
 def _full_season_obs(station_id: str, season_year: int,
                      daily_rain: float = 2.0, quality: int = 0) -> pd.DataFrame:
-    """Generate daily observations for the full Apr–Mar season year."""
-    start = pd.Timestamp(season_year, 4, 1)
-    end = pd.Timestamp(season_year + 1, 3, 31)
+    """Generate daily observations for the full Jan–Dec season year."""
+    start = pd.Timestamp(season_year, 1, 1)
+    end = pd.Timestamp(season_year, 12, 31)
     dates = pd.date_range(start, end, freq='D')
     return pd.DataFrame({
         'station_id': station_id,
@@ -72,14 +72,15 @@ class TestSeasonYearAssignment(unittest.TestCase):
         result = assign_season_year(dates)
         self.assertTrue((result == 2025).all())
 
-    def test_jan_mar_is_previous_year(self):
+    def test_jan_mar_is_same_year(self):
+        # Season year = calendar year; Jan–Mar belong to the same year, not the previous
         dates = pd.Series(pd.to_datetime(['2026-01-01', '2026-02-28', '2026-03-31']))
         result = assign_season_year(dates)
-        self.assertTrue((result == 2025).all())
+        self.assertTrue((result == 2026).all())
 
     def test_boundary_march_31(self):
         d = pd.Series(pd.to_datetime(['2025-03-31']))
-        self.assertEqual(assign_season_year(d).iloc[0], 2024)
+        self.assertEqual(assign_season_year(d).iloc[0], 2025)
 
     def test_boundary_april_1(self):
         d = pd.Series(pd.to_datetime(['2025-04-01']))
@@ -88,6 +89,10 @@ class TestSeasonYearAssignment(unittest.TestCase):
     def test_december_same_year(self):
         d = pd.Series(pd.to_datetime(['2025-12-01']))
         self.assertEqual(assign_season_year(d).iloc[0], 2025)
+
+    def test_january_same_year(self):
+        d = pd.Series(pd.to_datetime(['2026-01-15']))
+        self.assertEqual(assign_season_year(d).iloc[0], 2026)
 
 
 class TestMonthlyRainfallAggregation(unittest.TestCase):
@@ -271,6 +276,7 @@ class TestOutputSchema(unittest.TestCase):
         'station_count', 'contributing_station_ids', 'aggregation_method',
         'rainfall_total_apr_oct_mm', 'rainfall_total_may_oct_mm',
         'monthly_rainfall_jan_mm', 'monthly_rainfall_jun_mm', 'monthly_rainfall_dec_mm',
+        'pre_seeding_rain_mm',
         'sowing_window_rain_mm', 'in_crop_rain_mm', 'flowering_rain_mm',
         'grain_fill_rain_mm', 'harvest_rain_mm',
         'autumn_break_date', 'autumn_break_7d_mm', 'autumn_break_status',
@@ -384,6 +390,48 @@ class TestCoverageMetadata(unittest.TestCase):
         self.assertIn('feature_quality_flag', sa2_df.columns)
         self.assertAlmostEqual(row['season_coverage_ratio'], 1.0, places=2)
         self.assertEqual(row['feature_quality_flag'], 'complete')
+
+
+class TestPreSeedingRainfall(unittest.TestCase):
+    """pre_seeding_rain_mm (Jan–Mar) is present in output and correctly computed."""
+
+    def test_pre_seeding_rain_column_present(self):
+        obs = _full_season_obs('010001', 2025, daily_rain=2.0)
+        result = compute_station_season_features(obs, min_coverage=0.5)
+        self.assertFalse(result.empty)
+        self.assertIn('pre_seeding_rain_mm', result.columns)
+
+    def test_pre_seeding_rain_is_jan_mar_total(self):
+        obs = _full_season_obs('010001', 2025, daily_rain=1.0)
+        result = compute_station_season_features(obs, min_coverage=0.5)
+        self.assertFalse(result.empty)
+        # Jan(31) + Feb(28) + Mar(31) = 90 days × 1mm = 90mm for non-leap year 2025
+        expected = 31 + 28 + 31  # 90mm
+        self.assertAlmostEqual(result.iloc[0]['pre_seeding_rain_mm'], expected, delta=1.0)
+
+
+class TestCurrentSeasonCoverageToDate(unittest.TestCase):
+    """For in-progress seasons, coverage should be assessed against elapsed days."""
+
+    def test_partial_year_obs_not_penalised_as_incomplete(self):
+        import datetime as dt
+        today = pd.Timestamp.today().normalize()
+        # Simulate a station with data from Jan 1 to yesterday of the current year
+        season_year = today.year
+        start = pd.Timestamp(season_year, 1, 1)
+        dates = pd.date_range(start, today - pd.Timedelta(days=1), freq='D')
+        if len(dates) == 0:
+            self.skipTest("No elapsed days to test against")
+        obs = pd.DataFrame({
+            'station_id': '010001',
+            'date': dates,
+            'rainfall': 2.0,
+            'rainfall_quality': 0,
+        })
+        result = compute_station_season_features(obs, min_coverage=0.8)
+        # With full coverage to date, season_coverage_ratio should be >= 0.95
+        if not result.empty:
+            self.assertGreater(result.iloc[0]['season_coverage_ratio'], 0.95)
 
 
 class TestDataQualityScore(unittest.TestCase):

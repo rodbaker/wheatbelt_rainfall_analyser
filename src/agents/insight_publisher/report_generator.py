@@ -768,16 +768,15 @@ class SeasonReportGenerator:
         return f"Station {station_id}"
 
     def _load_season_events(self) -> pd.DataFrame:
-        """Load all events in the season window (Jul season_year – Jun season_year+1)."""
+        """Load all events in the season window (Jan–Dec of season_year)."""
         df = pd.read_csv(self.event_log_path)
         df['date'] = pd.to_datetime(df['date'], format='mixed', errors='coerce')
         df = df.dropna(subset=['date'])
         df['month'] = df['date'].dt.month
         df['year'] = df['date'].dt.year
 
-        # Season window: Aug of season_year to Jun of season_year+1 (wheat season)
-        season_start = pd.Timestamp(f"{self.season_year}-07-01")
-        season_end = pd.Timestamp(f"{self.season_year + 1}-06-30")
+        season_start = pd.Timestamp(f"{self.season_year}-01-01")
+        season_end = pd.Timestamp(f"{self.season_year}-12-31")
         mask = (df['date'] >= season_start) & (df['date'] <= season_end)
         season_df = df[mask].copy()
 
@@ -795,10 +794,9 @@ class SeasonReportGenerator:
         df['year_num'] = df['date'].dt.year
 
         months_in_season = []
-        for y, m in [(self.season_year, mo) for mo in range(7, 13)] + \
-                     [(self.season_year + 1, mo) for mo in range(1, 7)]:
-            if not df[(df['year_num'] == y) & (df['month_num'] == m)].empty:
-                months_in_season.append((y, m))
+        for m in range(1, 13):
+            if not df[(df['year_num'] == self.season_year) & (df['month_num'] == m)].empty:
+                months_in_season.append((self.season_year, m))
 
         header = "| Month | " + " | ".join(col_labels[t] for t in event_types) + " | Total |"
         sep = "|-------|" + "-------|" * len(event_types) + "-------|"
@@ -868,7 +866,7 @@ class SeasonReportGenerator:
 
         # Header
         lines += [
-            f"# CropForecaster — {self.season_year}/{str(self.season_year + 1)[-2:]} Season Risk Summary",
+            f"# CropForecaster — {self.season_year} Season Risk Summary",
             "",
             f"*Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | "
             f"Events: {len(df)} | Stations: {df['station_id'].nunique()} | "
@@ -889,7 +887,7 @@ class SeasonReportGenerator:
             lines += [
                 "## Executive Summary",
                 "",
-                f"The {self.season_year}/{str(self.season_year + 1)[-2:]} season recorded **{len(df)} weather risk events** "
+                f"The {self.season_year} season recorded **{len(df)} weather risk events** "
                 f"across **{df['station_id'].nunique()} stations**.",
                 "",
                 f"| Event Type | Count | % of Season |",
@@ -947,11 +945,173 @@ class SeasonReportGenerator:
             "*Data source: SILO API | Analysis: Risk Engine | Report: Insight Publisher*",
         ]
 
-        report_path = self.output_dir / f"{self.season_year}-{str(self.season_year + 1)[-2:]}_season_summary.md"
+        report_path = self.output_dir / f"{self.season_year}_season_summary.md"
         with open(report_path, 'w') as f:
             f.write('\n'.join(lines))
 
         if self.verbose:
             print(f"Season report written to: {report_path}")
+
+        return report_path
+
+
+class WeeklyReportGenerator:
+    """Generate a weekly outlook for the market brief path.
+
+    Reads data/features/wa_wheat_area_weighted_rainfall_summary.csv (built by
+    scripts/build_wa_wheat_weighted_rainfall.py) and produces a markdown weekly
+    outlook at reports/weekly/YYYY-WNN_outlook.md.
+
+    Only complete + eligible SA2s contribute to weighted metrics.
+    Coverage share, fallback caveat, and exclusion counts are always surfaced.
+    """
+
+    WEIGHTED_METRIC_LABELS = [
+        ("pre_seeding_rain_mm_wt",        "Pre-seeding rain (Jan–Mar)",  "mm"),
+        ("sowing_window_rain_mm_wt",      "Sowing window rain (Apr–Jun)", "mm"),
+        ("in_crop_rain_mm_wt",            "In-crop rain (May–Oct)",       "mm"),
+        ("rainfall_total_apr_oct_mm_wt",  "Growing season (Apr–Oct)",    "mm"),
+        ("rainfall_total_may_oct_mm_wt",  "Growing season (May–Oct)",    "mm"),
+        ("flowering_rain_mm_wt",          "Flowering rain",               "mm"),
+        ("grain_fill_rain_mm_wt",         "Grain fill rain",              "mm"),
+        ("harvest_rain_mm_wt",            "Harvest rain (Nov–Dec)",       "mm"),
+        ("dry_spell_days_7d_lt_5mm_wt",   "Dry spells (7d <5mm)",         "days"),
+        ("dry_spell_days_14d_lt_10mm_wt", "Dry spells (14d <10mm)",       "days"),
+    ]
+
+    def __init__(self, season_year: int, output_dir: Optional[str] = None, verbose: bool = False):
+        self.season_year = season_year
+        self.verbose = verbose
+
+        self.project_root = Path(__file__).parent.parent.parent.parent
+        self.output_dir = Path(output_dir) if output_dir else self.project_root / "reports" / "weekly"
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
+        self.weighted_summary_path = (
+            self.project_root / "data" / "features" / "wa_wheat_area_weighted_rainfall_summary.csv"
+        )
+
+    def _make_season_label(self) -> str:
+        """Return a human-readable season label for the report heading.
+
+        Current year → "YYYY Season to Date"; completed year → "YYYY Season".
+        """
+        today_year = datetime.now().year
+        if self.season_year >= today_year:
+            return f"{self.season_year} Season to Date"
+        return f"{self.season_year} Season"
+
+    def _load_weighted_summary(self) -> Optional[dict]:
+        """Return the summary row for season_year, or None if unavailable."""
+        if not self.weighted_summary_path.exists():
+            if self.verbose:
+                logger.warning("Weighted rainfall summary not found: %s", self.weighted_summary_path)
+            return None
+
+        df = pd.read_csv(self.weighted_summary_path)
+        match = df[df["season_year"] == self.season_year]
+        if match.empty:
+            if self.verbose:
+                logger.warning(
+                    "No data for season_year=%s in %s", self.season_year, self.weighted_summary_path
+                )
+            return None
+        return match.iloc[0].to_dict()
+
+    def _generate_wa_wheat_section(self, row: dict) -> str:
+        """Build the WA wheat weighted rainfall markdown section."""
+        season_label = self._make_season_label()
+        section = f"## WA Wheat Rainfall — {season_label}\n\n"
+        section += (
+            "_Area-weighted across eligible SA2 regions. "
+            "Coverage assessed to latest available rainfall observation date. "
+            "Only complete + eligible SA2s contribute to weighted metrics._\n\n"
+        )
+
+        # Coverage line
+        coverage_share = row.get("coverage_share")
+        n_eligible = int(row.get("n_sa2s_eligible") or 0)
+        n_universe = int(row.get("n_sa2s_qgis_universe") or 0)
+        n_insufficient = int(row.get("n_sa2s_insufficient_season") or 0)
+        n_no_data = int(row.get("n_sa2s_no_data") or 0)
+
+        cov_str = f"{coverage_share:.1%}" if (coverage_share is not None and not pd.isna(coverage_share)) else "unknown"
+        section += f"**Coverage:** {n_eligible} of {n_universe} SA2s eligible ({cov_str} of mapped wheat area)\n\n"
+
+        # Exclusion disclosure — no_data and insufficient_season always called out
+        excluded_parts = []
+        if n_no_data > 0:
+            excluded_parts.append(f"{n_no_data} no-data")
+        if n_insufficient > 0:
+            excluded_parts.append(f"{n_insufficient} insufficient-season")
+        if excluded_parts:
+            section += (
+                f"_Excluded from weighted metrics: {', '.join(excluded_parts)} SA2s "
+                "(insufficient or missing rainfall data)._\n\n"
+            )
+
+        # Weighted metrics table
+        section += "### Area-Weighted Rainfall Metrics\n\n"
+        section += "| Metric | Value |\n|--------|-------|\n"
+        for col, label, unit in self.WEIGHTED_METRIC_LABELS:
+            val = row.get(col)
+            if val is not None and not pd.isna(val):
+                section += f"| {label} | {float(val):.1f} {unit} |\n"
+            else:
+                section += f"| {label} | — |\n"
+        section += "\n"
+
+        # Fallback area caveat — surfaces whenever fallback-weighted SA2s contributed
+        _raw_caveat = row.get("area_fallback_caveat")
+        fallback_caveat = "" if (_raw_caveat is None or pd.isna(_raw_caveat)) else str(_raw_caveat).strip()
+        if fallback_caveat:
+            section += f"_Area caveat: {fallback_caveat}_\n\n"
+
+        # Eligible SA2 list
+        eligible_sa2s = str(row.get("eligible_sa2s") or "").strip()
+        if eligible_sa2s:
+            section += f"**Eligible SA2s:** {eligible_sa2s}\n\n"
+
+        return section
+
+    def generate_report(self) -> Path:
+        """Generate the weekly outlook markdown and return its path."""
+        row = self._load_weighted_summary()
+
+        today = datetime.now()
+        iso_year, iso_week, _ = today.isocalendar()
+        report_filename = f"{iso_year}-W{iso_week:02d}_outlook.md"
+        report_path = self.output_dir / report_filename
+
+        season_label = self._make_season_label()
+
+        lines = [
+            f"# WA Wheat Rainfall — {season_label}",
+            "",
+            f"*Generated: {today.strftime('%Y-%m-%d %H:%M:%S')}*",
+            "",
+        ]
+
+        if row is None:
+            lines.append(
+                f"_No weighted rainfall data available for {self.season_year}. "
+                f"Run `scripts/build_wa_wheat_weighted_rainfall.py --season-year {self.season_year}` "
+                "to generate._"
+            )
+        else:
+            lines.append(self._generate_wa_wheat_section(row))
+
+        lines += [
+            "---",
+            "",
+            "*CropForecaster Weekly Outlook — Australian Wheatbelt*",
+            "*Data source: SILO API | Weighted rainfall: SA2 crop context | Report: Insight Publisher*",
+        ]
+
+        with open(report_path, "w") as f:
+            f.write("\n".join(lines))
+
+        if self.verbose:
+            logger.info("Weekly outlook written to: %s", report_path)
 
         return report_path

@@ -43,6 +43,7 @@ RAINFALL_FEATURE_COLS = [
     "aggregation_method",
     "rainfall_total_apr_oct_mm",
     "rainfall_total_may_oct_mm",
+    "pre_seeding_rain_mm",
     "sowing_window_rain_mm",
     "in_crop_rain_mm",
     "flowering_rain_mm",

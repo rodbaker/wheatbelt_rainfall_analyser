@@ -51,17 +51,15 @@ def assign_season_year(dates: pd.Series) -> pd.Series:
     """
     Return the wheat season year for each date.
 
-    Season year is the calendar year in which sowing occurs:
-    Apr–Dec → same year; Jan–Mar → previous year.
+    Season year = calendar year (Jan–Dec).
     """
-    dates = pd.to_datetime(dates)
-    return dates.apply(lambda d: d.year if d.month >= 4 else d.year - 1)
+    return pd.to_datetime(dates).dt.year
 
 
 def season_date_range(season_year: int):
-    """Return (start_date, end_date) covering a full wheat season."""
-    start = pd.Timestamp(season_year, 4, 1)
-    end = pd.Timestamp(season_year + 1, 3, 31)
+    """Return (start_date, end_date) covering a full wheat season (Jan–Dec)."""
+    start = pd.Timestamp(season_year, 1, 1)
+    end = pd.Timestamp(season_year, 12, 31)
     return start, end
 
 
@@ -179,7 +177,11 @@ def _station_season_record(station_id: str, season_year: int,
                            grp: pd.DataFrame, min_coverage: float) -> dict | None:
     """Compute features for a single station × season group."""
     start, end = season_date_range(season_year)
-    season_days = (end - start).days + 1
+    # For in-progress seasons, assess coverage against observed data horizon
+    # (last obs date in this group), not future dates that haven't arrived yet.
+    last_obs = grp['date'].max() if not grp.empty else start
+    effective_end = min(end, last_obs)
+    season_days = max((effective_end - start).days + 1, 1)
     coverage = len(grp) / season_days
     if coverage < min_coverage * 0.5:
         # Less than half the minimum coverage → skip entirely
@@ -197,8 +199,7 @@ def _station_season_record(station_id: str, season_year: int,
         return float(rows['rainfall'].sum(min_count=1))
 
     def monthly_total(month: int) -> float | None:
-        year_offset = 1 if month < 4 else 0
-        return window_total(month, month, year_offset)
+        return window_total(month, month, 0)
 
     # Monthly totals
     monthly = {f'monthly_rainfall_{m}_mm': monthly_total(m)
@@ -214,20 +215,13 @@ def _station_season_record(station_id: str, season_year: int,
     total_apr_oct = _safe_sum(apr_rows, min_coverage)
     total_may_oct = _safe_sum(may_rows, min_coverage)
 
-    # Crop windows
-    sowing = window_total(4, 6)
-    in_crop = window_total(5, 10)
-    flowering = window_total(9, 10)
-    grain_fill_rows = pd.concat([
-        _window_rows(grp, season_year, 10, 10, 0),
-        _window_rows(grp, season_year, 11, 11, 0),
-    ])
-    grain_fill = _safe_sum(grain_fill_rows, min_coverage)
-    harvest_rows = pd.concat([
-        _window_rows(grp, season_year, 11, 12, 0),
-        _window_rows(grp, season_year, 1, 1, 1),
-    ])
-    harvest = _safe_sum(harvest_rows, min_coverage)
+    # Seasonal sub-windows
+    pre_seeding = window_total(1, 3)        # Jan–Mar: pre-seeding/subsoil recharge
+    sowing = window_total(4, 6)             # Apr–Jun: sowing window
+    in_crop = window_total(5, 10)           # May–Oct: in-crop
+    flowering = window_total(9, 10)         # Sep–Oct: flowering
+    grain_fill = window_total(10, 11)       # Oct–Nov: grain fill
+    harvest = window_total(11, 12)          # Nov–Dec: harvest (deleterious)
 
     # Autumn break
     break_date, break_7d, break_status = _detect_autumn_break(grp, season_year)
@@ -240,11 +234,28 @@ def _station_season_record(station_id: str, season_year: int,
     # Data quality
     quality_score = _quality_score(grp)
 
-    # Coverage ratios
+    # Coverage ratios — use last-obs-date denominators for in-progress seasons
+    sowing_start_ts = pd.Timestamp(season_year, 4, 1)
+    sowing_end_ts = pd.Timestamp(season_year, 6, 30)
+    in_crop_start_ts = pd.Timestamp(season_year, 5, 1)
+    in_crop_end_ts = pd.Timestamp(season_year, 10, 31)
+
+    effective_sowing_end = min(sowing_end_ts, effective_end)
+    effective_in_crop_end = min(in_crop_end_ts, effective_end)
+
+    effective_sowing_days = (
+        max((effective_sowing_end - sowing_start_ts).days + 1, 0)
+        if effective_end >= sowing_start_ts else 1
+    )
+    effective_in_crop_days = (
+        max((effective_in_crop_end - in_crop_start_ts).days + 1, 0)
+        if effective_end >= in_crop_start_ts else 1
+    )
+
     sowing_obs = len(_window_rows(grp, season_year, 4, 6, 0))
     in_crop_obs = len(_window_rows(grp, season_year, 5, 10, 0))
-    sowing_coverage = sowing_obs / SOWING_WINDOW_DAYS
-    in_crop_coverage = in_crop_obs / IN_CROP_WINDOW_DAYS
+    sowing_coverage = sowing_obs / max(effective_sowing_days, 1)
+    in_crop_coverage = in_crop_obs / max(effective_in_crop_days, 1)
     quality_flag = _feature_quality_flag(coverage, sowing_coverage, in_crop_coverage, min_coverage)
 
     return {
@@ -253,6 +264,7 @@ def _station_season_record(station_id: str, season_year: int,
         'rainfall_total_apr_oct_mm': total_apr_oct,
         'rainfall_total_may_oct_mm': total_may_oct,
         **monthly,
+        'pre_seeding_rain_mm': pre_seeding,
         'sowing_window_rain_mm': sowing,
         'in_crop_rain_mm': in_crop,
         'flowering_rain_mm': flowering,
@@ -445,8 +457,8 @@ def build_output(sa2_df: pd.DataFrame, pipeline_version: str) -> pd.DataFrame:
         'monthly_rainfall_apr_mm', 'monthly_rainfall_may_mm', 'monthly_rainfall_jun_mm',
         'monthly_rainfall_jul_mm', 'monthly_rainfall_aug_mm', 'monthly_rainfall_sep_mm',
         'monthly_rainfall_oct_mm', 'monthly_rainfall_nov_mm', 'monthly_rainfall_dec_mm',
-        'sowing_window_rain_mm', 'in_crop_rain_mm', 'flowering_rain_mm',
-        'grain_fill_rain_mm', 'harvest_rain_mm',
+        'pre_seeding_rain_mm', 'sowing_window_rain_mm', 'in_crop_rain_mm',
+        'flowering_rain_mm', 'grain_fill_rain_mm', 'harvest_rain_mm',
         'autumn_break_date', 'autumn_break_7d_mm', 'autumn_break_status',
         'dry_spell_days_7d_lt_5mm', 'dry_spell_days_14d_lt_10mm',
         'data_quality_score',
