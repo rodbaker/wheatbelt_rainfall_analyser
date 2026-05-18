@@ -54,6 +54,13 @@ python src/agents/silo_wrangler/run_ingest.py --date-range 2026-04-01 2026-04-30
 # Broader station coverage
 python src/agents/silo_wrangler/run_ingest.py --use-bom-dataset --states "Western Australia" --days 40
 python src/agents/silo_wrangler/run_ingest.py --use-bom-dataset --states "Western Australia" --hybrid
+
+# SA2 monthly rainfall history and deciles across wheatbelt states
+python scripts/extract_sa2_monthly_rainfall.py --universe-source combined
+python scripts/build_sa2_rainfall_deciles.py
+
+# State-filtered extraction
+python scripts/extract_sa2_monthly_rainfall.py --universe-source combined --states "Western Australia,South Australia"
 ```
 
 ---
@@ -69,7 +76,7 @@ python src/agents/silo_wrangler/run_ingest.py --use-bom-dataset --states "Wester
 | `reports/daily/YYYY-MM-DD_risk_digest.md` | Daily markdown risk digest |
 | `reports/weekly/YYYY-WW_outlook.md` | Weekly outlook (M2 automation target) |
 
-The `event_log.csv` and `reports/weekly/` outputs feed a downstream weekly grains market update assembler at `../claude-notebooklm-research/projects/weekly-grains-market/`.
+The `event_log.csv` and `reports/weekly/` outputs feed a downstream weekly grains market update assembler at `../grains-market-monitor/`. Downstream integration is currently paused pending ACM/WRA review cycles — see `task_manager.md` for current status.
 
 ---
 
@@ -103,7 +110,8 @@ All events share a consistent schema — see `CLAUDE.md` for field definitions.
 
 ## Current limitations
 
-- WA wheatbelt coverage only (SA/VIC/NSW expansion ready but not activated)
-- No test suite (M2 backlog)
+- Daily risk reporting remains WA-calibrated in narrative and crop calendar assumptions.
+- SA2 monthly rainfall extraction supports five wheatbelt states through `--universe-source combined`, using the WA 2021 universe plus non-WA GeoJSON SA2s.
+- Test coverage exists for the current feature builders and reporting paths, but not every operational ingestion path is covered.
 - `data/external/` contains large NetCDF reference files (~1 GB) not used by the daily pipeline — consider external storage
 - Weekly outlook report (`reports/weekly/`) requires a manual trigger; cron automation is the M2 goal
