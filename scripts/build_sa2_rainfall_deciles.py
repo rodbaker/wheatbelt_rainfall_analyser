@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build monthly rainfall climatology and deciles for WA wheatbelt SA2s.
+"""Build monthly rainfall climatology and deciles for wheatbelt SA2s.
 
 For each SA2 × month × year, compares rainfall_mm against all prior years
 for the same SA2 and calendar month, excluding the current row's year from
@@ -34,6 +34,7 @@ OUTPUT_COLS = [
     "month",
     "sa2_code",
     "sa2_name",
+    "state_name",
     "rainfall_mm",
     "historical_year_count",
     "historical_median_mm",
@@ -43,6 +44,9 @@ OUTPUT_COLS = [
     "rainfall_decile",
     "rainfall_decile_label",
     "climatology_quality_flag",
+    "extraction_method",
+    "universe_source",
+    "source_variable",
 ]
 
 DECILE_LABELS = {
@@ -74,15 +78,21 @@ def _compute_decile(value: float, historical: pd.Series) -> int:
 
 def compute_deciles(df: pd.DataFrame) -> pd.DataFrame:
     """Compute climatology and decile fields for each row in df."""
+    has_state_col = "state_name" in df.columns
     rows = []
     for _, row in df.iterrows():
         sa2 = row["sa2_code"]
         month = row["month"]
         year = row["year"]
         rainfall = row["rainfall_mm"]
+        state = row.get("state_name") if has_state_col else None
 
-        # Historical baseline: same SA2 + month, excluding current year
+        # Historical baseline key: state+SA2+month when state_name is present,
+        # SA2+month only for legacy inputs without state_name.  This prevents
+        # the four SA2 codes that appear in two states from sharing baselines.
         mask = (df["sa2_code"] == sa2) & (df["month"] == month) & (df["year"] != year)
+        if has_state_col and pd.notna(state):
+            mask = mask & (df["state_name"] == state)
         historical = df.loc[mask, "rainfall_mm"].dropna()
         hist_count = len(historical)
 
@@ -91,6 +101,7 @@ def compute_deciles(df: pd.DataFrame) -> pd.DataFrame:
             "month": month,
             "sa2_code": sa2,
             "sa2_name": row["sa2_name"],
+            "state_name": row.get("state_name"),
             "rainfall_mm": rainfall,
             "historical_year_count": hist_count,
             "historical_median_mm": None,
@@ -100,6 +111,9 @@ def compute_deciles(df: pd.DataFrame) -> pd.DataFrame:
             "rainfall_decile": None,
             "rainfall_decile_label": None,
             "climatology_quality_flag": None,
+            "extraction_method": row.get("extraction_method"),
+            "universe_source": row.get("universe_source"),
+            "source_variable": row.get("source_variable"),
         }
 
         if pd.isna(rainfall):
@@ -136,6 +150,11 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", default=str(INPUT_CSV))
     parser.add_argument("--output", default=str(OUTPUT_CSV))
+    parser.add_argument(
+        "--states",
+        default=None,
+        help='Optional comma-separated state filter on state_name, e.g. "Western Australia,South Australia".',
+    )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
 
@@ -148,6 +167,23 @@ def main(argv=None):
 
     df = pd.read_csv(input_path, dtype={"sa2_code": str})
     print(f"Loaded {len(df)} rows from {input_path}")
+
+    if args.states:
+        if "state_name" not in df.columns:
+            print(
+                "ERROR: --states provided but input has no state_name column",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        state_filter = {s.strip() for s in args.states.split(",") if s.strip()}
+        df = df[df["state_name"].isin(state_filter)]
+        if df.empty:
+            print(
+                f"ERROR: no rows remain after filtering to states: {sorted(state_filter)}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        print(f"Filtered to {len(df)} rows for states: {sorted(state_filter)}")
 
     result = compute_deciles(df)
 

@@ -1,5 +1,6 @@
 """Tests for build_sa2_rainfall_deciles."""
 
+import sys
 import numpy as np
 import pandas as pd
 import pytest
@@ -275,3 +276,145 @@ class TestOutputSchema:
 
         result = mod.compute_deciles(df)
         assert list(result.columns) == mod.OUTPUT_COLS
+
+
+# ---------------------------------------------------------------------------
+# CLI: --states filter
+# ---------------------------------------------------------------------------
+
+def _make_history_with_state(sa2_code, state_name, months_years_rain):
+    """Like _make_history but includes state_name column."""
+    rows = [
+        {
+            "year": y,
+            "month": m,
+            "sa2_code": str(sa2_code),
+            "sa2_name": "Test SA2",
+            "state_name": state_name,
+            "rainfall_mm": r,
+            "extraction_method": "test",
+            "source_file": "test.nc",
+            "source_variable": "monthly_rain",
+            "quality_flag": "ok",
+        }
+        for m, y, r in months_years_rain
+    ]
+    return pd.DataFrame(rows)
+
+
+# ---------------------------------------------------------------------------
+# compute_deciles: duplicate SA2 code across states must not share baselines
+# ---------------------------------------------------------------------------
+
+class TestDuplicateSA2CrossState:
+    def test_same_sa2_different_states_use_separate_baselines(self):
+        """A SA2 code that appears in two states must produce independent deciles."""
+        shared_code = "999999999"
+        # State A: low rainfall history (~5mm), current = 50mm → should be decile 10
+        rows_a = [
+            {"year": 2005 + i, "month": 4, "sa2_code": shared_code, "sa2_name": "SA2 A",
+             "state_name": "State A", "rainfall_mm": 5.0 + i,
+             "extraction_method": "test", "source_file": "t.nc", "source_variable": "monthly_rain", "quality_flag": "ok"}
+            for i in range(12)
+        ]
+        rows_a.append(
+            {"year": 2025, "month": 4, "sa2_code": shared_code, "sa2_name": "SA2 A",
+             "state_name": "State A", "rainfall_mm": 200.0,
+             "extraction_method": "test", "source_file": "t.nc", "source_variable": "monthly_rain", "quality_flag": "ok"}
+        )
+        # State B: high rainfall history (~100mm), current = 5mm → should be decile 1
+        rows_b = [
+            {"year": 2005 + i, "month": 4, "sa2_code": shared_code, "sa2_name": "SA2 B",
+             "state_name": "State B", "rainfall_mm": 100.0 + i,
+             "extraction_method": "test", "source_file": "t.nc", "source_variable": "monthly_rain", "quality_flag": "ok"}
+            for i in range(12)
+        ]
+        rows_b.append(
+            {"year": 2025, "month": 4, "sa2_code": shared_code, "sa2_name": "SA2 B",
+             "state_name": "State B", "rainfall_mm": 1.0,
+             "extraction_method": "test", "source_file": "t.nc", "source_variable": "monthly_rain", "quality_flag": "ok"}
+        )
+        df = pd.concat([pd.DataFrame(rows_a), pd.DataFrame(rows_b)], ignore_index=True)
+
+        result = mod.compute_deciles(df)
+        r_a = result[(result["state_name"] == "State A") & (result["year"] == 2025) & (result["month"] == 4)]
+        r_b = result[(result["state_name"] == "State B") & (result["year"] == 2025) & (result["month"] == 4)]
+
+        assert r_a.iloc[0]["historical_year_count"] == 12, "State A baseline must not include State B rows"
+        assert r_b.iloc[0]["historical_year_count"] == 12, "State B baseline must not include State A rows"
+        assert r_a.iloc[0]["rainfall_decile"] == 10
+        assert r_b.iloc[0]["rainfall_decile"] == 1
+
+
+# ---------------------------------------------------------------------------
+# compute_deciles: legacy input without state_name column still works
+# ---------------------------------------------------------------------------
+
+class TestLegacyInputNoStateName:
+    def test_no_state_name_column_still_computes_deciles(self):
+        """Input without state_name column falls back to SA2+month baseline."""
+        rows = _history_for_sa2_month("501021007", month=6, n_years=11, base_rain=15.0)
+        rows.append((6, 2025, 100.0))
+        df = _make_history("501021007", rows)
+        assert "state_name" not in df.columns
+
+        result = mod.compute_deciles(df)
+        target = result[(result["year"] == 2025) & (result["month"] == 6)]
+        assert target.iloc[0]["climatology_quality_flag"] == "ok"
+        assert target.iloc[0]["rainfall_decile"] == 10
+
+
+class TestStatesFilter:
+    def test_states_filter_limits_output_to_requested_states(self, tmp_path):
+        """--states filters rows so only matching state_name rows are processed."""
+        wa_rows = _make_history_with_state(
+            "501021007", "Western Australia",
+            _history_for_sa2_month("501021007", month=1, n_years=11) + [(1, 2025, 30.0)]
+        )
+        sa_rows = _make_history_with_state(
+            "401000001", "South Australia",
+            _history_for_sa2_month("401000001", month=1, n_years=11) + [(1, 2025, 30.0)]
+        )
+        history = pd.concat([wa_rows, sa_rows], ignore_index=True)
+        input_csv = tmp_path / "history.csv"
+        output_csv = tmp_path / "deciles.csv"
+        history.to_csv(input_csv, index=False)
+
+        mod.main(["--input", str(input_csv), "--output", str(output_csv), "--states", "South Australia"])
+
+        result = pd.read_csv(output_csv, dtype={"sa2_code": str})
+        assert set(result["state_name"].unique()) == {"South Australia"}
+        assert "501021007" not in result["sa2_code"].values
+
+    def test_states_filter_absent_column_exits_with_error(self, tmp_path):
+        """--states on an input without state_name must exit non-zero with a clear message."""
+        rows = _history_for_sa2_month("501021007", month=1, n_years=11)
+        rows.append((1, 2025, 25.0))
+        df = _make_history("501021007", rows)  # no state_name column
+        input_csv = tmp_path / "history_no_state.csv"
+        output_csv = tmp_path / "deciles.csv"
+        df.to_csv(input_csv, index=False)
+
+        with pytest.raises(SystemExit) as exc_info:
+            mod.main(["--input", str(input_csv), "--output", str(output_csv), "--states", "Western Australia"])
+        assert exc_info.value.code != 0
+
+    def test_no_states_flag_preserves_all_rows(self, tmp_path):
+        """Without --states, all rows from the input are processed unchanged."""
+        wa_rows = _make_history_with_state(
+            "501021007", "Western Australia",
+            _history_for_sa2_month("501021007", month=3, n_years=11) + [(3, 2025, 20.0)]
+        )
+        sa_rows = _make_history_with_state(
+            "401000001", "South Australia",
+            _history_for_sa2_month("401000001", month=3, n_years=11) + [(3, 2025, 20.0)]
+        )
+        history = pd.concat([wa_rows, sa_rows], ignore_index=True)
+        input_csv = tmp_path / "history.csv"
+        output_csv = tmp_path / "deciles.csv"
+        history.to_csv(input_csv, index=False)
+
+        mod.main(["--input", str(input_csv), "--output", str(output_csv)])
+
+        result = pd.read_csv(output_csv, dtype={"sa2_code": str})
+        assert set(result["state_name"].unique()) == {"Western Australia", "South Australia"}

@@ -243,7 +243,7 @@ class TestRunAcceptance:
         )
         ds.to_netcdf(rain_dir / "2005.monthly_rain.nc")
 
-        df = mod.run(dry_run=True)
+        df = mod.run(dry_run=True, universe_source="wa_csv")
 
         assert len(df) == 28 * 12
         assert set(df["sa2_code"].unique()) == set(codes)
@@ -302,7 +302,121 @@ class TestRunAcceptance:
         )
         ds.to_netcdf(rain_dir / "2025.monthly_rain.nc")
 
-        df = mod.run(dry_run=True)
+        df = mod.run(dry_run=True, universe_source="wa_csv")
         assert len(df) == 28
         assert df["year"].eq(2025).all()
         assert df["month"].eq(1).all()
+
+    def test_geojson_universe_state_filter(self, tmp_path, monkeypatch):
+        """GeoJSON universe can extract multiple states and filter to one state."""
+        monkeypatch.setattr(mod, "MONTHLY_RAIN_DIR", tmp_path / "monthly_rain")
+        monkeypatch.setattr(mod, "OUTPUT_CSV", tmp_path / "out.csv")
+        monkeypatch.setattr(mod, "GEOJSON_PATH", tmp_path / "geo.geojson")
+
+        rain_dir = tmp_path / "monthly_rain"
+        rain_dir.mkdir()
+
+        features = []
+        specs = [
+            ("101000001", "NSW SA2", "New South Wales", -31.0, 148.0),
+            ("401000001", "SA SA2", "South Australia", -34.0, 138.0),
+            ("501000001", "WA SA2", "Western Australia", -32.0, 117.0),
+        ]
+        for code, name, state, lat, lon in specs:
+            features.append({
+                "type": "Feature",
+                "properties": {
+                    "SA2_MAIN16": code,
+                    "SA2_NAME16": name,
+                    "STE_NAME16": state,
+                },
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[
+                        [lon - 0.1, lat + 0.1], [lon + 0.1, lat + 0.1],
+                        [lon + 0.1, lat - 0.1], [lon - 0.1, lat - 0.1],
+                        [lon - 0.1, lat + 0.1],
+                    ]],
+                },
+            })
+        import json
+        with open(tmp_path / "geo.geojson", "w") as fh:
+            json.dump({"type": "FeatureCollection", "features": features}, fh)
+
+        ds = xr.Dataset(
+            {"monthly_rain": (["time", "lat", "lon"], np.ones((1, 3, 3), dtype=float))},
+            coords={
+                "time": [pd.Timestamp("2025-01-16")],
+                "lat": [-34.0, -32.0, -31.0],
+                "lon": [117.0, 138.0, 148.0],
+            },
+        )
+        ds.to_netcdf(rain_dir / "2025.monthly_rain.nc")
+
+        df = mod.run(
+            dry_run=True,
+            universe_source="geojson",
+            states="South Australia,New South Wales",
+        )
+
+        assert len(df) == 2
+        assert set(df["state_name"]) == {"South Australia", "New South Wales"}
+        assert set(df["sa2_code"]) == {"101000001", "401000001"}
+        assert df["universe_source"].eq("geojson_2016").all()
+
+    def test_custom_output_path_writes_there(self, tmp_path, monkeypatch):
+        """run() with --output writes to the specified path, not OUTPUT_CSV."""
+        monkeypatch.setattr(mod, "MONTHLY_RAIN_DIR", tmp_path / "monthly_rain")
+        monkeypatch.setattr(mod, "SA2_UNIVERSE_CSV", tmp_path / "universe.csv")
+        monkeypatch.setattr(mod, "GEOJSON_PATH", tmp_path / "geo.geojson")
+        default_out = tmp_path / "default_out.csv"
+        custom_out = tmp_path / "subdir" / "custom_out.csv"
+        monkeypatch.setattr(mod, "OUTPUT_CSV", default_out)
+
+        rain_dir = tmp_path / "monthly_rain"
+        rain_dir.mkdir()
+
+        n = 2
+        codes = ["501000001", "501000002"]
+        names = ["SA2 A", "SA2 B"]
+        lats = [-30.0, -31.0]
+        lons = [116.0, 117.0]
+
+        pd.DataFrame({"SA2_CODE21": codes, "SA2_NAME21": names}).to_csv(
+            tmp_path / "universe.csv", index=False
+        )
+
+        import json
+        features = []
+        for code, name, lat, lon in zip(codes, names, lats, lons):
+            features.append({
+                "type": "Feature",
+                "properties": {"SA2_MAIN16": code, "SA2_NAME16": name},
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[
+                        [lon - 0.1, lat + 0.1], [lon + 0.1, lat + 0.1],
+                        [lon + 0.1, lat - 0.1], [lon - 0.1, lat - 0.1],
+                        [lon - 0.1, lat + 0.1],
+                    ]],
+                },
+            })
+        with open(tmp_path / "geo.geojson", "w") as fh:
+            json.dump({"type": "FeatureCollection", "features": features}, fh)
+
+        ds = xr.Dataset(
+            {"monthly_rain": (["time", "lat", "lon"], np.ones((1, 2, 2), dtype=float))},
+            coords={
+                "time": [pd.Timestamp("2005-01-16")],
+                "lat": lats,
+                "lon": lons,
+            },
+        )
+        ds.to_netcdf(rain_dir / "2005.monthly_rain.nc")
+
+        mod.run(dry_run=False, universe_source="wa_csv", output=custom_out)
+
+        assert custom_out.exists(), "custom output path was not written"
+        assert not default_out.exists(), "default OUTPUT_CSV must not be touched"
+        written = pd.read_csv(custom_out)
+        assert len(written) == 2

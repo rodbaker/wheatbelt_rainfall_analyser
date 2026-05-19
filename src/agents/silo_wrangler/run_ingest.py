@@ -22,9 +22,9 @@ from src.common.config_loader import load_config
 from src.common.logging_utils import setup_logging
 from src.common.stations_loader import load_wheatbelt_stations_for_config, generate_data_drill_grid
 from src.data.duckdb_storage import DuckDBStorage
-from .api_client import SILOAPIClient
-from .data_processor import WeatherDataProcessor
-from .quality_checker import DataQualityChecker
+from src.agents.silo_wrangler.api_client import SILOAPIClient
+from src.agents.silo_wrangler.data_processor import WeatherDataProcessor
+from src.agents.silo_wrangler.quality_checker import DataQualityChecker
 
 logger = logging.getLogger(__name__)
 

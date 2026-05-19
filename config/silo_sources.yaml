@@ -5,7 +5,7 @@
 api:
   base_url: "https://www.longpaddock.qld.gov.au/cgi-bin/silo/PatchedPointDataset.php"
   username: "${SILO_EMAIL}"  # Required by SILO for usage tracking
-  rate_limit_seconds: 0.6     # Conservative for large-scale (1.6 req/sec)
+  rate_limit_seconds: 0.2     # 5 req/sec — reduced from 0.6 after confirming SILO docs specify no limit
   timeout_seconds: 30
   max_retries: 3
 

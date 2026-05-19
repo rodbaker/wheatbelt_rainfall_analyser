@@ -6,6 +6,12 @@ These contracts define the stable modelling and pipeline outputs for the wheat c
 
 Contracts are specification documents, not implementation constraints. Code is expected to converge toward them over time.
 
+The approved SA2 monthly rainfall producer handoff is documented separately in
+`docs/rainfall_handoff_v1_contract.md`. That v1.0 contract is the authority for
+the canonical national rainfall history and decile CSVs; it does not approve
+growing-season rainfall, weighted rainfall expansion, extraction-method changes,
+or downstream ACM integration.
+
 ---
 
 ## 2. Contract: `daily_weather_observations`
@@ -228,3 +234,4 @@ The following decisions are needed before contract tables can be generated:
 4. **Handling Data Drill grid points in regional aggregation** — Data Drill points (`DD_lat_lon` station IDs) cover areas with no BOM station. The contract allows for them, but the aggregation logic for mixing BOM station records and Data Drill records within the same SA2 is undefined. A weighting or exclusion rule is needed.
 
 5. **Temperature features in the same modelling table or a separate weather feature table** — The current contracts are rainfall-focused. Temperature (frost, heat) features are tracked via the event log. A decision is needed on whether a `weather_features_station_season` table should be defined alongside the rainfall contracts, or whether temperature features are out of scope for the modelling handoff.
+
