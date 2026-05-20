@@ -8,7 +8,6 @@
 ## Backlog
 | ID              | Title                                           | Agent          | Priority | Size | Notes |
 |-----------------|-------------------------------------------------|----------------|----------|------|-------|
-| T-20260505-001  | SA2 coverage metadata fields                    | infrastructure | P1       | S    | Add season_coverage_ratio, sowing_window_coverage_ratio, in_crop_coverage_ratio, feature_quality_flag to build_sa2_rainfall_features.py. Needed before ABS/yield interpretation — autumn_break_status=absent is ambiguous without knowing Apr–Jun data completeness. |
 | T-20260520-002  | National daily features via centroid extraction | rainfall-analytics | P2       | M    | Populate dry-spell and autumn-break columns for all 192 SA2s × all historical years using `{year}.daily_rain.nc` daily NetCDFs and the centroid_nearest_grid_cell selector. Today, hybrid mode keeps WA daily values from DuckDB and leaves non-WA SA2s with `daily_features_status='monthly_only'`. Unlocked by the same ~8 GB download already parked under v1.2 like-for-like deciles. |
 | T-20250906-005  | Config & secrets hygiene                        | infrastructure | P2       | S    | env.sample; no secrets in repo |
 | T-20250906-006  | Readme: "How to run CropForecaster locally"     | business       | P2       | S    | Onboard future collaborators |
@@ -21,6 +20,7 @@
 ## Done
 | ID              | Title                             | Agent          | Completed   | PR/Commit |
 |-----------------|-----------------------------------|----------------|-------------|-----------|
+| T-20260505-001  | SA2 coverage metadata semantics fix            | infrastructure | 2026-05-20 | 1b6679d |
 | T-20260520-004  | Jun–Oct rainfall as analogue covariate                | rainfall-analytics | 2026-05-20 | e66c89a |
 | T-20260520-003  | ABARES historical area+production+yield as project input | rainfall-analytics | 2026-05-20 | 49a1758 |
 | T-20260422-001  | Full hybrid ingest run (WA BOM + Data Drill gap-fill) | silo-wrangler | 2026-04-22 | pending |
@@ -790,6 +790,23 @@ Claude prints: `OK TO CLOSE: Save is complete. Please close this chat to reset c
 - **Files touched:** `task_manager.md` (backlog rows + this session log)
 - **Blockers:** None
 - **Commit:** `f780efc docs(task_manager): log T-20260520-003 + -004 backlog after analyst analogue analysis`
+
+### 2026-05-20 — infrastructure (T-20260505-001)
+- **Task:** T-20260505-001 — SA2 coverage metadata semantics fix
+- **What changed:** Fixed the four metadata columns in `data/features/rainfall_features_sa2_season.csv` so an analyst can distinguish complete, in-progress, and missing-data scenarios.
+- **Files touched:**
+  - `scripts/build_sa2_rainfall_features.py` — day-level coverage ratios, `complete_to_date` flag, `not_assessed` sentinel, overlay detection fix, DuckDB path in-progress detection
+  - `scripts/build_wa_wheat_weighted_rainfall.py` — eligibility gate now accepts both `complete` and `complete_to_date`
+  - `tests/test_sa2_rainfall_features.py` — 67 tests in file (was 51); updated stale `test_partial_month_through_day_...` assertion; added `TestFeatureQualityFlagCompletToDate`, `TestDayLevelCoverageRatios`, `TestAutumnBreakNotAssessed`, `TestWeightedBuilderEligibility`
+  - `docs/data_contracts.md` — new section 5a documents coverage semantics, `feature_quality_flag` vocabulary, and `autumn_break_status` vocabulary including `not_assessed`
+- **Key design decisions:**
+  - Coverage ratios use full-year fixed denominators (365/366 for season, 91 for sowing, 184 for in-crop) so 2026 MTD gives ~0.38 not 1.0
+  - `feature_quality_flag` uses month-based gate ratios internally (not day-level) so 'complete_to_date' fires when all elapsed months have data and the current month is partial
+  - `has_partial_month` threaded through `_feature_quality_flag()` as a new optional parameter (default False); all existing callers unchanged
+  - `overlay_daily_features()` now computes `has_overlay` from `_dly` columns before `combine_first`, because 'not_assessed' is non-null
+- **Validation:** 341 tests passing (was 325 before this session).
+- **Blockers:** None
+- **Commit:** `1b6679d`
 
 ### 2026-05-20 — rainfall-analytics (T-20260520-003 + T-20260520-004)
 - **Tasks:** T-20260520-003 (ABARES input + 2-window analogue script) and T-20260520-004 (Jun-Oct 3rd window with conditional dispersion)
