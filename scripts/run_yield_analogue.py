@@ -33,9 +33,41 @@ logger = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).parent.parent
 
-RAINFALL_CSV = REPO_ROOT / "data/features/sa2_monthly_rainfall_history_national.csv"
-CROP_CONTEXT_CSV = REPO_ROOT / "data/meta/crop_context_sa2.csv"
-ABARES_CSV = REPO_ROOT / "data/meta/abares/abares_crop_production_normalized.csv"
+
+def _resolve_data_path(relative: str) -> Path:
+    """Resolve a data path relative to the repo root.
+
+    Falls back to the main repo root when running from a git worktree branch
+    that doesn't carry large data files.
+    """
+    local = REPO_ROOT / relative
+    if local.exists():
+        return local
+
+    # When running from a worktree, .git is a file pointing to the real .git dir
+    git_path = REPO_ROOT / ".git"
+    if git_path.is_file():
+        git_dir_line = git_path.read_text().strip()
+        # Format: "gitdir: /path/to/.git/worktrees/<name>"
+        git_dir = Path(git_dir_line.replace("gitdir: ", "").strip()).resolve()
+        # Navigate from .git/worktrees/<name> -> main repo root
+        main_root = git_dir.parent.parent.parent
+        candidate = main_root / relative
+        if candidate.exists():
+            return candidate
+
+    raise FileNotFoundError(
+        f"Data file not found: {relative}\n"
+        f"  Checked: {local}\n"
+        f"  If running from a worktree, ensure the main repo has this file at: "
+        f"{REPO_ROOT.parent.parent.parent / relative}"
+    )
+
+
+# Default paths — resolved lazily at runtime to support worktree execution
+_RAINFALL_CSV_REL = "data/features/sa2_monthly_rainfall_history_national.csv"
+_CROP_CONTEXT_CSV_REL = "data/meta/crop_context_sa2.csv"
+_ABARES_CSV_REL = "data/meta/abares/abares_crop_production_normalized.csv"
 
 # Map state_name (rainfall CSV) -> ABARES state code
 STATE_NAME_TO_ABARES = {
@@ -520,8 +552,8 @@ def print_markdown_table(
 )
 @click.option(
     "--output",
-    default=str(REPO_ROOT / "data/features/wheat_yield_analogue_summary.csv"),
-    help="Output CSV path",
+    default=None,
+    help="Output CSV path (default: data/features/wheat_yield_analogue_summary.csv in repo root)",
 )
 @click.option("--n-analogues", default=3, type=int, help="Number of analogue years to select")
 def main(
@@ -533,6 +565,9 @@ def main(
     """Run wheat yield analogue analysis."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
+    if output is None:
+        output = str(REPO_ROOT / "data/features/wheat_yield_analogue_summary.csv")
+
     # Parse windows
     windows_list = [w.strip() for w in windows.split(",")]
     for w in windows_list:
@@ -541,17 +576,21 @@ def main(
                 f"Unknown window '{w}'. Choose from: {list(WINDOW_MONTHS.keys())}"
             )
 
-    # Load data
-    logger.info("Loading rainfall data from %s", RAINFALL_CSV)
-    rain_df = pd.read_csv(RAINFALL_CSV)
+    # Load data (resolve paths lazily to support worktree execution)
+    rainfall_csv = _resolve_data_path(_RAINFALL_CSV_REL)
+    crop_context_csv = _resolve_data_path(_CROP_CONTEXT_CSV_REL)
+    abares_csv = _resolve_data_path(_ABARES_CSV_REL)
 
-    logger.info("Loading crop context from %s", CROP_CONTEXT_CSV)
-    ctx_df = pd.read_csv(CROP_CONTEXT_CSV)
+    logger.info("Loading rainfall data from %s", rainfall_csv)
+    rain_df = pd.read_csv(rainfall_csv)
+
+    logger.info("Loading crop context from %s", crop_context_csv)
+    ctx_df = pd.read_csv(crop_context_csv)
     ctx_wheat = ctx_df[ctx_df["crop"] == "wheat"].copy()
     ctx_wheat["sa2_5dig"] = ctx_wheat["station_sa2_5dig16"].astype(str)
 
-    logger.info("Loading ABARES data from %s", ABARES_CSV)
-    abares_df = pd.read_csv(ABARES_CSV)
+    logger.info("Loading ABARES data from %s", abares_csv)
+    abares_df = pd.read_csv(abares_csv)
 
     # Determine target year
     if target_year is None:
