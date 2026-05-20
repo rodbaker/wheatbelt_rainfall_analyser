@@ -134,8 +134,9 @@ def build_summary_row(
         states_present = wheat["state"].dropna().unique() if "state" in wheat.columns else []
         state_name = states_present[0] if len(states_present) else "Western Australia"
 
-    # Partition by quality gate
-    complete = wheat[wheat["rainfall_feature_quality_flag"] == "complete"]
+    # Partition by quality gate — 'complete_to_date' (in-progress season with
+    # full coverage to the current date) is eligible alongside 'complete'.
+    complete = wheat[wheat["rainfall_feature_quality_flag"].isin(["complete", "complete_to_date"])]
     insufficient = wheat[wheat["rainfall_feature_quality_flag"] == "insufficient_season"]
     no_data = wheat[wheat["rainfall_feature_quality_flag"] == "no_data"]
 

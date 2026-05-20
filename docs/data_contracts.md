@@ -83,7 +83,7 @@ One row per station (or Data Drill grid point) per wheat season. This is the pri
 | `harvest_rain_mm` | float | Total rainfall during harvest window (see §5) |
 | `autumn_break_date` | ISO date | Date of first qualifying autumn break event (nullable) |
 | `autumn_break_7d_mm` | float | 7-day rainfall total at the autumn break (nullable) |
-| `autumn_break_status` | string | `early`, `on_time`, `late`, or `absent` |
+| `autumn_break_status` | string | `early`, `on_time`, `late`, `absent`, or `not_assessed`. `absent` = daily data available, no qualifying event detected. `not_assessed` = no daily data available (canonical monthly source only). |
 | `rainfall_anomaly_mm` | float | Deviation from baseline climatology (mm) |
 | `rainfall_anomaly_pct` | float | Percentage deviation from baseline (%) |
 | `rainfall_percentile` | float | Season rainfall percentile within historical distribution |
@@ -126,7 +126,7 @@ One row per region per wheat season. Regions may be SA2, SA3, SA4, LGA, or DPIRD
 | `harvest_rain_mm` | float | Aggregated harvest rainfall (mm) |
 | `autumn_break_date` | ISO date | Modal or area-weighted autumn break date across contributing stations (nullable) |
 | `autumn_break_7d_mm` | float | Area-weighted 7-day autumn break rainfall (nullable) |
-| `autumn_break_status` | string | `early`, `on_time`, `late`, or `absent` |
+| `autumn_break_status` | string | `early`, `on_time`, `late`, `absent`, or `not_assessed`. See section 3 for vocabulary. |
 | `rainfall_anomaly_mm` | float | Regional deviation from baseline climatology (mm) |
 | `rainfall_anomaly_pct` | float | Percentage deviation from baseline (%) |
 | `rainfall_percentile` | float | Regional seasonal rainfall percentile |
@@ -155,6 +155,52 @@ These windows define the phenological periods used to compute windowed rainfall 
 | **Crop year / season year** | Apr–Mar | The conventional label for a wheat season. The 2025 season runs approximately Apr 2025 – Mar 2026. `season_year` is the calendar year in which sowing occurs. |
 
 WA wheatbelt terminology note: "break of season" and "autumn break" are used interchangeably in DPIRD literature. This project uses `autumn_break` as the canonical term.
+
+---
+
+## 5a. SA2 Rainfall Features Coverage Metadata Semantics
+
+This section documents the semantics of the four coverage and quality columns in
+`data/features/rainfall_features_sa2_season.csv` produced by
+`scripts/build_sa2_rainfall_features.py`.
+
+### Coverage ratio columns
+
+All three ratios now reflect **day-level completeness** (not month-counting):
+
+| Column | Denominator | Numerator |
+|---|---|---|
+| `season_coverage_ratio` | 365 or 366 (full calendar year) | Sum of days present per month: full months use calendar days; partial months (current MTD month) use `partial_month_through_day` |
+| `sowing_window_coverage_ratio` | 91 (Apr 30 + May 31 + Jun 30) | Days present within Apr–Jun only |
+| `in_crop_coverage_ratio` | 184 (May–Oct) | Days present within May–Oct only |
+
+For completed historical seasons all 12 months are full → ratios land at 1.0.
+For an in-progress season (e.g. May 20 snapshot): `season_coverage_ratio ≈ (31+28+31+30+19)/365 = 0.38`.
+
+### `feature_quality_flag` vocabulary
+
+| Value | Meaning |
+|---|---|
+| `complete` | All 12 months present, all full-month data |
+| `complete_to_date` | All elapsed months present; current month is partial (in-progress season) |
+| `partial` | One or more elapsed months missing (data gap) |
+| `insufficient_sowing_window` | Sowing-window (Apr–Jun) coverage below threshold |
+| `insufficient_season` | Season-wide coverage below threshold |
+| `no_data` | No data available (signalled by callers before feature computation) |
+
+Both `complete` and `complete_to_date` are treated as **eligible** for area-weighted rainfall metrics in `scripts/build_wa_wheat_weighted_rainfall.py`.
+
+### `autumn_break_status` vocabulary
+
+| Value | Meaning |
+|---|---|
+| `early` | First qualifying event before May 15 |
+| `on_time` | First qualifying event May 15 – Jun 15 |
+| `late` | First qualifying event after Jun 15 |
+| `absent` | Daily data available; no qualifying autumn break event detected |
+| `not_assessed` | No daily data available (canonical monthly source — `daily_features_status = 'monthly_only'`) |
+
+`not_assessed` is the default for all non-WA SA2s and all 2026 rows in hybrid build until a DuckDB daily overlay is applied. After overlay, WA SA2s receive `early`/`on_time`/`late`/`absent` from the DuckDB path.
 
 ---
 

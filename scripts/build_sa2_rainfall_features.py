@@ -11,6 +11,7 @@ Usage:
 """
 
 import sys
+import calendar
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -282,7 +283,10 @@ def _station_season_record(station_id: str, season_year: int,
     in_crop_obs = len(_window_rows(grp, season_year, 5, 10, 0))
     sowing_coverage = sowing_obs / max(effective_sowing_days, 1)
     in_crop_coverage = in_crop_obs / max(effective_in_crop_days, 1)
-    quality_flag = _feature_quality_flag(coverage, sowing_coverage, in_crop_coverage, min_coverage)
+    # Season is in-progress when observations don't yet cover Dec 31
+    is_in_progress = effective_end < end
+    quality_flag = _feature_quality_flag(coverage, sowing_coverage, in_crop_coverage,
+                                          min_coverage, has_partial_month=is_in_progress)
 
     return {
         'station_id': station_id,
@@ -306,6 +310,7 @@ def _station_season_record(station_id: str, season_year: int,
         'sowing_window_coverage_ratio': round(sowing_coverage, 4),
         'in_crop_coverage_ratio': round(in_crop_coverage, 4),
         'feature_quality_flag': quality_flag,
+        '_is_in_progress': is_in_progress,
     }
 
 
@@ -393,13 +398,19 @@ def _quality_score(grp: pd.DataFrame) -> float:
 
 
 def _feature_quality_flag(season_cov: float, sowing_cov: float,
-                           in_crop_cov: float, min_coverage: float) -> str:
+                           in_crop_cov: float, min_coverage: float,
+                           has_partial_month: bool = False) -> str:
     """
     Classify feature completeness from three coverage ratios.
 
     Priority (worst first): insufficient_season > insufficient_sowing_window
-    > partial > complete. 'no_data' is reserved for callers that need to signal
-    total absence before this function is reached.
+    > partial > complete_to_date > complete. 'no_data' is reserved for callers
+    that need to signal total absence before this function is reached.
+
+    has_partial_month: True when the season is in-progress and the latest
+    month's data is only available through a mid-month cutoff date. Causes
+    'complete_to_date' to be returned instead of 'complete' when coverage
+    thresholds are otherwise met.
     """
     if season_cov < min_coverage:
         return 'insufficient_season'
@@ -407,6 +418,8 @@ def _feature_quality_flag(season_cov: float, sowing_cov: float,
         return 'insufficient_sowing_window'
     if in_crop_cov < min_coverage:
         return 'partial'
+    if has_partial_month:
+        return 'complete_to_date'
     return 'complete'
 
 
@@ -427,7 +440,7 @@ def aggregate_to_sa2(station_features: pd.DataFrame,
 
     non_numeric = ('station_id', 'season_year', 'sa2_code', 'sa2_name',
                    'state_name', 'autumn_break_date', 'autumn_break_status',
-                   'feature_quality_flag')
+                   'feature_quality_flag', '_is_in_progress')
     numeric_cols = [c for c in df.columns if c not in non_numeric]
 
     def agg_group(grp):
@@ -452,7 +465,10 @@ def aggregate_to_sa2(station_features: pd.DataFrame,
         s_cov = row.get('season_coverage_ratio') or 0.0
         sw_cov = row.get('sowing_window_coverage_ratio') or 0.0
         ic_cov = row.get('in_crop_coverage_ratio') or 0.0
-        row['feature_quality_flag'] = _feature_quality_flag(s_cov, sw_cov, ic_cov, min_coverage)
+        # Propagate in-progress status from any contributing station
+        is_in_progress = bool(grp['_is_in_progress'].any()) if '_is_in_progress' in grp.columns else False
+        row['feature_quality_flag'] = _feature_quality_flag(s_cov, sw_cov, ic_cov, min_coverage,
+                                                             has_partial_month=is_in_progress)
 
         return pd.Series(row)
 
@@ -543,6 +559,17 @@ def compute_features_from_canonical(history_df: pd.DataFrame,
         .rename(columns={'partial_month_through_day': 'partial_through_day'})
     )
 
+    # Pre-build per-month day-count lookup for day-level coverage ratios.
+    # For partial months uses partial_month_through_day; for full months uses
+    # calendar days. Key: (state_name, sa2_code_str, year, month).
+    month_day_counts: dict[tuple, int] = {}
+    for _, mr in history_df.iterrows():
+        key = (mr['state_name'], str(mr['sa2_code']), int(mr['year']), int(mr['month']))
+        if mr['is_partial_month'] and pd.notna(mr.get('partial_month_through_day')):
+            month_day_counts[key] = int(mr['partial_month_through_day'])
+        else:
+            month_day_counts[key] = calendar.monthrange(int(mr['year']), int(mr['month']))[1]
+
     records = []
     for _, row in pivot.iterrows():
         season_year = int(row['year'])
@@ -563,9 +590,9 @@ def compute_features_from_canonical(history_df: pd.DataFrame,
             for m in range(1, 13)
         }
 
-        # Coverage: months-with-data / months-elapsed (capped to 12).
-        # Historical years (year < today.year): denom = 12.
-        # Current year: denom = number of months that have at least begun.
+        # ---------- Quality-gate coverage (month-based) ----------
+        # Used only for feature_quality_flag classification; the output CSV
+        # columns carry day-level coverage ratios computed below.
         if season_year < today.year:
             months_elapsed = 12
         elif season_year > today.year:
@@ -573,33 +600,53 @@ def compute_features_from_canonical(history_df: pd.DataFrame,
         else:
             months_elapsed = today.month
         denom = max(months_elapsed, 1)
-        season_cov = round(len(months_present) / denom, 4) if months_elapsed > 0 else 0.0
+        season_cov_gate = round(len(months_present) / denom, 4) if months_elapsed > 0 else 0.0
 
-        sowing_months_present = sum(
-            1 for m in range(4, 7) if m in months_present
-        )
+        sowing_months_present = sum(1 for m in range(4, 7) if m in months_present)
         sowing_elapsed = (
             3 if season_year < today.year
             else max(0, min(3, today.month - 3)) if season_year == today.year
             else 0
         )
-        sowing_cov = (
+        sowing_cov_gate = (
             round(sowing_months_present / sowing_elapsed, 4)
             if sowing_elapsed > 0 else 0.0
         )
 
-        in_crop_months_present = sum(
-            1 for m in range(5, 11) if m in months_present
-        )
+        in_crop_months_present = sum(1 for m in range(5, 11) if m in months_present)
         in_crop_elapsed = (
             6 if season_year < today.year
             else max(0, min(6, today.month - 4)) if season_year == today.year
             else 0
         )
-        in_crop_cov = (
+        in_crop_cov_gate = (
             round(in_crop_months_present / in_crop_elapsed, 4)
             if in_crop_elapsed > 0 else 0.0
         )
+
+        # ---------- Day-level coverage ratios (output columns) ----------
+        # Numerator: actual days present per month (partial months use
+        # partial_month_through_day; full months use calendar days).
+        # Denominators are fixed: full year = 365/366; sowing = 91; in-crop = 184.
+        raw_sa2 = str(row['sa2_code'])
+
+        def days_for_month(m: int) -> int:
+            if m not in months_present:
+                return 0
+            return month_day_counts.get(
+                (row['state_name'], raw_sa2, season_year, m),
+                calendar.monthrange(season_year, m)[1],
+            )
+
+        full_year_days = 366 if calendar.isleap(season_year) else 365
+        season_days_num = sum(days_for_month(m) for m in range(1, 13))
+        season_cov = round(season_days_num / full_year_days, 4)
+
+        sowing_days_num = sum(days_for_month(m) for m in range(4, 7))
+        sowing_cov = round(sowing_days_num / SOWING_WINDOW_DAYS, 4)
+
+        in_crop_days_num = sum(days_for_month(m) for m in range(5, 11))
+        in_crop_cov = round(in_crop_days_num / IN_CROP_WINDOW_DAYS, 4)
 
         # Partial-month flag for this season
         match = partial[
@@ -613,12 +660,13 @@ def compute_features_from_canonical(history_df: pd.DataFrame,
             else None
         )
 
-        # feature_quality_flag reflects coverage of data we've actually got.
-        # An in-progress season with the current month still partial is fine
-        # if every elapsed month has data — partial_through_day signals the
-        # MTD truncation independently.
+        # feature_quality_flag uses month-gate ratios (did every elapsed month
+        # have data?) plus has_partial_month (is the current month still MTD?).
+        # 'complete_to_date' fires when all elapsed months are present but the
+        # latest is partial — the MTD in-progress case.
         quality_flag = _feature_quality_flag(
-            season_cov, sowing_cov, in_crop_cov, min_coverage
+            season_cov_gate, sowing_cov_gate, in_crop_cov_gate, min_coverage,
+            has_partial_month=(partial_through_day is not None),
         )
 
         # The canonical CSV uses 9-digit SA2_MAIN codes; the downstream join
@@ -644,7 +692,11 @@ def compute_features_from_canonical(history_df: pd.DataFrame,
             **window_vals,
             **monthly_out,
             # Daily-derived columns are null in canonical-monthly mode.
-            **{c: None for c in DAILY_DERIVED_COLS},
+            # autumn_break_status uses 'not_assessed' (not None) so downstream
+            # consumers can distinguish "no daily data, can't assess" from
+            # "had daily data, no break detected" (which is 'absent').
+            **{c: ('not_assessed' if c == 'autumn_break_status' else None)
+               for c in DAILY_DERIVED_COLS},
             'data_quality_score': None,
             'season_coverage_ratio': season_cov,
             'sowing_window_coverage_ratio': sowing_cov,
@@ -674,14 +726,21 @@ def overlay_daily_features(base: pd.DataFrame, overlay: pd.DataFrame) -> pd.Data
         how='left',
         suffixes=('', '_dly'),
     )
+    # Determine which rows actually received DuckDB overlay data before
+    # applying combine_first — autumn_break_status is now 'not_assessed'
+    # (non-null) in the base, so we can't rely on notna() post-merge.
+    has_overlay = pd.Series(False, index=merged.index)
+    for col in (*DAILY_DERIVED_COLS, 'data_quality_score'):
+        dly = f'{col}_dly'
+        if dly in merged.columns:
+            has_overlay |= merged[dly].notna()
+
     for col in (*DAILY_DERIVED_COLS, 'data_quality_score'):
         dly = f'{col}_dly'
         if dly in merged.columns:
             merged[col] = merged[dly].combine_first(merged[col])
             merged = merged.drop(columns=[dly])
-    # Mark rows that received a real daily overlay
-    has_overlay = merged['autumn_break_status'].notna() | \
-        merged['dry_spell_days_7d_lt_5mm'].notna()
+
     merged.loc[has_overlay, 'daily_features_status'] = 'duckdb_stations'
     return merged
 
