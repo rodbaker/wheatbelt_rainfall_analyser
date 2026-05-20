@@ -17,6 +17,45 @@ REPO_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
+
+def _resolve_data_path(relative: str) -> Path:
+    """Resolve a data path, falling back to main repo if not in worktree."""
+    local = REPO_ROOT / relative
+    if local.exists():
+        return local
+    # When running from a worktree, data files may live in the main repo
+    # Detect worktrees path: .../worktrees/agent-*/
+    main_repo = REPO_ROOT
+    for part in REPO_ROOT.parts:
+        if "worktrees" in str(REPO_ROOT):
+            # Navigate up to find .git's parent (the main repo root)
+            candidate = Path(REPO_ROOT.parts[0])
+            for p in REPO_ROOT.parts[1:]:
+                candidate = candidate / p
+                if (candidate / ".git").is_dir() and (candidate / ".git").is_file() is False:
+                    git_file = candidate / ".git"
+                    if git_file.is_file():
+                        main_repo = candidate.parent.parent.parent
+                    break
+            break
+    fallback = main_repo / relative
+    if fallback.exists():
+        return fallback
+    # Last resort: check if REPO_ROOT contains a .git file (worktree link)
+    git_path = REPO_ROOT / ".git"
+    if git_path.is_file():
+        # Read the gitdir reference
+        git_dir = git_path.read_text().strip().replace("gitdir: ", "")
+        # worktrees/<name>/  -> go up to find main repo
+        main_git = Path(git_dir).resolve()
+        main_root = main_git.parent.parent.parent  # .git/worktrees/<name> -> main repo
+        candidate = main_root / relative
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError(
+        f"Could not find {relative} in {REPO_ROOT} or any parent repo"
+    )
+
 from run_yield_analogue import (
     compute_implied_production,
     compute_implied_production_with_dispersion,
@@ -151,9 +190,9 @@ def test_2026_nsw_analogues():
     - NSW analogues are [2017, 2019, 2023] (sorted)
     - Implied production is between 5.5 and 5.7 Mt
     """
-    rain_df = pd.read_csv(REPO_ROOT / "data/features/sa2_monthly_rainfall_history_national.csv")
-    ctx_df = pd.read_csv(REPO_ROOT / "data/meta/crop_context_sa2.csv")
-    abares_df = pd.read_csv(REPO_ROOT / "data/meta/abares/abares_crop_production_normalized.csv")
+    rain_df = pd.read_csv(_resolve_data_path("data/features/sa2_monthly_rainfall_history_national.csv"))
+    ctx_df = pd.read_csv(_resolve_data_path("data/meta/crop_context_sa2.csv"))
+    abares_df = pd.read_csv(_resolve_data_path("data/meta/abares/abares_crop_production_normalized.csv"))
 
     ctx_wheat = ctx_df[ctx_df["crop"] == "wheat"].copy()
     ctx_wheat["sa2_5dig"] = ctx_wheat["station_sa2_5dig16"].astype(str)
@@ -191,9 +230,9 @@ def test_jun_oct_dispersion_2026():
     - Output includes columns implied_production_low_mt and implied_production_high_mt
     - low < high for at least one state
     """
-    rain_df = pd.read_csv(REPO_ROOT / "data/features/sa2_monthly_rainfall_history_national.csv")
-    ctx_df = pd.read_csv(REPO_ROOT / "data/meta/crop_context_sa2.csv")
-    abares_df = pd.read_csv(REPO_ROOT / "data/meta/abares/abares_crop_production_normalized.csv")
+    rain_df = pd.read_csv(_resolve_data_path("data/features/sa2_monthly_rainfall_history_national.csv"))
+    ctx_df = pd.read_csv(_resolve_data_path("data/meta/crop_context_sa2.csv"))
+    abares_df = pd.read_csv(_resolve_data_path("data/meta/abares/abares_crop_production_normalized.csv"))
 
     ctx_wheat = ctx_df[ctx_df["crop"] == "wheat"].copy()
     ctx_wheat["sa2_5dig"] = ctx_wheat["station_sa2_5dig16"].astype(str)
@@ -233,9 +272,9 @@ def test_full_3window_retrospective():
     - Output has standard implied_production_mt column (no dispersion)
     - Analogues are selected using 3-window distance
     """
-    rain_df = pd.read_csv(REPO_ROOT / "data/features/sa2_monthly_rainfall_history_national.csv")
-    ctx_df = pd.read_csv(REPO_ROOT / "data/meta/crop_context_sa2.csv")
-    abares_df = pd.read_csv(REPO_ROOT / "data/meta/abares/abares_crop_production_normalized.csv")
+    rain_df = pd.read_csv(_resolve_data_path("data/features/sa2_monthly_rainfall_history_national.csv"))
+    ctx_df = pd.read_csv(_resolve_data_path("data/meta/crop_context_sa2.csv"))
+    abares_df = pd.read_csv(_resolve_data_path("data/meta/abares/abares_crop_production_normalized.csv"))
 
     ctx_wheat = ctx_df[ctx_df["crop"] == "wheat"].copy()
     ctx_wheat["sa2_5dig"] = ctx_wheat["station_sa2_5dig16"].astype(str)
