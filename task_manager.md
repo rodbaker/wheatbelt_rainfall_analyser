@@ -773,6 +773,24 @@ Claude prints: `OK TO CLOSE: Save is complete. Please close this chat to reset c
 - **Blockers:** None
 - **Commit:** pending
 
+### 2026-05-20 — analyst-workflow (ABARES analogue analysis — exploratory)
+- **Task:** Use ABARES historical wheat area + production (1989–2025) to put 2026 rainfall in production context, then refine with summer-vs-seeding window split per Rod's prompt about modern subsoil-moisture retention
+- **What changed:** No code in repo. Read-only analysis using `data/features/sa2_monthly_rainfall_history_national.csv` (this repo) and `/home/roddyb/projects/ABS Census Data/Modernised_Census_2022_2025/comparison_2020_21_to_2022_23/acf_historical/stock_and_production_context/abares_crop_production_normalized.csv` (external)
+- **Method:**
+  - Area-weighted Jan–Mar, Feb–Mar, Apr–May, Jan–May rainfall per state-year using ABS 2020-21 SA2 wheat areas as weights
+  - Two-dimensional analogue selection: closest 3 historical years on standardised (Jan–Mar, Apr–May) distance
+  - Implied 2026 production = 2025 ABARES area × mean analogue yield
+- **Key findings:**
+  - SA + VIC posted **wettest Jan–Mar in 22 years of SA2 history** — textbook stored-summer-moisture scenario
+  - Joint-window analogue method downgrades NSW (5.6 Mt implied, was 7.1 Mt with Apr–May only); upgrades SA (4.4 Mt, was 3.5 Mt), VIC (3.6 Mt, was 3.1 Mt), QLD (1.7 Mt, was 1.2 Mt); WA roughly unchanged at 8.8 Mt
+  - National implied 2026 production: ~24 Mt — 33% below 2025 record (36.0 Mt), 9% above 1989–2025 long-run mean (22.25 Mt). Same national total as Apr–May-only method but very different state distribution.
+- **Backlog raised:**
+  - **T-20260520-003** (P1, M): bring ABARES historical wheat data into this repo as a first-class input + `scripts/run_yield_analogue.py` CLI
+  - **T-20260520-004** (P2, M): add Jun–Oct rainfall as a third dimension to the analogue selector — additive once -003 lands
+- **Files touched:** `task_manager.md` (backlog rows + this session log)
+- **Blockers:** None
+- **Commit:** `f780efc docs(task_manager): log T-20260520-003 + -004 backlog after analyst analogue analysis`
+
 ---
 
 ## Parking Lot (defer but don’t forget)
