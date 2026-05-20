@@ -21,7 +21,7 @@
 ## Done
 | ID              | Title                             | Agent          | Completed   | PR/Commit |
 |-----------------|-----------------------------------|----------------|-------------|-----------|
-| T-20260520-004  | Jun–Oct rainfall as analogue covariate                | rainfall-analytics | 2026-05-20 | 49a1758..951b4a1 |
+| T-20260520-004  | Jun–Oct rainfall as analogue covariate                | rainfall-analytics | 2026-05-20 | e66c89a |
 | T-20260520-003  | ABARES historical area+production+yield as project input | rainfall-analytics | 2026-05-20 | 49a1758 |
 | T-20260422-001  | Full hybrid ingest run (WA BOM + Data Drill gap-fill) | silo-wrangler | 2026-04-22 | pending |
 | T-20260326-002  | Broaden WA station coverage via BOM dataset | silo-wrangler | 2026-03-26 | pending |
@@ -808,7 +808,8 @@ Claude prints: `OK TO CLOSE: Save is complete. Please close this chat to reset c
   - 3-window conditional mode: when Jun-Oct not available, select analogues on 2 windows then report jun-oct range as uncertainty bounds (low/mid/high)
   - SA2 9-to-5 digit conversion: `s[0] + s[-4:]`, verified 100% match against crop_context_sa2.csv
 - **Blockers:** None
-- **Commits:** 49a1758 (T-003), 951b4a1 (T-004)
+- **Commits:** `49a1758` (T-003 — ABARES input + 2-window script), `e66c89a` (T-004 — 3-window conditional dispersion), `51ac222` + `0d6b1e0` (worktree path-resolution fixes during rebase)
+- **Validation by analyst (post-merge, master):** `python scripts/run_yield_analogue.py --target-year 2026` reproduces NSW 5.6 Mt (analogues 2017/2019/2023), national 24.1 Mt exactly. 3-window conditional mode gives national 20.8–28.3 Mt range, mid 24.1 Mt. 325 tests passing (320 prior + 5 new).
 
 
 ---
