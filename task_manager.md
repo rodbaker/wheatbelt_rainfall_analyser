@@ -1,7 +1,7 @@
 
 # Task Manager
 **PRD:** ./prd.md  
-**Updated:** 2026-05-20 (national rainfall features build — T-20260520-001 closed)  
+**Updated:** 2026-05-20 (analyst-led ABARES analogue analysis; T-20260520-003 + -004 raised)  
 
 ---
 
@@ -10,6 +10,8 @@
 |-----------------|-------------------------------------------------|----------------|----------|------|-------|
 | T-20260505-001  | SA2 coverage metadata fields                    | infrastructure | P1       | S    | Add season_coverage_ratio, sowing_window_coverage_ratio, in_crop_coverage_ratio, feature_quality_flag to build_sa2_rainfall_features.py. Needed before ABS/yield interpretation — autumn_break_status=absent is ambiguous without knowing Apr–Jun data completeness. |
 | T-20260520-002  | National daily features via centroid extraction | rainfall-analytics | P2       | M    | Populate dry-spell and autumn-break columns for all 192 SA2s × all historical years using `{year}.daily_rain.nc` daily NetCDFs and the centroid_nearest_grid_cell selector. Today, hybrid mode keeps WA daily values from DuckDB and leaves non-WA SA2s with `daily_features_status='monthly_only'`. Unlocked by the same ~8 GB download already parked under v1.2 like-for-like deciles. |
+| T-20260520-003  | ABARES historical area+production+yield as project input | rainfall-analytics | P1 | M | Make ABARES wheat history (1989–2025 state-level Area, Production, derived Yield) a first-class repo input so the rainfall-to-yield analogue analysis is reproducible without reaching into another project. Source: `/home/roddyb/projects/ABS Census Data/.../stock_and_production_context/abares_crop_production_normalized.csv` (8,807 rows, 7 jurisdictions incl. AUS rollup). Build `scripts/run_yield_analogue.py` that joins this against `data/features/sa2_monthly_rainfall_history_national.csv` to produce per-state analogue analyses on (Jan–Mar, Apr–May) joint distance. |
+| T-20260520-004  | Jun–Oct rainfall as analogue covariate                | rainfall-analytics | P2 | M | Extend the analogue selector to a 3-window joint match: summer (Jan–Mar), seeding (Apr–May), and mid-season (Jun–Oct). 2024 vs 2017 WA outcomes diverged on Jun–Oct rainfall, so adding it tightens the implied production range. Once T-20260520-003 lands, this is an additive change to the analogue distance metric. Sources already exist: SA2 monthly canonical CSV has Jun–Oct rainfall for completed historical years. |
 | T-20250906-005  | Config & secrets hygiene                        | infrastructure | P2       | S    | env.sample; no secrets in repo |
 | T-20250906-006  | Readme: "How to run CropForecaster locally"     | business       | P2       | S    | Onboard future collaborators |
 
