@@ -90,9 +90,13 @@ def load_features(path: str, season_year: int | None) -> pd.DataFrame:
     return df[available].copy()
 
 
-def load_crop_context(path: str, state: str, financial_year: str) -> pd.DataFrame:
+def load_crop_context(
+    path: str, state: str | None, financial_year: str
+) -> pd.DataFrame:
     df = pd.read_csv(path, dtype={"sa2_code": str, "station_sa2_5dig16": str})
-    df = df[df["state"] == state]
+    if state and state.lower() != "all":
+        states = {s.strip() for s in state.split(",") if s.strip()}
+        df = df[df["state"].isin(states)]
     df = df[df["financial_year"] == financial_year]
     available = [c for c in CROP_CONTEXT_COLS if c in df.columns]
     return df[available].copy()
@@ -172,11 +176,16 @@ def report_coverage(merged: pd.DataFrame) -> None:
                 matched_sa2, distinct_sa2,
                 100 * matched_sa2 / distinct_sa2 if distinct_sa2 else 0)
 
-    if distinct_sa2 != 28 and merged["state"].iloc[0] == "Western Australia":
-        logger.warning(
-            "Expected 28 WA SA2s (QGIS universe); got %d.",
-            distinct_sa2,
-        )
+    # Per-state coverage breakdown — useful for national runs
+    if "state" in merged.columns:
+        for state_name, group in merged.groupby("state"):
+            matched = group[group[flag_col] != "no_data"]["abs_sa2_code"].nunique()
+            total = group["abs_sa2_code"].nunique()
+            logger.info(
+                "  %s: %d/%d SA2s matched (%.0f%%)",
+                state_name, matched, total,
+                100 * matched / total if total else 0,
+            )
 
 
 @click.command()
@@ -188,8 +197,8 @@ def report_coverage(merged: pd.DataFrame) -> None:
               help="Output path")
 @click.option("--season-year", type=int, default=None,
               help="Filter features to a single season year (e.g. 2025)")
-@click.option("--state", default=DEFAULT_STATE, show_default=True,
-              help="Filter crop context by state")
+@click.option("--state", default="all", show_default=True,
+              help="Filter crop context by state (comma-separated list, or 'all' for national)")
 @click.option("--financial-year", "financial_year", default=DEFAULT_FINANCIAL_YEAR,
               show_default=True, help="Crop context financial year (e.g. 2020-21)")
 @click.option("--dry-run", is_flag=True,

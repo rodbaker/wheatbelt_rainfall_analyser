@@ -1020,12 +1020,12 @@ class WeeklyReportGenerator:
             return f"{self.season_year} Season to Date"
         return f"{self.season_year} Season"
 
-    def _load_weighted_summary(self) -> Optional[dict]:
-        """Return the summary row for season_year, or None if unavailable."""
+    def _load_weighted_summary(self) -> list[dict]:
+        """Return all summary rows for season_year (one per state), or []."""
         if not self.weighted_summary_path.exists():
             if self.verbose:
                 logger.warning("Weighted rainfall summary not found: %s", self.weighted_summary_path)
-            return None
+            return []
 
         df = pd.read_csv(self.weighted_summary_path)
         match = df[df["season_year"] == self.season_year]
@@ -1034,13 +1034,18 @@ class WeeklyReportGenerator:
                 logger.warning(
                     "No data for season_year=%s in %s", self.season_year, self.weighted_summary_path
                 )
-            return None
-        return match.iloc[0].to_dict()
+            return []
+        # Preserve a stable, analyst-friendly state order: WA first (legacy
+        # primary), then the remaining states alphabetically.
+        rows = match.to_dict("records")
+        rows.sort(key=lambda r: (r.get("state") != "Western Australia", r.get("state", "")))
+        return rows
 
-    def _generate_wa_wheat_section(self, row: dict) -> str:
-        """Build the WA wheat weighted rainfall markdown section."""
+    def _generate_wheat_section(self, row: dict) -> str:
+        """Build the per-state wheat weighted rainfall markdown section."""
         season_label = self._make_season_label()
-        section = f"## WA Wheat Rainfall — {season_label}\n\n"
+        state_name = str(row.get("state") or "—")
+        section = f"## {state_name} Wheat Rainfall — {season_label}\n\n"
         section += (
             "_Area-weighted across eligible SA2 regions. "
             "Coverage assessed to latest available rainfall observation date. "
@@ -1219,7 +1224,7 @@ class WeeklyReportGenerator:
 
     def generate_report(self) -> Path:
         """Generate the weekly outlook markdown and return its path."""
-        row = self._load_weighted_summary()
+        rows = self._load_weighted_summary()
 
         today = datetime.now()
         iso_year, iso_week, _ = today.isocalendar()
@@ -1229,20 +1234,21 @@ class WeeklyReportGenerator:
         season_label = self._make_season_label()
 
         lines = [
-            f"# WA Wheat Rainfall — {season_label}",
+            f"# Australian Wheat Rainfall — {season_label}",
             "",
             f"*Generated: {today.strftime('%Y-%m-%d %H:%M:%S')}*",
             "",
         ]
 
-        if row is None:
+        if not rows:
             lines.append(
                 f"_No weighted rainfall data available for {self.season_year}. "
                 f"Run `scripts/build_wa_wheat_weighted_rainfall.py --season-year {self.season_year}` "
                 "to generate._"
             )
         else:
-            lines.append(self._generate_wa_wheat_section(row))
+            for row in rows:
+                lines.append(self._generate_wheat_section(row))
 
         lines.append(self._generate_monthly_decile_section())
 

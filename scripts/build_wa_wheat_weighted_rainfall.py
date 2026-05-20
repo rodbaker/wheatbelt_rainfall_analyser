@@ -91,11 +91,21 @@ OUTPUT_COLS = [
 
 
 def parse_args():
-    p = argparse.ArgumentParser(description="Build WA wheat area-weighted rainfall summary")
+    p = argparse.ArgumentParser(
+        description="Build wheat area-weighted rainfall summary per state"
+    )
     p.add_argument("--input", type=Path, default=DEFAULT_INPUT)
     p.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     p.add_argument("--season-year", type=int, default=None,
                    help="Filter to a single season year (default: all years in input)")
+    p.add_argument(
+        "--states",
+        default="all",
+        help=(
+            "Comma-separated state names to include, or 'all' for every state "
+            "present in the input (default: all)"
+        ),
+    )
     p.add_argument("--dry-run", action="store_true",
                    help="Print summary without writing output file")
     return p.parse_args()
@@ -110,10 +120,19 @@ def weighted_mean(values: pd.Series, weights: pd.Series) -> float | None:
     return float((v * w).sum() / w.sum())
 
 
-def build_summary_row(season_df: pd.DataFrame) -> dict:
-    """Build one summary row from all wheat rows for a single season."""
+def build_summary_row(
+    season_df: pd.DataFrame, state_name: str | None = None
+) -> dict:
+    """Build one summary row from all wheat rows for a single (state, season).
+
+    If state_name is not provided, infer it from the input rows (falling back
+    to 'Western Australia' to preserve historical default behaviour).
+    """
     wheat = season_df[season_df["crop"] == "wheat"].copy()
     season_year = int(wheat["season_year"].iloc[0]) if wheat["season_year"].notna().any() else None
+    if state_name is None:
+        states_present = wheat["state"].dropna().unique() if "state" in wheat.columns else []
+        state_name = states_present[0] if len(states_present) else "Western Australia"
 
     # Partition by quality gate
     complete = wheat[wheat["rainfall_feature_quality_flag"] == "complete"]
@@ -160,7 +179,7 @@ def build_summary_row(season_df: pd.DataFrame) -> dict:
 
     return {
         "season_year": season_year,
-        "state": "Western Australia",
+        "state": state_name,
         "crop": "wheat",
         "n_sa2s_qgis_universe": len(wheat),
         "n_sa2s_complete": len(complete),
@@ -183,7 +202,8 @@ def build_summary_row(season_df: pd.DataFrame) -> dict:
 
 def print_report(row: dict) -> None:
     sy = row["season_year"]
-    print(f"\n=== WA Wheat Area-Weighted Rainfall Summary — {sy} ===")
+    state = row.get("state", "—")
+    print(f"\n=== {state} Wheat Area-Weighted Rainfall Summary — {sy} ===")
     print(f"\nCoverage:")
     print(f"  QGIS universe SA2s:          {row['n_sa2s_qgis_universe']}")
     print(f"  Complete + eligible:          {row['n_sa2s_eligible']}  (complete={row['n_sa2s_complete']}, area_null={row['n_sa2s_complete_no_area']})")
@@ -232,36 +252,56 @@ def main() -> int:
         dtype={"abs_sa2_code": str, "station_sa2_5dig16": str},
     )
 
-    wa = df[df["state"] == "Western Australia"].copy()
-    if wa.empty:
-        print("ERROR: No Western Australia rows in input.", file=sys.stderr)
-        return 1
-
-    # Determine available seasons from rows that carry rainfall data.
-    # no_data rows have NaN season_year (no rainfall features attached) — never pre-filter them.
-    available_seasons = sorted(wa["season_year"].dropna().unique().astype(int))
-    if not available_seasons:
-        print("ERROR: No season_year values found in input.", file=sys.stderr)
-        return 1
-
-    if args.season_year is not None:
-        if args.season_year not in available_seasons:
-            print(f"ERROR: season_year={args.season_year} not in input (available: {available_seasons})",
-                  file=sys.stderr)
-            return 1
-        season_years = [args.season_year]
+    # Resolve requested states (default: every state in the input).
+    if args.states and args.states.lower() != "all":
+        requested = {s.strip() for s in args.states.split(",") if s.strip()}
     else:
-        season_years = available_seasons
+        requested = set(df["state"].dropna().unique())
 
-    no_data_rows = wa[wa["rainfall_feature_quality_flag"] == "no_data"]
+    available_states = [s for s in df["state"].dropna().unique() if s in requested]
+    missing = requested - set(available_states)
+    if missing:
+        print(
+            f"WARNING: requested states absent from input: {sorted(missing)}",
+            file=sys.stderr,
+        )
+    if not available_states:
+        print("ERROR: No matching state rows in input.", file=sys.stderr)
+        return 1
 
     rows = []
-    for sy in season_years:
-        # Rows with rainfall data for this season, plus the full no_data universe
-        has_data = wa["season_year"] == sy
-        season_df = pd.concat([wa[has_data], no_data_rows], ignore_index=True)
-        season_df["season_year"] = season_df["season_year"].fillna(sy)
-        rows.append(build_summary_row(season_df))
+    for state_name in sorted(available_states):
+        state_df = df[df["state"] == state_name].copy()
+
+        # Determine available seasons from rows that carry rainfall data.
+        # no_data rows have NaN season_year — never pre-filter them.
+        available_seasons = sorted(state_df["season_year"].dropna().unique().astype(int))
+        if not available_seasons:
+            print(
+                f"WARNING: No season_year values in input for {state_name}; skipped.",
+                file=sys.stderr,
+            )
+            continue
+
+        if args.season_year is not None:
+            if args.season_year not in available_seasons:
+                print(
+                    f"WARNING: season_year={args.season_year} not in {state_name} "
+                    f"(available: {available_seasons}); skipped.",
+                    file=sys.stderr,
+                )
+                continue
+            season_years = [args.season_year]
+        else:
+            season_years = available_seasons
+
+        no_data_rows = state_df[state_df["rainfall_feature_quality_flag"] == "no_data"]
+
+        for sy in season_years:
+            has_data = state_df["season_year"] == sy
+            season_df = pd.concat([state_df[has_data], no_data_rows], ignore_index=True)
+            season_df["season_year"] = season_df["season_year"].fillna(sy)
+            rows.append(build_summary_row(season_df, state_name))
 
     for row in rows:
         print_report(row)

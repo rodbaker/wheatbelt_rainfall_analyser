@@ -366,11 +366,12 @@ class TestWeeklyGeneratorSeasonLabel:
         assert "2025 Season" in content
         assert "2025 Season to Date" not in content
 
-    def test_report_heading_starts_with_wa_wheat_rainfall(self):
-        """H1 heading uses the new 'WA Wheat Rainfall' label."""
+    def test_report_heading_is_national(self):
+        """H1 heading is the national label; per-state H2 sections sit below it."""
         import datetime
         current_year = datetime.date.today().year
         self.project.write_summary([_summary_row(season_year=current_year)])
         gen = _make_generator(self.project, season_year=current_year)
         content = gen.generate_report().read_text()
-        assert content.startswith("# WA Wheat Rainfall —")
+        assert content.startswith("# Australian Wheat Rainfall —")
+        assert "## Western Australia Wheat Rainfall —" in content

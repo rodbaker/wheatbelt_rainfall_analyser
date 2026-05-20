@@ -1,7 +1,7 @@
 
 # Task Manager
 **PRD:** ./prd.md  
-**Updated:** 2026-05-20 (national SA2 rainfall expansion + 2026 YTD refresh)  
+**Updated:** 2026-05-20 (analyst report Australia-wide quick win)  
 
 ---
 
@@ -9,6 +9,7 @@
 | ID              | Title                                           | Agent          | Priority | Size | Notes |
 |-----------------|-------------------------------------------------|----------------|----------|------|-------|
 | T-20260505-001  | SA2 coverage metadata fields                    | infrastructure | P1       | S    | Add season_coverage_ratio, sowing_window_coverage_ratio, in_crop_coverage_ratio, feature_quality_flag to build_sa2_rainfall_features.py. Needed before ABS/yield interpretation — autumn_break_status=absent is ambiguous without knowing Apr–Jun data completeness. |
+| T-20260520-001  | National rainfall features build (proper rollout) | rainfall-analytics | P1       | M    | Rebuild `scripts/build_sa2_rainfall_features.py` so it reads the national canonical CSV (`sa2_monthly_rainfall_history_national.csv`) instead of DuckDB station observations. Today the multi-state weighted summary pipeline runs end-to-end but only WA (4/28) and 1 NSW SA2 have feature rows, because DuckDB station→SA2 mapping is sparse outside WA. Once features come from the canonical CSV, all 192 SA2s flow through with no station-mapping work. Dry-spell metrics will need a parallel daily NetCDF path. |
 | T-20250906-005  | Config & secrets hygiene                        | infrastructure | P2       | S    | env.sample; no secrets in repo |
 | T-20250906-006  | Readme: "How to run CropForecaster locally"     | business       | P2       | S    | Onboard future collaborators |
 
@@ -714,6 +715,27 @@ Claude prints: `OK TO CLOSE: Save is complete. Please close this chat to reset c
 - **Coverage delta:** canonical files 49,152 → 49,344 rows (+192 May 2026 partial rows)
 - **Test results:** 43 SA2-rainfall tests passing (37 prior + 6 new)
 - **Next steps:** v1.2 like-for-like to-date decile baseline (bulk historical daily NetCDF download); retire `scripts/build_2026_sa2_monthly_from_daily.py` (WA-only DuckDB bridge, superseded by the partial-month extractor)
+- **Blockers:** None
+- **Commit:** `ca67ef7 feat(rainfall): May 2026 month-to-date partial-month extension (v1.1)`
+
+### 2026-05-20 — insight-publisher (Analyst report Australia-wide — quick win)
+- **Task:** Make the weekly analyst report support all five grain states, not just WA. Quick-win pass — full national rainfall-features rollout parked as T-20260520-001
+- **What changed:**
+  - `scripts/join_sa2_rainfall_crop_context.py`: dropped WA-only default; `--state` now accepts a comma-separated list or `all`; coverage report logs per-state match rates
+  - `scripts/build_wa_wheat_weighted_rainfall.py`: iterates over every state in the input (or `--states "..."`-filtered subset); produces one summary row per (state, season_year); `build_summary_row()` gained an optional `state_name` arg (defaults preserve old behaviour for tests)
+  - `src/agents/insight_publisher/report_generator.py` (`WeeklyOutlookGenerator`): renders one `## {State} Wheat Rainfall —` section per state row; H1 heading is now `# Australian Wheat Rainfall —`; WA still sorts first so the analyst's primary state stays at the top
+  - Test fixture updated: `test_report_heading_starts_with_wa_wheat_rainfall` → `test_report_heading_is_national`
+- **Pipeline now produces:**
+  - `data/features/wa_wheat_area_weighted_rainfall_summary.csv` has 2 rows (NSW + WA) instead of 1
+  - `reports/weekly/2026-W21_outlook.md` carries two per-state Wheat Rainfall sections under a national H1
+- **Coverage state today (quick-win):** national pipeline runs end-to-end but only WA (4 eligible / 28 mapped) and 1 NSW SA2 actually carry feature rows. Reason: `rainfall_features_sa2_season.csv` is still DuckDB-station-derived and station→SA2 mapping is sparse outside WA. **Captured as backlog item T-20260520-001** (Priority P1) — proper rollout rebuilds the features script to read the national canonical CSV directly.
+- **Files touched:**
+  - `scripts/join_sa2_rainfall_crop_context.py`
+  - `scripts/build_wa_wheat_weighted_rainfall.py`
+  - `src/agents/insight_publisher/report_generator.py`
+  - `tests/test_publisher_weighted_rainfall.py`
+  - `task_manager.md` (this entry + new backlog row)
+- **Test results:** 314 passing (was 314 pre-session; 1 heading test renamed)
 - **Blockers:** None
 - **Commit:** pending
 
