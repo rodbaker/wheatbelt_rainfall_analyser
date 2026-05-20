@@ -1,7 +1,7 @@
 
 # Task Manager
 **PRD:** ./prd.md  
-**Updated:** 2026-05-20 (analyst report Australia-wide quick win)  
+**Updated:** 2026-05-20 (national rainfall features build — T-20260520-001 closed)  
 
 ---
 
@@ -9,7 +9,7 @@
 | ID              | Title                                           | Agent          | Priority | Size | Notes |
 |-----------------|-------------------------------------------------|----------------|----------|------|-------|
 | T-20260505-001  | SA2 coverage metadata fields                    | infrastructure | P1       | S    | Add season_coverage_ratio, sowing_window_coverage_ratio, in_crop_coverage_ratio, feature_quality_flag to build_sa2_rainfall_features.py. Needed before ABS/yield interpretation — autumn_break_status=absent is ambiguous without knowing Apr–Jun data completeness. |
-| T-20260520-001  | National rainfall features build (proper rollout) | rainfall-analytics | P1       | M    | Rebuild `scripts/build_sa2_rainfall_features.py` so it reads the national canonical CSV (`sa2_monthly_rainfall_history_national.csv`) instead of DuckDB station observations. Today the multi-state weighted summary pipeline runs end-to-end but only WA (4/28) and 1 NSW SA2 have feature rows, because DuckDB station→SA2 mapping is sparse outside WA. Once features come from the canonical CSV, all 192 SA2s flow through with no station-mapping work. Dry-spell metrics will need a parallel daily NetCDF path. |
+| T-20260520-002  | National daily features via centroid extraction | rainfall-analytics | P2       | M    | Populate dry-spell and autumn-break columns for all 192 SA2s × all historical years using `{year}.daily_rain.nc` daily NetCDFs and the centroid_nearest_grid_cell selector. Today, hybrid mode keeps WA daily values from DuckDB and leaves non-WA SA2s with `daily_features_status='monthly_only'`. Unlocked by the same ~8 GB download already parked under v1.2 like-for-like deciles. |
 | T-20250906-005  | Config & secrets hygiene                        | infrastructure | P2       | S    | env.sample; no secrets in repo |
 | T-20250906-006  | Readme: "How to run CropForecaster locally"     | business       | P2       | S    | Onboard future collaborators |
 
@@ -736,6 +736,38 @@ Claude prints: `OK TO CLOSE: Save is complete. Please close this chat to reset c
   - `tests/test_publisher_weighted_rainfall.py`
   - `task_manager.md` (this entry + new backlog row)
 - **Test results:** 314 passing (was 314 pre-session; 1 heading test renamed)
+- **Blockers:** None
+- **Commit:** `99bd5e6 feat(publisher): analyst report Australia-wide (quick-win national rollout)`
+
+### 2026-05-20 — rainfall-analytics + insight-publisher (T-20260520-001 — National rainfall features build)
+- **Task:** Rebuild `scripts/build_sa2_rainfall_features.py` so the analyst report's weighted-rainfall pipeline shows real numbers for every state, not just WA
+- **What changed:**
+  - `scripts/build_sa2_rainfall_features.py` now has three `--source` modes: `canonical-monthly` (reads `sa2_monthly_rainfall_history_national.csv`), `duckdb-stations` (legacy), and `hybrid` (default — canonical base + DuckDB daily overlay where WA station data is available)
+  - New `compute_features_from_canonical()` pivots the canonical monthly CSV into the existing feature schema (12 monthly columns + 8 seasonal-window totals) reusing the DPIRD month ranges
+  - New `overlay_daily_features()` merges the four `autumn_break_*` and two `dry_spell_*` columns + `data_quality_score` from the legacy DuckDB build onto canonical rows; monthly columns stay canonical
+  - Schema additions: `sa2_code_9dig`, `monthly_features_source`, `daily_features_status`, `partial_through_day`
+  - **Critical SA2 code fix:** the join contract requires `crop_context.station_sa2_5dig16` keys (5-digit ABS form = state-first-digit + last-4-digits of MAIN16, e.g. `501021007` → `51007`, NOT last-5-chars). Features now emit the 5-digit form as `sa2_code` and keep the 9-digit form as `sa2_code_9dig`
+  - **Quality-flag semantics correction:** removed the forced `'partial'` downgrade for current-season partial-month rows. `feature_quality_flag` follows coverage ratios only (which already handle in-progress seasons via last-obs-date denominators). MTD truncation lives in `partial_through_day` as its own column
+  - `scripts/join_sa2_rainfall_crop_context.py` `RAINFALL_FEATURE_COLS` extended to surface the three new provenance/flag columns
+- **Results — 2026 weighted-rainfall summary, all 5 states populated:**
+  - NSW: 109.1mm pre-seeding | 48.5mm sowing window | 45.4mm in-crop (47/47 SA2s, 100% coverage)
+  - QLD: 194.8mm pre-seeding | 15.4mm sowing | 13.7mm in-crop (26/26, 100%) — light sowing rain, big summer carry-over
+  - SA: 102.1mm pre-seeding | 51.8mm sowing | 37.9mm in-crop (39/41, 83%)
+  - VIC: 132.3mm pre-seeding | 54.5mm sowing | 40.9mm in-crop (46/47, 100%)
+  - WA: 70.2mm pre-seeding | 28.1mm sowing | 4.0mm in-crop (28/28, 100%) — delayed autumn break holding
+- **Files touched:**
+  - `scripts/build_sa2_rainfall_features.py` (refactor + new functions)
+  - `scripts/join_sa2_rainfall_crop_context.py` (RAINFALL_FEATURE_COLS extended)
+  - `tests/test_sa2_rainfall_features.py` (+6 tests for canonical + hybrid paths)
+  - `docs/national_sa2_rainfall_expansion.md` (rollout decision record)
+  - `task_manager.md` (this entry + T-20260520-002 backlog row)
+- **Regenerated:**
+  - `data/features/rainfall_features_sa2_season.csv` (4,180 rows = 190 SA2s × 22 years)
+  - `data/features/sa2_rainfall_crop_context.csv` (20,910 rows after national join, was 940)
+  - `data/features/wa_wheat_area_weighted_rainfall_summary.csv` (5 per-state rows × multiple seasons)
+  - `reports/weekly/2026-W21_outlook.md` (5 real per-state sections)
+- **Test results:** 320 passing (314 prior + 6 new), 1 test renamed for new semantics
+- **Backlog item raised:** T-20260520-002 — centroid-based daily extraction for the four daily-derived columns, all 192 SA2s × all historical years. Unlocks dry-spell + autumn-break outside WA. Same blocker as v1.2 deciles (8 GB historical daily NetCDFs); both unlocked by one download.
 - **Blockers:** None
 - **Commit:** pending
 

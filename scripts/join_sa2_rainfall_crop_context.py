@@ -56,6 +56,9 @@ RAINFALL_FEATURE_COLS = [
     "data_quality_score",
     "season_coverage_ratio",
     "feature_quality_flag",
+    "monthly_features_source",
+    "daily_features_status",
+    "partial_through_day",
 ]
 
 CROP_CONTEXT_COLS = [

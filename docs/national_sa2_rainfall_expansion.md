@@ -186,3 +186,33 @@ Acceptance criteria for the optimisation:
 - Add a regression test comparing vectorised output to the current row-wise
   logic on a small mixed-state fixture.
 - Target runtime for the 48,384-row national file should be seconds, not minutes.
+
+## National Rainfall Features Builder (T-20260520-001, 2026-05-20)
+
+`scripts/build_sa2_rainfall_features.py` now supports three `--source` modes:
+
+| Source | Behaviour | Coverage |
+|---|---|---|
+| `canonical-monthly` | Reads `data/features/sa2_monthly_rainfall_history_national.csv`. Monthly + window-total features only. Daily-derived columns null. | All 188 grain SA2s, every year in canonical file |
+| `duckdb-stations` | Legacy behaviour. Daily station data from DuckDB → SA2 mean. | Dense in WA, sparse elsewhere |
+| `hybrid` (default) | `canonical-monthly` base + `duckdb-stations` overlay on the four `autumn_break_*` / `dry_spell_*` columns where station data exists. Monthly columns always come from the canonical source. | All 188 grain SA2s monthly + WA daily |
+
+**Schema additions to `data/features/rainfall_features_sa2_season.csv`:**
+
+| Column | Values |
+|---|---|
+| `sa2_code_9dig` | 9-digit SA2_MAIN form (`sa2_code` remains the 5-digit join key) |
+| `monthly_features_source` | `canonical_national` (new) or `duckdb_stations` (legacy) |
+| `daily_features_status` | `monthly_only`, `duckdb_stations`, or future `daily_grid` |
+| `partial_through_day` | Last day-of-month included in a partial-month value (e.g. 19 for May 2026 MTD); null for full-month rows |
+
+**SA2 code convention:**
+`sa2_code` is the 5-digit ABS form (state-first-digit + last-4-digits of the 9-digit MAIN16 code). This preserves the join contract with `crop_context.station_sa2_5dig16`. Example: `501021007` → `51007`.
+
+**Coverage (after rollout):**
+- Features file: 4,180 rows = 190 SA2s × 22 calendar years (2 SA2s have centroid-on-ocean nodata cells)
+- Crop-context join: 186/188 SA2s matched (99%): NSW 46/46, QLD 26/26, VIC 47/47, WA 28/28, SA 39/41
+- Weighted summary 2026: all 5 states populated with real Pre-seeding / Sowing-window / In-crop / Apr–Oct / May–Oct metrics
+- Weekly outlook renders five per-state sections under the `# Australian Wheat Rainfall` H1
+
+**Deferred (backlog T-20260520-002):** Centroid-based daily extraction from historical `{year}.daily_rain.nc` tiles so dry-spell and autumn-break columns populate for non-WA SA2s and for all 192 SA2s pre-2026. Unlocked by the same ~8 GB historical daily NC download already parked under v1.2 like-for-like deciles.

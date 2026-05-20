@@ -454,5 +454,173 @@ class TestDataQualityScore(unittest.TestCase):
         self.assertAlmostEqual(_quality_score(df), 0.0)
 
 
+class TestCanonicalMonthlySource(unittest.TestCase):
+    """Tests for compute_features_from_canonical()."""
+
+    def _hist(self, rows):
+        return pd.DataFrame(rows, columns=[
+            'year', 'month', 'sa2_code', 'sa2_name', 'state_name',
+            'rainfall_mm', 'is_partial_month', 'partial_month_through_day',
+        ])
+
+    def _sa2_year(self, sa2='100011500', sa2_name='Test SA2',
+                  state='New South Wales', year=2024, monthly=None,
+                  partial_month=None, partial_through_day=None):
+        """Build 12 rows (Jan–Dec) for a single SA2 × year."""
+        monthly = monthly or {m: 10.0 for m in range(1, 13)}
+        rows = []
+        for m, v in sorted(monthly.items()):
+            is_partial = bool(partial_month and m == partial_month)
+            rows.append([year, m, sa2, sa2_name, state, v, is_partial,
+                         partial_through_day if is_partial else None])
+        return rows
+
+    def test_window_totals_full_year(self):
+        from scripts.build_sa2_rainfall_features import compute_features_from_canonical
+        rows = self._sa2_year(year=2020, monthly={m: 10.0 for m in range(1, 13)})
+        df = compute_features_from_canonical(
+            self._hist(rows), today=pd.Timestamp('2026-05-20'),
+        )
+        self.assertEqual(len(df), 1)
+        row = df.iloc[0]
+        # Jan–Mar = 30, Apr–Jun = 30, May–Oct = 60, Apr–Oct = 70, Nov–Dec = 20
+        self.assertEqual(row['pre_seeding_rain_mm'], 30.0)
+        self.assertEqual(row['sowing_window_rain_mm'], 30.0)
+        self.assertEqual(row['in_crop_rain_mm'], 60.0)
+        self.assertEqual(row['rainfall_total_apr_oct_mm'], 70.0)
+        self.assertEqual(row['harvest_rain_mm'], 20.0)
+        # Historical year → coverage 1.0, flag 'complete'
+        self.assertEqual(row['season_coverage_ratio'], 1.0)
+        self.assertEqual(row['feature_quality_flag'], 'complete')
+        # Provenance columns populated
+        self.assertEqual(row['monthly_features_source'], 'canonical_national')
+        self.assertEqual(row['daily_features_status'], 'monthly_only')
+        # Daily-derived columns null in canonical-only mode
+        for col in ('autumn_break_date', 'autumn_break_status',
+                    'dry_spell_days_7d_lt_5mm', 'dry_spell_days_14d_lt_10mm'):
+            self.assertTrue(pd.isna(row[col]),
+                            f'expected null {col}, got {row[col]!r}')
+
+    def test_partial_month_through_day_independent_of_quality_flag(self):
+        from scripts.build_sa2_rainfall_features import compute_features_from_canonical
+        # Five months of 2026; May is partial through day 19.
+        # The MTD signal lives in partial_through_day; feature_quality_flag
+        # tracks coverage of elapsed months (5/5 elapsed = complete here).
+        monthly = {1: 5.0, 2: 10.0, 3: 12.0, 4: 8.0, 5: 3.0}
+        rows = self._sa2_year(year=2026, monthly=monthly,
+                              partial_month=5, partial_through_day=19)
+        df = compute_features_from_canonical(
+            self._hist(rows), today=pd.Timestamp('2026-05-20'),
+        )
+        row = df.iloc[0]
+        self.assertEqual(row['partial_through_day'], 19)
+        # All elapsed months (Jan–May) have data → flag stays 'complete'
+        self.assertEqual(row['feature_quality_flag'], 'complete')
+        # sowing_window = Apr + May = 11.0 (partial value contributes as-is)
+        self.assertEqual(row['sowing_window_rain_mm'], 11.0)
+        # pre_seeding = Jan+Feb+Mar = 27.0
+        self.assertEqual(row['pre_seeding_rain_mm'], 27.0)
+
+    def test_multi_state_preserved(self):
+        from scripts.build_sa2_rainfall_features import compute_features_from_canonical
+        rows = []
+        rows += self._sa2_year(sa2='1', state='Victoria', year=2020)
+        rows += self._sa2_year(sa2='2', state='Western Australia', year=2020)
+        rows += self._sa2_year(sa2='3', state='Queensland', year=2020)
+        df = compute_features_from_canonical(
+            self._hist(rows), today=pd.Timestamp('2026-05-20'),
+        )
+        self.assertEqual(set(df['state_name']),
+                         {'Victoria', 'Western Australia', 'Queensland'})
+        self.assertEqual(len(df), 3)
+
+    def test_monthly_rainfall_columns_round_trip(self):
+        from scripts.build_sa2_rainfall_features import compute_features_from_canonical
+        monthly = {m: float(m * 7) for m in range(1, 13)}
+        rows = self._sa2_year(year=2019, monthly=monthly)
+        df = compute_features_from_canonical(
+            self._hist(rows), today=pd.Timestamp('2026-05-20'),
+        )
+        row = df.iloc[0]
+        for m in range(1, 13):
+            col = (f'monthly_rainfall_'
+                   f'{"jan feb mar apr may jun jul aug sep oct nov dec".split()[m - 1]}'
+                   f'_mm')
+            self.assertEqual(row[col], float(m * 7))
+
+
+class TestHybridOverlay(unittest.TestCase):
+    """Tests for overlay_daily_features()."""
+
+    def test_overlay_replaces_only_daily_columns(self):
+        from scripts.build_sa2_rainfall_features import overlay_daily_features
+        base = pd.DataFrame([{
+            'season_year': 2024, 'sa2_code': 'X',
+            'state_name': 'WA', 'sa2_name': 'X',
+            'sowing_window_rain_mm': 100.0,
+            'autumn_break_date': None,
+            'autumn_break_7d_mm': None,
+            'autumn_break_status': None,
+            'dry_spell_days_7d_lt_5mm': None,
+            'dry_spell_days_14d_lt_10mm': None,
+            'data_quality_score': None,
+            'daily_features_status': 'monthly_only',
+        }])
+        overlay = pd.DataFrame([{
+            'season_year': 2024, 'sa2_code': 'X',
+            'sowing_window_rain_mm': 999.0,   # MUST be ignored
+            'autumn_break_date': '2024-05-12',
+            'autumn_break_7d_mm': 26.5,
+            'autumn_break_status': 'on_time',
+            'dry_spell_days_7d_lt_5mm': 15.0,
+            'dry_spell_days_14d_lt_10mm': 8.0,
+            'data_quality_score': 0.95,
+        }])
+        merged = overlay_daily_features(base, overlay)
+        row = merged.iloc[0]
+        # Monthly column untouched
+        self.assertEqual(row['sowing_window_rain_mm'], 100.0)
+        # Daily columns replaced
+        self.assertEqual(row['autumn_break_status'], 'on_time')
+        self.assertEqual(row['dry_spell_days_7d_lt_5mm'], 15.0)
+        self.assertEqual(row['data_quality_score'], 0.95)
+        # Status upgraded
+        self.assertEqual(row['daily_features_status'], 'duckdb_stations')
+
+    def test_overlay_leaves_non_matching_rows_untouched(self):
+        from scripts.build_sa2_rainfall_features import overlay_daily_features
+        base = pd.DataFrame([
+            {'season_year': 2024, 'sa2_code': 'WA1',
+             'autumn_break_date': None, 'autumn_break_7d_mm': None,
+             'autumn_break_status': None,
+             'dry_spell_days_7d_lt_5mm': None,
+             'dry_spell_days_14d_lt_10mm': None,
+             'data_quality_score': None,
+             'daily_features_status': 'monthly_only'},
+            {'season_year': 2024, 'sa2_code': 'NSW1',
+             'autumn_break_date': None, 'autumn_break_7d_mm': None,
+             'autumn_break_status': None,
+             'dry_spell_days_7d_lt_5mm': None,
+             'dry_spell_days_14d_lt_10mm': None,
+             'data_quality_score': None,
+             'daily_features_status': 'monthly_only'},
+        ])
+        overlay = pd.DataFrame([{
+            'season_year': 2024, 'sa2_code': 'WA1',
+            'autumn_break_date': '2024-05-10',
+            'autumn_break_7d_mm': 30.0,
+            'autumn_break_status': 'on_time',
+            'dry_spell_days_7d_lt_5mm': 12.0,
+            'dry_spell_days_14d_lt_10mm': 4.0,
+            'data_quality_score': 0.9,
+        }])
+        merged = overlay_daily_features(base, overlay)
+        wa = merged[merged['sa2_code'] == 'WA1'].iloc[0]
+        nsw = merged[merged['sa2_code'] == 'NSW1'].iloc[0]
+        self.assertEqual(wa['daily_features_status'], 'duckdb_stations')
+        self.assertEqual(nsw['daily_features_status'], 'monthly_only')
+        self.assertTrue(pd.isna(nsw['autumn_break_status']))
+
+
 if __name__ == '__main__':
     unittest.main()

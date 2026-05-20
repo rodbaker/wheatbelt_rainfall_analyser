@@ -27,12 +27,38 @@ from src.common.file_utils import atomic_csv_write
 
 logger = logging.getLogger(__name__)
 
-PIPELINE_VERSION = "0.1.0"
+PIPELINE_VERSION = "0.2.0"
 DEFAULT_OUTPUT = "data/features/rainfall_features_sa2_season.csv"
 DEFAULT_DB = "data/weather.duckdb"
 DEFAULT_STATIONS_META = "data/meta/wheatbelt_stations.csv"
 DEFAULT_STATION_REGIONS = "data/meta/station_regions.csv"
+DEFAULT_CANONICAL_HISTORY = "data/features/sa2_monthly_rainfall_history_national.csv"
 DEFAULT_MIN_COVERAGE = 0.8
+DEFAULT_SOURCE = "hybrid"
+
+# Months used in seasonal-window totals (see DPIRD phenology).
+MONTH_NAMES = ('jan', 'feb', 'mar', 'apr', 'may', 'jun',
+               'jul', 'aug', 'sep', 'oct', 'nov', 'dec')
+SEASONAL_WINDOWS = {
+    'pre_seeding_rain_mm':       (1, 3),
+    'sowing_window_rain_mm':     (4, 6),
+    'in_crop_rain_mm':           (5, 10),
+    'flowering_rain_mm':         (9, 10),
+    'grain_fill_rain_mm':        (10, 11),
+    'harvest_rain_mm':           (11, 12),
+    'rainfall_total_apr_oct_mm': (4, 10),
+    'rainfall_total_may_oct_mm': (5, 10),
+}
+
+# Columns produced from daily data (DuckDB stations or future daily-grid extract).
+# Hybrid mode preserves these from the DuckDB path; canonical-monthly leaves them null.
+DAILY_DERIVED_COLS = (
+    'autumn_break_date',
+    'autumn_break_7d_mm',
+    'autumn_break_status',
+    'dry_spell_days_7d_lt_5mm',
+    'dry_spell_days_14d_lt_10mm',
+)
 
 # Fixed days in sowing (Apr–Jun) and in-crop (May–Oct) windows — none contain Feb
 SOWING_WINDOW_DAYS = 91    # Apr(30)+May(31)+Jun(30)
@@ -450,7 +476,7 @@ def build_output(sa2_df: pd.DataFrame, pipeline_version: str) -> pd.DataFrame:
     sa2_df['created_at'] = datetime.now(timezone.utc).isoformat()
 
     ordered_cols = [
-        'season_year', 'state_name', 'sa2_code', 'sa2_name',
+        'season_year', 'state_name', 'sa2_code', 'sa2_code_9dig', 'sa2_name',
         'station_count', 'contributing_station_ids', 'aggregation_method',
         'rainfall_total_apr_oct_mm', 'rainfall_total_may_oct_mm',
         'monthly_rainfall_jan_mm', 'monthly_rainfall_feb_mm', 'monthly_rainfall_mar_mm',
@@ -464,6 +490,7 @@ def build_output(sa2_df: pd.DataFrame, pipeline_version: str) -> pd.DataFrame:
         'data_quality_score',
         'season_coverage_ratio', 'sowing_window_coverage_ratio', 'in_crop_coverage_ratio',
         'feature_quality_flag',
+        'monthly_features_source', 'daily_features_status', 'partial_through_day',
         'source_dataset', 'pipeline_version', 'created_at',
     ]
     present = [c for c in ordered_cols if c in sa2_df.columns]
@@ -472,10 +499,244 @@ def build_output(sa2_df: pd.DataFrame, pipeline_version: str) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
+# Canonical-monthly source (national, all 192 SA2s)
+# ---------------------------------------------------------------------------
+
+def load_canonical_history(canonical_path: str,
+                           season_year: int | None = None) -> pd.DataFrame:
+    """Load the national SA2 monthly rainfall history CSV."""
+    df = pd.read_csv(canonical_path, dtype={'sa2_code': str})
+    if season_year is not None:
+        df = df[df['year'] == season_year]
+    df['rainfall_mm'] = pd.to_numeric(df['rainfall_mm'], errors='coerce')
+    if 'is_partial_month' in df.columns:
+        df['is_partial_month'] = df['is_partial_month'].fillna(False).astype(bool)
+    else:
+        df['is_partial_month'] = False
+    if 'partial_month_through_day' not in df.columns:
+        df['partial_month_through_day'] = None
+    return df
+
+
+def compute_features_from_canonical(history_df: pd.DataFrame,
+                                    today: pd.Timestamp | None = None,
+                                    min_coverage: float = DEFAULT_MIN_COVERAGE
+                                    ) -> pd.DataFrame:
+    """Build one feature row per (state_name, sa2_code, year) from canonical monthly rainfall."""
+    if today is None:
+        today = pd.Timestamp(datetime.now().date())
+
+    # Pivot months wide. One row per (state_name, sa2_code, year).
+    keys = ['state_name', 'sa2_code', 'sa2_name', 'year']
+    pivot = (
+        history_df.pivot_table(
+            index=keys, columns='month', values='rainfall_mm', aggfunc='first'
+        )
+        .reset_index()
+    )
+    # Track partial-month rows separately (1 partial row per SA2-year at most).
+    partial = (
+        history_df[history_df['is_partial_month']]
+        .groupby(['state_name', 'sa2_code', 'year'])
+        ['partial_month_through_day'].max()
+        .reset_index()
+        .rename(columns={'partial_month_through_day': 'partial_through_day'})
+    )
+
+    records = []
+    for _, row in pivot.iterrows():
+        season_year = int(row['year'])
+        months_present = {int(m): row[m] for m in range(1, 13)
+                          if m in pivot.columns and pd.notna(row.get(m))}
+
+        # Window totals
+        window_vals = {}
+        for col, (m_start, m_end) in SEASONAL_WINDOWS.items():
+            window_months = list(range(m_start, m_end + 1))
+            vals = [months_present[m] for m in window_months if m in months_present]
+            window_vals[col] = float(sum(vals)) if vals else None
+
+        # Monthly rainfall_*_mm
+        monthly_out = {
+            f'monthly_rainfall_{MONTH_NAMES[m - 1]}_mm':
+                float(row[m]) if m in pivot.columns and pd.notna(row.get(m)) else None
+            for m in range(1, 13)
+        }
+
+        # Coverage: months-with-data / months-elapsed (capped to 12).
+        # Historical years (year < today.year): denom = 12.
+        # Current year: denom = number of months that have at least begun.
+        if season_year < today.year:
+            months_elapsed = 12
+        elif season_year > today.year:
+            months_elapsed = 0
+        else:
+            months_elapsed = today.month
+        denom = max(months_elapsed, 1)
+        season_cov = round(len(months_present) / denom, 4) if months_elapsed > 0 else 0.0
+
+        sowing_months_present = sum(
+            1 for m in range(4, 7) if m in months_present
+        )
+        sowing_elapsed = (
+            3 if season_year < today.year
+            else max(0, min(3, today.month - 3)) if season_year == today.year
+            else 0
+        )
+        sowing_cov = (
+            round(sowing_months_present / sowing_elapsed, 4)
+            if sowing_elapsed > 0 else 0.0
+        )
+
+        in_crop_months_present = sum(
+            1 for m in range(5, 11) if m in months_present
+        )
+        in_crop_elapsed = (
+            6 if season_year < today.year
+            else max(0, min(6, today.month - 4)) if season_year == today.year
+            else 0
+        )
+        in_crop_cov = (
+            round(in_crop_months_present / in_crop_elapsed, 4)
+            if in_crop_elapsed > 0 else 0.0
+        )
+
+        # Partial-month flag for this season
+        match = partial[
+            (partial['state_name'] == row['state_name']) &
+            (partial['sa2_code'] == row['sa2_code']) &
+            (partial['year'] == season_year)
+        ]
+        partial_through_day = (
+            int(match['partial_through_day'].iloc[0])
+            if not match.empty and pd.notna(match['partial_through_day'].iloc[0])
+            else None
+        )
+
+        # feature_quality_flag reflects coverage of data we've actually got.
+        # An in-progress season with the current month still partial is fine
+        # if every elapsed month has data — partial_through_day signals the
+        # MTD truncation independently.
+        quality_flag = _feature_quality_flag(
+            season_cov, sowing_cov, in_crop_cov, min_coverage
+        )
+
+        # The canonical CSV uses 9-digit SA2_MAIN codes; the downstream join
+        # (and the legacy DuckDB-stations features file) expect the 5-digit
+        # SA2_5DIG form that matches crop_context.station_sa2_5dig16. ABS's
+        # 5-digit form is state-first-digit + last-4-digits of the 9-digit
+        # code (e.g. 501021007 → 51007, 103011060 → 11060).
+        canonical_sa2 = str(row['sa2_code'])
+        sa2_5dig = (
+            canonical_sa2[0] + canonical_sa2[-4:] if len(canonical_sa2) >= 5
+            else canonical_sa2
+        )
+
+        records.append({
+            'season_year': season_year,
+            'state_name': row['state_name'],
+            'sa2_code': sa2_5dig,
+            'sa2_code_9dig': canonical_sa2,
+            'sa2_name': row['sa2_name'],
+            'station_count': 0,
+            'contributing_station_ids': '',
+            'aggregation_method': 'canonical_monthly_nearest_grid',
+            **window_vals,
+            **monthly_out,
+            # Daily-derived columns are null in canonical-monthly mode.
+            **{c: None for c in DAILY_DERIVED_COLS},
+            'data_quality_score': None,
+            'season_coverage_ratio': season_cov,
+            'sowing_window_coverage_ratio': sowing_cov,
+            'in_crop_coverage_ratio': in_crop_cov,
+            'feature_quality_flag': quality_flag,
+            'monthly_features_source': 'canonical_national',
+            'daily_features_status': 'monthly_only',
+            'partial_through_day': partial_through_day,
+        })
+
+    return pd.DataFrame(records)
+
+
+def overlay_daily_features(base: pd.DataFrame, overlay: pd.DataFrame) -> pd.DataFrame:
+    """
+    Overlay daily-derived columns from the DuckDB-stations path onto canonical
+    base rows. Match on (season_year, sa2_code). Only daily columns + the
+    quality_score are copied; monthly metrics remain from the canonical row.
+    """
+    if overlay.empty:
+        return base
+    overlay = overlay[['season_year', 'sa2_code', 'data_quality_score',
+                       *DAILY_DERIVED_COLS]].copy()
+    merged = base.merge(
+        overlay,
+        on=['season_year', 'sa2_code'],
+        how='left',
+        suffixes=('', '_dly'),
+    )
+    for col in (*DAILY_DERIVED_COLS, 'data_quality_score'):
+        dly = f'{col}_dly'
+        if dly in merged.columns:
+            merged[col] = merged[dly].combine_first(merged[col])
+            merged = merged.drop(columns=[dly])
+    # Mark rows that received a real daily overlay
+    has_overlay = merged['autumn_break_status'].notna() | \
+        merged['dry_spell_days_7d_lt_5mm'].notna()
+    merged.loc[has_overlay, 'daily_features_status'] = 'duckdb_stations'
+    return merged
+
+
+# ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
 
+def _build_duckdb_stations(season_year, db_path, stations_meta_path,
+                           station_regions_path, min_coverage):
+    """Run the legacy DuckDB-stations build path and return the SA2 frame."""
+    logger.info("Loading weather observations from DuckDB: %s", db_path)
+    obs = load_observations(db_path, season_year)
+    logger.info("Loaded %d observation rows", len(obs))
+
+    logger.info("Loading station SA2 map")
+    station_map = load_station_sa2_map(stations_meta_path, station_regions_path)
+    logger.info("Loaded %d station records", len(station_map))
+
+    logger.info("Computing station-level seasonal features (min_coverage=%.2f)", min_coverage)
+    station_features = compute_station_season_features(obs, min_coverage)
+    logger.info("Station features: %d rows", len(station_features))
+
+    if station_features.empty:
+        return pd.DataFrame()
+
+    logger.info("Aggregating to SA2")
+    sa2_df = aggregate_to_sa2(station_features, station_map, min_coverage)
+    sa2_df['monthly_features_source'] = 'duckdb_stations'
+    sa2_df['daily_features_status'] = 'duckdb_stations'
+    sa2_df['partial_through_day'] = None
+    logger.info("DuckDB-stations SA2 features: %d rows", len(sa2_df))
+    return sa2_df
+
+
+def _build_canonical_monthly(season_year, canonical_path, min_coverage):
+    """Build SA2 features from the national canonical monthly history."""
+    logger.info("Loading canonical monthly history: %s", canonical_path)
+    history = load_canonical_history(canonical_path, season_year)
+    logger.info("Loaded %d canonical rows", len(history))
+
+    sa2_df = compute_features_from_canonical(history, min_coverage=min_coverage)
+    logger.info("Canonical-monthly SA2 features: %d rows", len(sa2_df))
+    return sa2_df
+
+
 @click.command()
+@click.option('--source',
+              type=click.Choice(['hybrid', 'canonical-monthly', 'duckdb-stations']),
+              default=DEFAULT_SOURCE, show_default=True,
+              help='Feature build source. hybrid = canonical monthly base + DuckDB '
+                   'daily overlay for WA; canonical-monthly = national monthly only; '
+                   'duckdb-stations = legacy station-derived behaviour.')
+@click.option('--canonical-history', default=DEFAULT_CANONICAL_HISTORY, show_default=True,
+              help='Path to the national canonical monthly rainfall history CSV.')
 @click.option('--season-year', type=int, default=None,
               help='Compute for a single season year (e.g. 2025). Default: all available.')
 @click.option('--output', default=DEFAULT_OUTPUT, show_default=True,
@@ -493,33 +754,42 @@ def build_output(sa2_df: pd.DataFrame, pipeline_version: str) -> pd.DataFrame:
 @click.option('--dry-run', is_flag=True,
               help='Print summary without writing output file.')
 @click.option('--verbose', '-v', is_flag=True)
-def main(season_year, output, db_path, stations_meta, station_regions,
-         min_coverage, pipeline_version, dry_run, verbose):
-    """Build SA2-level seasonal rainfall features from DuckDB weather observations."""
+def main(source, canonical_history, season_year, output, db_path,
+         stations_meta, station_regions, min_coverage, pipeline_version,
+         dry_run, verbose):
+    """Build SA2-level seasonal rainfall features."""
     logging.basicConfig(
         level=logging.DEBUG if verbose else logging.INFO,
         format='%(asctime)s %(levelname)s %(message)s',
     )
 
-    logger.info("Loading weather observations from DuckDB: %s", db_path)
-    obs = load_observations(db_path, season_year)
-    logger.info("Loaded %d observation rows", len(obs))
-
-    logger.info("Loading station SA2 map")
-    station_map = load_station_sa2_map(stations_meta, station_regions)
-    logger.info("Loaded %d station records", len(station_map))
-
-    logger.info("Computing station-level seasonal features (min_coverage=%.2f)", min_coverage)
-    station_features = compute_station_season_features(obs, min_coverage)
-    logger.info("Station features: %d rows", len(station_features))
-
-    if station_features.empty:
-        logger.warning("No station features computed — check data availability and season filter.")
-        return
-
-    logger.info("Aggregating to SA2")
-    sa2_df = aggregate_to_sa2(station_features, station_map, min_coverage)
-    logger.info("SA2 features: %d rows", len(sa2_df))
+    if source == 'duckdb-stations':
+        sa2_df = _build_duckdb_stations(
+            season_year, db_path, stations_meta, station_regions, min_coverage,
+        )
+        if sa2_df.empty:
+            logger.warning("No DuckDB-stations features produced.")
+            return
+    elif source == 'canonical-monthly':
+        sa2_df = _build_canonical_monthly(season_year, canonical_history, min_coverage)
+        if sa2_df.empty:
+            logger.warning("No canonical-monthly features produced.")
+            return
+    else:  # hybrid
+        sa2_df = _build_canonical_monthly(season_year, canonical_history, min_coverage)
+        if sa2_df.empty:
+            logger.warning("Canonical-monthly base is empty; aborting hybrid build.")
+            return
+        try:
+            overlay = _build_duckdb_stations(
+                season_year, db_path, stations_meta, station_regions, min_coverage,
+            )
+        except Exception as exc:
+            logger.warning("DuckDB overlay failed (%s); proceeding with monthly-only.", exc)
+            overlay = pd.DataFrame()
+        if not overlay.empty:
+            logger.info("Overlaying daily features from %d DuckDB-stations rows", len(overlay))
+            sa2_df = overlay_daily_features(sa2_df, overlay)
 
     out_df = build_output(sa2_df, pipeline_version)
 
