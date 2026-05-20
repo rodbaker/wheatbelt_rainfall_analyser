@@ -852,6 +852,40 @@ Claude prints: `OK TO CLOSE: Save is complete. Please close this chat to reset c
 - **Commit:** pending
 
 
+### 2026-05-20 — analyst-workflow (W21 state moisture trajectory + SA2/SA3 production-weighted drill)
+- **Task:** Pre-publication analytical drill before posting the 2026-W21 outlook. Rod wanted (a) state moisture trajectory end-April → today, (b) per-state SA2 production-weighted view (one wet pocket may not move the state's needle), (c) NSW north/south split formalised, (d) ABS-defined regional grouping (not colloquial guesses).
+- **What changed:** No production code. Added analyst-side scripts and feature CSVs; produced four working-analysis markdown reports under `reports/weekly/` (not the audience-facing report).
+- **Files touched:**
+  - `scripts/state_moisture_trajectory_2026.py` (new) — per-state area-weighted rainfall + percentile rank per window (Jan/Feb/Mar/Apr/May-MTD)
+  - `scripts/sep_oct_scenario_rollup_2026.py` (new) — dry/median/wet Sep-Oct national scenarios from per-state analogues
+  - `scripts/sa2_state_drill_2026.py` (new) — per-SA2 percentile rank + NSW north/south split via SA2 centroid latitude
+  - `scripts/state_sa2_area_weighted_drill.py` (new) — per-state SA2 ranks weighted by 2020-21 ABS wheat area; SA3 grouping rollup
+  - `scripts/build_sa2_sa3_lookup.py` (new) — ABS SA2→SA3/SA4 lookup from `SA2_ABS_Regions.geojson`
+  - `data/meta/sa2_sa3_lookup.csv` (new — 186 grain SA2s mapped to SA3/SA4)
+  - `data/features/state_moisture_trajectory_2026.csv`, `state_sep_oct_climatology.csv`, `sep_oct_scenario_rollup_2026.csv`, `sa2_state_drill_2026.csv`, `state_sa2_area_weighted_2026.csv`, `state_sa3_area_weighted_2026.csv` (all new)
+  - `reports/weekly/2026-W21_trajectory_analysis.md` (new)
+  - `reports/weekly/2026-W21_state_sa2_drill.md` (new)
+  - `reports/weekly/2026-W21_qld_deep_dive.md` (new)
+  - `reports/weekly/2026-W21_state_production_weighted.md` (new)
+  - `reports/weekly/2026-W21_sa3_regional_grouping.md` (new)
+- **Key analytical findings (for Rod's spreadsheet workflow on the audience-facing report):**
+  - **State trajectory:** WA dropped from 71st-pct (Jan-Apr) to 43rd-pct (Jan-May d19) in 19 days — May alone at 0th-pct (4 mm vs 22 mm median). NSW held flat at 19th-pct despite zero-pct April because May 13–19 front delivered 45.7 mm (81st-pct of full May).
+  - **Sep-Oct scenarios national:** Dry 19.9 Mt / Median 27.2 Mt / "Wet" within analogue set 25.3 Mt (non-monotonic — small-analogue-set artefact; flagged). Practical band 22–27 Mt central, 18–20 Mt tail.
+  - **Production-weighted vs state-aggregate divergence:** WA looks better when production-weighted (state agg 43rd → SA2-area-weighted 62nd) — biggest 5 WA SA2s all at-or-above local median. NSW looks worse (19 → 41) — Moree alone is 12.7% of state at 5th-pct.
+  - **NSW formalised as trichotomy (not binary):** north (Moree-Narrabri + Tamworth-Gunnedah + Inverell = 21% of state, ~16th-pct, 58% of median); far west (Bourke-Cobar = 18.5%, 30th-pct); central (Lachlan + Dubbo + Griffith = 38%, ~46th-pct); south (Wagga + Murray + Young = 22%, ~68th-pct).
+  - **WA SA3-level hidden split:** Wheat Belt - South SA3 (11.4% of state — Kulin, Wagin) is at 29th-pct / 80% of median, while Wheat Belt - North (47.9%) + Mid West (23.4%) are 63–72nd-pct. WA isn't "uniformly mediocre" — it's "71% above-median with one concentrated dry pocket."
+  - **QLD confirmed dry-skewed in production terms:** Darling Downs (West) - Maranoa SA3 = 78.8% of QLD wheat area at 40th-pct / 89% of median. Central Highlands + Bowen + Biloela wet pockets = only 11.6% combined.
+  - **VIC top-2 SA3s (62% of state) at 83rd and 93rd pct:** Grampians SA3 = Wimmera + southern Mallee; Murray River - Swan Hill SA3 = northern Mallee + Murray. 261% of median in Murray River - Swan Hill.
+- **Open data gaps logged in the analysis docs (not yet ticketed):**
+  - SA centroid artefacts: "West Coast (SA)" + "Le Hunte - Elliston" (combined ~420k ha = 20% of SA wheat area) show 0/0 because SA2 centroids land outside SILO grid. Need a centroid-fix or nearest-grain-SA2 fallback for Eyre Peninsula northern coast.
+  - SA3 boundaries vs colloquial agronomic regions — explicitly documented; not a bug.
+- **Decisions noted for Rod's final report:**
+  - Keep central case at 24 Mt (no shift from W21 v2 BOM-weighted).
+  - Lead headline with WA + NSW stories; full state sections with SA2 anomaly callouts; NSW north/south split included.
+- **Validation:** All scripts run clean on master. No code or tests changed in main pipeline; this is analyst-side exploratory work using existing features as inputs.
+- **Blockers:** None
+- **Commit:** pending (analyst working files; Rod may or may not want these committed since they're pre-publication scratch)
+
 ---
 
 ## Parking Lot (defer but don’t forget)
