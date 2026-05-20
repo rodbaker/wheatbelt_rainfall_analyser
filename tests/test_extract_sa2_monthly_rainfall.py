@@ -125,6 +125,8 @@ class TestExtractOneFile:
         assert sa2_a["extraction_method"] == mod.EXTRACTION_METHOD
         assert sa2_a["source_variable"] == "monthly_rain"
         assert sa2_a["quality_flag"] == "ok"
+        assert sa2_a["is_partial_month"] is False
+        assert sa2_a["partial_month_through_day"] is None  # noqa: E711
 
     def test_full_year_row_count(self, tmp_path):
         times = [f"2005-{m:02d}-15" for m in range(1, 13)]

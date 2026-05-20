@@ -1,7 +1,7 @@
 
 # Task Manager
 **PRD:** ./prd.md  
-**Updated:** 2026-05-06 (Calendar crop-year season definition)  
+**Updated:** 2026-05-20 (national SA2 rainfall expansion + 2026 YTD refresh)  
 
 ---
 
@@ -606,8 +606,121 @@ Claude prints: `OK TO CLOSE: Save is complete. Please close this chat to reset c
 - **Blockers:** None
 - **Commit:** `feat(sa2): SA2 rainfall feature builder foundation with --date fix and 29 tests`
 
+### 2026-05-18 — analyst-workflow (ACM + WRA Manual Review — Cycle 1)
+- **Task:** Create `acm-wra-manual-review` skill; run first manual review cycle
+- **What changed:**
+  - Created `/acm-wra-manual-review` skill at `~/.claude/skills/acm-wra-manual-review/SKILL.md` (global, available from ACM and WRA sessions)
+  - Skill sets observer-only posture, enumerates 6 workflow steps, hard stops, and the "reopen implementation" threshold
+- **Review results:**
+  - ACM: 512 tests passed, 0 failures — sources clear, does not block analysis
+  - WRA canonical files: present and readable (`sa2_monthly_rainfall_history_national.csv`, `sa2_monthly_rainfall_deciles_national.csv`); all 7,056 WA rows have `quality_flag = ok`
+  - Known-truth check — 2023 dry year: PASSED (verified against analyst memory — good April break, dry May, wet June, dry Jul–Aug, near-total October failure across 26 of 28 SA2s)
+  - Known-truth check — 2021 wet year: PASSED (verified — exceptional May decile 10 wheatbelt-wide, record July, wet October spring finish; WA produced 23.4 Mt record winter crop)
+  - Analyst caveat recorded: high seasonal rainfall volume alone does not predict production. 2021 (23.4 Mt), 2022 (26.0 Mt), and 2025 (27.1 Mt) each broke the WA winter crop record under different rainfall profiles. Timing of events within the season is a material factor not captured in monthly decile data.
+- **Friction logged:**
+  - **2026 YTD data gap** — canonical files end at 2025-12; Jan–May 2026 YTD is unavailable. Cannot review the current season’s autumn break signals (Apr–May 2026), which are the most commercially significant for crop condition commentary. Severity: high. First observation — needs to recur before implementation is considered.
+- **Files touched:** None in repo (skill written to `~/.claude/skills/`, friction logged in chat only)
+- **Next steps:** Re-run `/acm-wra-manual-review` at next cycle (~week of 2026-05-25). If 2026 data gap recurs, escalate to implementation candidate.
+- **Blockers:** None
+- **Commit:** n/a (no repo changes)
+
+### 2026-05-18 — infrastructure (Repo cleanup audit + batches B/C/D/E/F/G)
+- **Task:** Conservative cleanup-audit of WRA repo against current operating posture; implement approved cleanup batches
+- **What changed:**
+  - Ran full read-only audit classifying all repo files against WRA handoff v1.0 posture and ACM-paused status
+  - Batch B: Moved exploratory CLUM commodity extraction to `archive/exploratory/clum_extraction/` (script + test + 3 output files)
+  - Batch C: Deleted 5 stale SILO NetCDF files (`bom_Jan.nc`, `bom_feb.nc`, `BOM_Jan_modified.nc`, `precip_total_r005_20250201_20250228.nc`, `2025.monthly_rain.nc.stale_jan_only.bak`) — untracked, ~10 MB freed
+  - Batch D: Removed 30 stale tracked archive files: all `archive/old_notebooks/` (13 notebooks + 4 CSVs + 1 PNG + Windows path artefact), `archive/old_src/` (2 files), 3 `archive/reference/` scripts, `archive/task_manager_old.md`
+  - Batch E: Deleted `data/meta/shapefiles/sd11aust_shapefile/` (37 MB), `CG_SA2_2011_SA2_2021.csv`, and correspondence PDF — old SA2 2011 boundaries; shapefiles held in ABS Census project
+  - Batch F: Confirmed and staged deletion of `data/meta/shapefiles/Australia_SA2_Wheat_clipped/` (6 shapefile components) — source shapefiles now held in ABS Census project
+  - Batch G: Fixed stale assembler path in `README.md` (`claude-notebooklm-research` → `grains-market-monitor`); added ACM-paused caveat to downstream integration section
+- **Files touched:**
+  - `archive/exploratory/clum_extraction/` (new — CLUM files archived here)
+  - `archive/old_notebooks/`, `archive/old_src/`, `archive/reference/` (old files removed)
+  - `archive/task_manager_old.md` (removed)
+  - `data/meta/shapefiles/Australia_SA2_Wheat_clipped/` (6 files removed from git)
+  - `data/meta/shapefiles/sd11aust_shapefile/`, `CG_SA2_2011_SA2_2021.csv`, correspondence PDF (untracked, deleted)
+  - `data/meta/monthly_rain/` (5 stale NetCDF files deleted, untracked)
+  - `README.md` (assembler path + ACM caveat)
+- **Audit note:** Batch A (deprecated ingest pipeline) was already complete from the 2026-05-03 session. Batch F was staged-only (files were already deleted in worktree).
+- **Remaining from audit:** None — all 7 batches resolved. `archive/reference/README.md` and data files (`.clr`, `.csv`) retained deliberately.
+- **Commits:** `9372589 chore: repo cleanup batches B, C, D, F` | `2004a9d docs(readme): fix assembler path and add ACM-paused caveat`
+- **Blockers:** None
+
+### 2026-05-18 — analyst-workflow + silo-wrangler (Manual review Cycle 2, MTD rainfall, SILO variable expansion decision)
+- **Task:** Ad-hoc — ran a second ACM/WRA manual review cycle, answered an MTD rainfall question, completed a full-network SILO catch-up ingest, and recorded a No decision on expanding the SILO variable set
+- **What changed:**
+  - **Manual review Cycle 2:** Ran ACM source-readiness check (10 fail / 20 error — all from a missing `CG_SA2_2011_SA2_2021.csv` correspondence file, deleted in Batch E of the prior session). Reviewed WA decile rows for known-truth patterns: 2006 dry start, 2010 mixed, 2019 late-break (May decile-1 collapse, June decile-10 recovery), Esperance vs Geraldton divergence — all credible. Logged three friction items: missing ABS correspondence file, repeated non-zero `rainfall_mm` values across years (point-extraction artefact), and persistent WA filtering step. Reopen-implementation threshold not reached.
+  - **MTD rainfall:** Identified that the default ingest tier covers only 16 hand-curated stations in `silo_sources.yaml`. Explained the `--use-bom-dataset` flag for the full 1,376-station network.
+  - **Ingest speed-up (approved):** Reduced `api.rate_limit_seconds: 0.6 → 0.2` in `config/silo_sources.yaml`. Confirmed `collection.mode: rolling_window` is already the default — per-day `--date` loops are not needed for catch-up.
+  - **Full-network ingest:** Ran `python src/agents/silo_wrangler/run_ingest.py --use-bom-dataset` covering all 1,376 stations with a 40-day rolling window (~80 min total — HTTP round-trip is the bottleneck, not the rate limit). Background task `byp6olkgf` completed successfully.
+  - **PPD mirror adversarial review:** Verified the S3 PPD mirror is current (daily updates through 2026-05-17), but flagged real integration cost — fixed-width proprietary format, baseline ~10 GB across regional zips, reconstruction software needed. Concluded parallel API workers are a better near-term investment than mirror adoption for WRA's narrow R/N/X + wheatbelt use case.
+  - **SILO variable expansion decision:** Created a decision note recording **No** on enabling V/J/E/H/G/F variables now. Five operational reasons documented (quality-checker blast radius, DuckDB schema discards extras, validator partial coverage, disease watch is event-triggered not threshold-driven, "full set" underspecified). Revisit trigger: recurring analyst friction from manual-review cycle that maps to a specific variable.
+- **Files touched:**
+  - `docs/decision_silo_variable_expansion.md` (new — decision record)
+  - `config/silo_sources.yaml` (rate_limit_seconds 0.6 → 0.2 — approved separately, kept distinct from the decision record's approval scope)
+  - `~/.claude/projects/.../memory/feedback_wra_operational_posture.md` (new memory)
+  - `~/.claude/projects/.../memory/MEMORY.md` (index updated)
+- **Data refreshed:** DuckDB `weather_observations` table now current through 2026-05-17 across the full BOM dataset
+- **Next steps:** Continue manual-review cycles; revisit variable expansion only if recurring analyst friction surfaces. If full-network ingest becomes a daily operation, consider parallel workers (`ThreadPoolExecutor`) to bring ~80 min runtime down to ~10–15 min.
+- **Blockers:** None
+- **Commits:** none — `config/silo_sources.yaml` and `docs/decision_silo_variable_expansion.md` remain uncommitted; commit message suggestions on request
+
+### 2026-05-20 — silo-wrangler + rainfall-analytics (National SA2 expansion + 2026 YTD refresh)
+- **Task:** Ad-hoc — expand canonical SA2 monthly rainfall files to national coverage (NSW/QLD/SA/VIC/WA) and close the 2026 YTD decile gap flagged on 2026-05-18
+- **What changed (delivered by separate agent, logged here):**
+  - Canonical files now national + extended through 2026-04:
+    - `data/features/sa2_monthly_rainfall_history_national.csv` — 49,152 rows (was 48,384)
+    - `data/features/sa2_monthly_rainfall_deciles_national.csv` — 49,152 rows; 760/768 new 2026 cells flagged `ok`, 8 `null_rainfall` (pre-existing SA2-centroid-on-ocean cases)
+  - State × SA2 coverage: NSW 46, QLD 26, SA 41, VIC 51, WA 28 — all carrying Jan/Feb/Mar/Apr 2026
+  - Bundled into single commit: 3 scripts, 2 test files, 3 design docs, the No-go variable-expansion decision note, the rate-limit drop, and pyproject / CLAUDE / run_ingest tidies
+  - 37 SA2 rainfall tests passing
+- **Files touched (per commit `edf847b`):**
+  - `scripts/download_silo_monthly_rain.py` (new)
+  - `scripts/extract_sa2_monthly_rainfall.py`, `scripts/build_sa2_rainfall_deciles.py`
+  - `tests/test_extract_sa2_monthly_rainfall.py`, `tests/test_build_sa2_rainfall_deciles.py`
+  - `docs/decision_silo_variable_expansion.md`, `docs/national_sa2_rainfall_expansion.md`, `docs/rainfall_handoff_v1_contract.md`
+  - `config/silo_sources.yaml`, `pyproject.toml`, `CLAUDE.md`, `docs/data_contracts.md`, `src/agents/silo_wrangler/run_ingest.py`
+- **Friction resolved:** 2026 YTD decile gap from manual-review cycle 2 (2026-05-18, severity high) — implementation now in place, single observation no longer needs to recur
+- **Coverage gap to flag to analyst:** May 2026 not yet in SILO 2026 NetCDF tile (Jan–Apr only as of 2026-05-19 11:17 UTC). Canonical files end at April 2026.
+- **Next steps:** Re-run `python scripts/download_silo_monthly_rain.py --years 2026 --skip-validate` once SILO publishes the May tile (typically early-to-mid June), then rerun extractor + decile builder per commit message
+- **Blockers:** None
+- **Commit:** `edf847b feat(rainfall): national SA2 monthly rainfall expansion + 2026 YTD refresh`
+
+### 2026-05-20 — insight-publisher + infrastructure (May 2026 MTD partial-month extension)
+- **Task:** Close the May 2026 coverage gap flagged at the end of the morning's national-expansion session — analyst needs MTD rainfall through the current month for crop report today
+- **What changed:**
+  - Discovered SILO publishes `Official/annual/daily_rain/{year}.daily_rain.nc` as a separate annual tile (distinct from the monthly_rain tile that only contained Jan–Apr 2026)
+  - The 2026 daily file (~150 MB) carries daily values through 2026-05-19 (19 days of May)
+  - New `scripts/download_silo_daily_rain.py` mirrors the monthly downloader (atomic-rename, size sanity guard, partial-year support via `--skip-validate`)
+  - New `scripts/extract_sa2_partial_month_rainfall.py` sums daily values at each of 192 SA2 centroids using the same `centroid_nearest_grid_cell` selector reused from `extract_sa2_monthly_rainfall.py`. Auto-detects the last day with non-NaN data
+  - Both canonical files gain `is_partial_month` (bool) and `partial_month_through_day` (int) columns; full-month rows backfilled with False/null
+  - 192 May 2026 partial rows appended: `extraction_method='centroid_nearest_grid_cell_daily_sum'`, `source_variable='daily_rain'`, `climatology_quality_flag='partial_month_no_decile'`, `partial_month_through_day=19`
+  - Decile builder updated to (a) pass partial-month rows through with null decile fields, (b) exclude partial-month rows from any other row's historical baseline so a partial value cannot contaminate a full-month climatology distribution
+  - Documented as a **v1.1 amendment** in `docs/rainfall_handoff_v1_contract.md` (additive schema; full-month rows still satisfy v1.0 exactly)
+  - Like-for-like to-date decile baseline deliberately deferred — needs historical daily NetCDFs (~8 GB for 2005–2025); parked as v1.2 work
+- **Validation — May 1–19 2026 sums (mm):**
+  - WA: Esperance 45.9, Albany Surrounds 21.9, Plantagenet 21.5, Bridgetown 6.8, Kojonup 5.9, Brookton 0.6, Cunderdin 0.5, Moora 0.0 — matches the delayed-autumn-break narrative for central WA
+  - NSW: Grafton Region 117.6, Narromine 90.4, Forbes 84.6
+  - VIC: Euroa 62.7, Benalla Region 61.7, Moyne West 61.3
+- **Files touched:**
+  - `scripts/download_silo_daily_rain.py` (new)
+  - `scripts/extract_sa2_partial_month_rainfall.py` (new)
+  - `scripts/extract_sa2_monthly_rainfall.py` (emits `is_partial_month=False`, `partial_month_through_day=null`)
+  - `scripts/build_sa2_rainfall_deciles.py` (`OUTPUT_COLS` extended; partial rows pass through; partial rows excluded from baselines)
+  - `tests/test_extract_sa2_partial_month_rainfall.py` (new — 6 tests)
+  - `tests/test_extract_sa2_monthly_rainfall.py` (cover new columns)
+  - `docs/rainfall_handoff_v1_contract.md` (v1.1 amendment section)
+- **Coverage delta:** canonical files 49,152 → 49,344 rows (+192 May 2026 partial rows)
+- **Test results:** 43 SA2-rainfall tests passing (37 prior + 6 new)
+- **Next steps:** v1.2 like-for-like to-date decile baseline (bulk historical daily NetCDF download); retire `scripts/build_2026_sa2_monthly_from_daily.py` (WA-only DuckDB bridge, superseded by the partial-month extractor)
+- **Blockers:** None
+- **Commit:** pending
+
 ---
 
 ## Parking Lot (defer but don’t forget)
 - Add ADRs in `docs/decisions/` for major design choices.
 - Performance pass on large station loops (vectorize / multiprocessing).
+- v1.2 rainfall contract: like-for-like to-date decile baseline using historical daily NetCDFs (~8 GB one-time download).
+- Remove `scripts/build_2026_sa2_monthly_from_daily.py` (WA-only DuckDB bridge, superseded by partial-month extractor).

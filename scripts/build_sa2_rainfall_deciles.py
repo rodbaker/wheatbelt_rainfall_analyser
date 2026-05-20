@@ -47,7 +47,11 @@ OUTPUT_COLS = [
     "extraction_method",
     "universe_source",
     "source_variable",
+    "is_partial_month",
+    "partial_month_through_day",
 ]
+
+PARTIAL_MONTH_FLAG = "partial_month_no_decile"
 
 DECILE_LABELS = {
     1: "very low",
@@ -79,6 +83,7 @@ def _compute_decile(value: float, historical: pd.Series) -> int:
 def compute_deciles(df: pd.DataFrame) -> pd.DataFrame:
     """Compute climatology and decile fields for each row in df."""
     has_state_col = "state_name" in df.columns
+    has_partial_col = "is_partial_month" in df.columns
     rows = []
     for _, row in df.iterrows():
         sa2 = row["sa2_code"]
@@ -86,13 +91,21 @@ def compute_deciles(df: pd.DataFrame) -> pd.DataFrame:
         year = row["year"]
         rainfall = row["rainfall_mm"]
         state = row.get("state_name") if has_state_col else None
+        is_partial = bool(row.get("is_partial_month")) if has_partial_col else False
+        through_day = (
+            row.get("partial_month_through_day") if has_partial_col else None
+        )
 
         # Historical baseline key: state+SA2+month when state_name is present,
         # SA2+month only for legacy inputs without state_name.  This prevents
         # the four SA2 codes that appear in two states from sharing baselines.
+        # Partial-month rows are excluded from any baseline so a 17-day partial
+        # value never contaminates a full-month climatology distribution.
         mask = (df["sa2_code"] == sa2) & (df["month"] == month) & (df["year"] != year)
         if has_state_col and pd.notna(state):
             mask = mask & (df["state_name"] == state)
+        if has_partial_col:
+            mask = mask & (~df["is_partial_month"].fillna(False).astype(bool))
         historical = df.loc[mask, "rainfall_mm"].dropna()
         hist_count = len(historical)
 
@@ -114,7 +127,14 @@ def compute_deciles(df: pd.DataFrame) -> pd.DataFrame:
             "extraction_method": row.get("extraction_method"),
             "universe_source": row.get("universe_source"),
             "source_variable": row.get("source_variable"),
+            "is_partial_month": is_partial,
+            "partial_month_through_day": through_day,
         }
+
+        if is_partial:
+            out["climatology_quality_flag"] = PARTIAL_MONTH_FLAG
+            rows.append(out)
+            continue
 
         if pd.isna(rainfall):
             out["climatology_quality_flag"] = "null_rainfall"

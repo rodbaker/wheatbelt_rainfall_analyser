@@ -190,3 +190,56 @@ Rainfall handoff v1.0 does not approve:
 - Promoting current-year station-derived bridges.
 - Expanding weighted rainfall outputs.
 - Treating ACM as an active downstream consumer.
+
+## v1.1 Amendment — Partial-Month MTD Extension (2026-05-20)
+
+To carry an in-progress month into the analyst report before SILO publishes
+the corresponding monthly NetCDF tile, both canonical CSVs gain two
+additive columns and accept a distinct extraction method for partial-month
+rows. Full-month rows continue to satisfy v1.0 exactly.
+
+**Schema additions (both files):**
+
+| Column | Type | Required semantics |
+|---|---|---|
+| `is_partial_month` | bool | `False` for full-month rows derived from SILO `monthly_rain`; `True` for partial-month MTD rows derived from SILO `daily_rain` sums |
+| `partial_month_through_day` | integer or blank | Last day-of-month included in the daily sum; blank for full-month rows |
+
+**Allowed values added:**
+
+| Column | New allowed values | Applies to |
+|---|---|---|
+| `extraction_method` | `centroid_nearest_grid_cell_daily_sum` | Partial-month rows only |
+| `source_variable` | `daily_rain` | Partial-month rows only |
+| `quality_flag` (history) | `partial_month_no_decile` | Partial-month rows only |
+| `climatology_quality_flag` (deciles) | `partial_month_no_decile` | Partial-month rows only |
+
+**Decile semantics for partial-month rows:**
+
+- `historical_year_count`, `historical_median_mm`, `historical_mean_mm`,
+  `anomaly_mm`, `anomaly_pct`, `rainfall_decile`, `rainfall_decile_label`
+  are blank.
+- Partial-month rows are **excluded** from any other row's historical
+  baseline, so a 17-day partial value cannot contaminate a full-month
+  climatology distribution.
+- A like-for-like to-date decile baseline is out of scope for v1.1; it
+  requires historical daily NetCDFs that are not yet in the repo. When
+  added, it will be a v1.2 amendment.
+
+**Consumer guidance:**
+
+- For strict v1.0 semantics, filter to `is_partial_month = False`.
+- For headline MTD mm in analyst reports, partial-month rows are
+  authoritative for the row key `(state_name, sa2_code, year, month)` so
+  long as the consumer reads `partial_month_through_day` to know the
+  accumulation window.
+- The row key remains unique across the union of full-month + partial-month
+  rows: only one row per `(state_name, sa2_code, year, month)`.
+
+**Producer scripts:**
+
+- `scripts/download_silo_daily_rain.py` — fetches
+  `Official/annual/daily_rain/{year}.daily_rain.nc` from the SILO S3 bucket.
+- `scripts/extract_sa2_partial_month_rainfall.py` — emits the partial-month
+  rows; reuses `load_sa2_rows`, `_poly_centroid`, and `nearest_grid_value`
+  from `scripts/extract_sa2_monthly_rainfall.py`.

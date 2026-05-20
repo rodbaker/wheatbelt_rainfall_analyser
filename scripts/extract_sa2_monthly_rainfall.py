@@ -213,6 +213,8 @@ def extract_one_file(
                         "source_file": nc_path.name,
                         "source_variable": SOURCE_VARIABLE,
                         "quality_flag": quality_flag,
+                        "is_partial_month": False,
+                        "partial_month_through_day": None,
                     }
                 )
     return records
