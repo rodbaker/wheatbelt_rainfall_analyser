@@ -235,3 +235,28 @@ The following decisions are needed before contract tables can be generated:
 
 5. **Temperature features in the same modelling table or a separate weather feature table** — The current contracts are rainfall-focused. Temperature (frost, heat) features are tracked via the event log. A decision is needed on whether a `weather_features_station_season` table should be defined alongside the rainfall contracts, or whether temperature features are out of scope for the modelling handoff.
 
+---
+
+## N. Contract: `abares_crop_production_normalized`
+
+**File**: `data/meta/abares/abares_crop_production_normalized.csv`
+**Source**: ABARES Agricultural Commodities bulletin, March 2026 (No. 217)
+**Original path**: `/home/roddyb/projects/ABS Census Data/Modernised_Census_2022_2025/comparison_2020_21_to_2022_23/acf_historical/stock_and_production_context/abares_crop_production_normalized.csv`
+**Coverage**: 1989–2025, 7 jurisdictions (AUS, NSW, QLD, SA, VIC, WA, TAS), wheat Area + Production
+**Update cadence**: Annual (March bulletin). Replace file when No. 218+ released.
+
+| Field | Type | Description |
+|---|---|---|
+| state | string | State code (AUS, NSW, QLD, SA, VIC, WA, TAS) |
+| crop | string | Crop name (filter to "Wheat") |
+| metric | string | "Area" or "Production" |
+| crop_season | integer | Calendar year the crop was grown (join key against rainfall year) |
+| value_normalized | float | Area in ha, Production in tonnes |
+| status | string | "final", "estimate", or "forecast" |
+
+**Join key**: `ABARES.crop_season == rainfall_data.year` (no offset — ABARES labels season by financial-year start, but harvest falls in the same calendar year as sowing)
+
+**Notes**:
+- 2025 data has `status='forecast'` — use as area base for implied 2026 production
+- AUS rows (`is_national=True`) are the national rollup; state rows are used for per-state analysis
+- Derived yield = `Production (t) / Area (ha)` computed at query time; not stored in this file

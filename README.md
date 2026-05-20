@@ -63,6 +63,23 @@ python scripts/build_sa2_rainfall_deciles.py
 python scripts/extract_sa2_monthly_rainfall.py --universe-source combined --states "Western Australia,South Australia"
 ```
 
+### Yield analogue analysis (ABARES + SA2 rainfall)
+
+Per-state analogue years and implied national wheat production based on area-weighted seasonal rainfall similarity to historical years.
+
+```bash
+# 2-window mode: Jan-Mar and Apr-May (default)
+python scripts/run_yield_analogue.py --target-year 2026
+
+# 3-window mode: adds Jun-Oct (conditional dispersion if Jun-Oct not yet observed)
+python scripts/run_yield_analogue.py --target-year 2026 --windows jan-mar,apr-may,jun-oct
+
+# Retrospective full 3-window (complete year)
+python scripts/run_yield_analogue.py --target-year 2024 --windows jan-mar,apr-may,jun-oct
+```
+
+Output CSV: `data/features/wheat_yield_analogue_summary.csv`. Methodology: `docs/analogue_method.md`. Data contract: `docs/data_contracts.md`.
+
 ---
 
 ## Outputs
