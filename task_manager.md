@@ -834,6 +834,23 @@ Claude prints: `OK TO CLOSE: Save is complete. Please close this chat to reset c
 - **Commits:** `49a1758` (T-003 — ABARES input + 2-window script), `e66c89a` (T-004 — 3-window conditional dispersion), `51ac222` + `0d6b1e0` (worktree path-resolution fixes during rebase)
 - **Validation by analyst (post-merge, master):** `python scripts/run_yield_analogue.py --target-year 2026` reproduces NSW 5.6 Mt (analogues 2017/2019/2023), national 24.1 Mt exactly. 3-window conditional mode gives national 20.8–28.3 Mt range, mid 24.1 Mt. 325 tests passing (320 prior + 5 new).
 
+### 2026-05-20 — analyst-workflow (Hand-authored W21 outlook with BOM overlay + NSW spatial drill)
+- **Task:** Generate audience-facing weekly outlook (grain traders, brokers, farm advisors, ag bankers) combining Jan-Mar subsoil, Apr-May sowing window, BOM Jun-Aug forecast, and Sep-Oct residual uncertainty
+- **What changed:** No code. Generated `reports/weekly/2026-W21_outlook_v2.md` (177+ lines, 12+ KB) as a separate hand-authored markdown supplementing the auto-generated `2026-W21_outlook.md`
+- **Method:**
+  - Read BOM Jun-Aug 2026 chance-of-above-median rainfall map (saved at `/mnt/c/Users/rj71b/OneDrive/Desktop/BOM 3 Month Rainfall Outlook.PNG`) → per-state probabilities with ±5pp bands
+  - For each state's 2-window analogue years, partitioned by Jun-Aug above/below historical median, computed BOM-probability-weighted yield; reported Sep-Oct dispersion across same analogues as residual uncertainty
+  - Following Rod's correction about September being the make-or-break month (saved as `project_winter_wheat_phenology.md` memory), explicitly framed Jun-Aug as "mid-winter moisture maintenance" not "the finish"
+  - Following Rod's spatial check on NSW Jan-Mar, drilled to SA2 deciles and confirmed the 29th-percentile state aggregate masks a bimodal split: 16 northern SA2s at decile 1-2, 9 southern/Murray SA2s at decile 8-10. Added NSW spatial picture subsection.
+- **Key analytical findings:**
+  - All 3 NSW analogues had below-median Jun-Aug → BOM signal can't discriminate yield within the analogue set; Sep-Oct spread (13-63mm) is the dominant uncertainty
+  - WA analogue yields driven more by Sep-Oct than Jun-Aug (counter-intuitive: driest Jun-Aug analogue had highest yield) — validates Rod's September make-or-break framing
+  - National BOM-weighted central: 24.0 Mt; practical range 21-28 Mt incorporating Sep-Oct residual; 2025 actual 36.0 Mt; long-run mean 22.3 Mt
+- **Files touched:** `reports/weekly/2026-W21_outlook_v2.md` (new), `task_manager.md` (this entry); two new memories saved: `project_winter_wheat_phenology.md`, `feedback_post_merge_artefact_check.md`
+- **Backlog raised:** T-20260520-005 (canola yield analogue extension) — committed `ac0c4c7`
+- **Blockers:** None
+- **Commit:** pending
+
 
 ---
 
