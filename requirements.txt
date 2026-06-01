@@ -14,8 +14,8 @@ click>=8.0.0               # CLI interfaces
 python-dotenv>=0.5.1       # Environment variable management
 
 # Optional operational enhancements
-geopandas>=0.13.0
-matplotlib>=3.7.0
+geopandas>=0.13.0          # SA2/SD boundary loading for rainfall percentile maps
+matplotlib>=3.7.0          # Percentile map rendering
 duckdb>=0.8.0              # Fast analytical storage for weather data
 xarray>=2023.0             # NetCDF climatology reading
 netCDF4>=1.6.0             # HDF5/NetCDF4 file backend for xarray
