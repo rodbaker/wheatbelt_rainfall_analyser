@@ -205,9 +205,11 @@ def main():
     scale = through_day / days_in_month
     # Map sa2_code -> month mm; drop nodata (negative-summed) cells.
     target_rain = {}
+    mtd_name = {}
     nodata_sa2 = []
     for _, r in mtd.iterrows():
         code = int(r["sa2_code"])
+        mtd_name[code] = r["sa2_name"]
         val = float(r["rainfall_mm"])
         if np.isnan(val) or val < 0:
             nodata_sa2.append((code, r["sa2_name"], r["state_name"], val))
@@ -315,6 +317,62 @@ def main():
             "No SDs passed the grain-belt floor — check inputs for "
             f"{year}-{month:02d}."
         )
+
+    # ---- SA2-level breakdown (one row per wheat SA2 with valid data).
+    # Each SA2's dominant SD/state from the concordance (max allocation).
+    sa2_dom = {}  # sa2_code -> (sd_code, sd_name, ste)
+    for c in conc:
+        cur = sa2_dom.get(c["sa2_code"])
+        if cur is None or c["alloc"] > cur[3]:
+            sa2_dom[c["sa2_code"]] = (c["sd_code"], c["sd_name"], c["ste"], c["alloc"])
+    sa2_rows = []
+    for code, area in wheat.items():
+        if area <= 0:
+            continue
+        v = target_rain.get(code)
+        if v is None:
+            continue
+        dom = sa2_dom.get(code)
+        if dom is None or dom[2] not in WHEATBELT_STATES:
+            continue
+        sd_code_d, sd_name_d, ste_d, _ = dom
+        hist_vals = [
+            hist_lookup[code][y] * scale
+            for y in hist_years
+            if y in hist_lookup.get(code, {})
+        ]
+        if hist_vals:
+            med = statistics.median(hist_vals)
+            pct = v / med * 100 if med > 0 else float("nan")
+            pr = pct_rank(hist_vals, v)
+            dec_dec = round(pr / 10.0, 1)
+        else:
+            med = pct = pr = dec_dec = float("nan")
+        sa2_rows.append(
+            {
+                "sa2_code": code,
+                "sa2_name": mtd_name.get(code, str(code)),
+                "state": STATE_ABBR[ste_d],
+                "sd_name": sd_name_d,
+                "wheat_kha": area / 1000.0,
+                "rain_mm": v,
+                "hist_scaled_median_mm": med,
+                "pct_of_median": pct,
+                "percentile_rank": pr,
+                "decile_decimal": dec_dec,
+            }
+        )
+    sa2_df = pd.DataFrame(sa2_rows).sort_values(
+        ["state", "rain_mm"], ascending=[True, False]
+    ).reset_index(drop=True)
+    out_sa2 = ROOT / f"data/features/sa2_{year}_{month:02d}_rainfall_review.csv"
+    sa2_out = sa2_df.copy()
+    for col in [
+        "wheat_kha", "rain_mm", "hist_scaled_median_mm",
+        "pct_of_median", "percentile_rank",
+    ]:
+        sa2_out[col] = sa2_out[col].round(1)
+    sa2_out.to_csv(out_sa2, index=False)
 
     sd_df = pd.DataFrame(sd_rows)
     sd_df = sd_df.sort_values(
@@ -564,9 +622,10 @@ def main():
     print()
     print(f"_Written: {out_sd}_")
     print(f"_Written: {out_state}_")
+    print(f"_Written: {out_sa2}_")
     print(
-        f"_SD count: {len(sd_df)}; through_day={through_day}/{days_in_month}; "
-        f"scale={scale:.3f}_"
+        f"_SD count: {len(sd_df)}; SA2 count: {len(sa2_df)}; "
+        f"through_day={through_day}/{days_in_month}; scale={scale:.3f}_"
     )
 
 

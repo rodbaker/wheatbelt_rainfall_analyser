@@ -58,9 +58,9 @@ Year-to-date rainfall reinforces the picture, tracking at 120% of the long-term 
 
 ### Western Australia Crop Conditions
 
-Western Australia was the clear laggard, with state-weighted rainfall finishing at decile 2.9 — a poor break for the nation's largest cropping state. The grainbelt was essentially rainless for the first 27 days; the modest 18 mm total came almost entirely from two falls on the 28th and 31st, too late to function as an in-month break. The deficit sits in the biggest regions: the Midlands at decile 2.4 (64% of median) and the Great Southern, where the Upper Great Southern fell to decile 1.4 (30%). Only the eastern fringe and the Central wheatbelt held near average.
+Western Australia finished at decile 2.9, the laggard of the wheatbelt — but the state figure masks a wide spatial spread, and the better growing country fared more reasonably than the headline implies. The south-east led, with Esperance and its 389 kha surrounds at decile 6.2, the only zone to catch a genuine early-month break (1st–3rd). Pockets of the Great Southern (Kojonup, Katanning) and the western fringe (Gingin–Dandaragan, Northampton) also picked up useful falls. The weight of the deficit sits in the high-area eastern-central wheatbelt that dominates the state average — Cunderdin, Kulin, Mukinbudin and Merredin all at decile 0–2 — much of it falling only on the final day (see SA2 detail below).
 
-Importantly, the problem is one of timing, not a failed year: cumulative Jan–May rainfall is at 99% of the long-term profile (decile 4.3), broadly normal. It is specifically the seeding-window break that has not arrived. With sub-soil moisture only modest, WA now leans heavily on June follow-up rain and remains the key downside risk to watch.
+A nuance worth holding: even the wetter zones were generally only around their own long-term May normal (Esperance 112% of median, Kojonup 108%) rather than exceptional, and outside the south-east the rain arrived late (28th & 31st). This is a timing problem rather than a failed year: cumulative Jan–May rainfall is at 99% of the long-term profile (decile 4.3), broadly normal. WA now leans heavily on June follow-up rain to connect plantings with stored moisture, and remains the key downside risk to watch.
 
 ---
 
@@ -116,6 +116,41 @@ Decile on a 0–10 scale (percentile rank of the wheat-area-weighted May total v
 | South Eastern | 414 | 38.9 | 33.2 | 117% | 6.2 | +5.6 |
 | Lower Great Southern | 336 | 19.9 | 32.7 | 61% | 1.9 | −12.8 |
 
+#### Western Australia — SA2 detail (28 wheat SA2s, sorted by May total)
+
+The SD averages mask a wide internal spread, so the full SA2 breakdown is shown for WA. Decile is vs each SA2's own 2005–2025 May. Note the wet pockets (Esperance, Kojonup, Capel) are only ~around their own median, while the high-area central wheatbelt (Cunderdin, Kulin, Dowerin, Merredin) sits at decile 0–2.
+
+| SA2 | SD | Wheat (kha) | May (mm) | Median (mm) | % med | Decile |
+|---|---|---:|---:|---:|---:|---:|
+| Capel | South West | 4 | 88.1 | 77.0 | 114% | 5.7 |
+| Esperance | South Eastern | 31 | 59.7 | 53.2 | 112% | 6.2 |
+| Kojonup | Lower Great Southern | 62 | 43.5 | 40.3 | 108% | 5.2 |
+| Esperance Surrounds | South Eastern | 389 | 37.2 | 32.1 | 116% | 6.2 |
+| Plantagenet | Lower Great Southern | 15 | 33.7 | 43.7 | 77% | 2.9 |
+| Gingin - Dandaragan | Midlands | 35 | 33.2 | 51.9 | 64% | 2.4 |
+| Katanning | Lower Great Southern | 31 | 30.2 | 38.1 | 79% | 3.8 |
+| Albany Surrounds | Lower Great Southern | 8 | 27.3 | 41.4 | 66% | 2.9 |
+| Geraldton | Central | 4 | 26.3 | 33.4 | 79% | 3.3 |
+| Northampton - Mullewa - Greenough | Central | 438 | 25.8 | 20.2 | 128% | 5.7 |
+| Wagin | Upper Great Southern | 40 | 24.9 | 50.4 | 49% | 1.9 |
+| Irwin | Central | 26 | 24.7 | 27.7 | 89% | 4.3 |
+| Chittering | Midlands | 13 | 21.4 | 51.9 | 41% | 1.0 |
+| Bridgetown - Boyup Brook | South West | 2 | 21.3 | 41.1 | 52% | 1.0 |
+| Brookton | Upper Great Southern | 90 | 20.6 | 44.3 | 46% | 1.9 |
+| Geraldton - North | Central | 1 | 19.1 | 32.5 | 59% | 2.4 |
+| Moora | Midlands | 415 | 17.0 | 23.4 | 73% | 4.3 |
+| Morawa | Central | 561 | 17.0 | 22.7 | 75% | 3.8 |
+| Merredin | Midlands | 356 | 16.6 | 23.0 | 72% | 2.4 |
+| Dowerin | Midlands | 400 | 15.8 | 22.2 | 71% | 1.9 |
+| Toodyay | Midlands | 15 | 15.5 | 36.4 | 43% | 0.5 |
+| Narrogin | Upper Great Southern | 3 | 11.0 | 44.0 | 25% | 0.0 |
+| Northam | Midlands | 25 | 10.5 | 32.6 | 32% | 0.5 |
+| York - Beverley | Midlands | 49 | 10.3 | 28.8 | 36% | 0.5 |
+| Gnowangerup | Lower Great Southern | 213 | 9.7 | 29.3 | 33% | 1.4 |
+| Mukinbudin | Midlands | 589 | 9.5 | 14.0 | 68% | 1.9 |
+| Kulin | Upper Great Southern | 369 | 6.8 | 32.6 | 21% | 0.0 |
+| Cunderdin | Midlands | 207 | 5.7 | 23.1 | 25% | 0.0 |
+
 ---
 
 ## Within-month rainfall events (wheat-weighted state daily, mm)
@@ -128,7 +163,7 @@ The eastern result was about **timing as much as total** — multiple well-space
 | New South Wales | 3–5 May (≈18) | 18–19 May (≈24) | 26–29 May (≈25) | Three pulses, evenly spread |
 | Victoria | 3–4 May (≈14) | **17–18 May (≈19)** | 26 May (≈6) | Front/mid-loaded |
 | South Australia | 3–5 May (≈9) | 16–17 May (≈19) | 25–27 May (≈16) | Well spread across the month |
-| Western Australia | — | — | **28 & 31 May (≈13)** | Dry to day 27; rain too late |
+| Western Australia | south-east only: 1–3 May | — | **28 & 31 May (≈13)** | Early break in the south-east; elsewhere dry to day 27 |
 
 ---
 
@@ -138,4 +173,5 @@ The eastern result was about **timing as much as total** — multiple well-space
 - **Rainfall.** SILO `daily_rain` 0.05° grid, summed over May 1–31 at each SA2 polygon centroid (nearest-grid-cell). The 2026 grid was re-pulled on 2026-06-01 to capture the completed month. Within-month event figures are the wheat-area-weighted state daily series from the same grid.
 - **Climatology & decile.** Full-May totals 2005–2025 (21 years); decile = percentile rank ÷ 10, one decimal (10.0 = wettest of the 21 observed Mays). With only 21 years the scale is coarse, not a fitted distribution.
 - **Scope.** 28 grain SDs above a 10,000 ha wheat floor (smallest retained: Barwon, 31 kha). Minor production areas below the floor (e.g. QLD Wide Bay) are not surfaced here. Two SA SA2s (Le Hunte–Elliston, West Coast) dropped as off-grid nodata — neither carries wheat weight.
-- **Outputs.** `data/features/sd_2026_05_rainfall_review.csv`, `data/features/state_2026_05_rainfall_review.csv`, intermediate `data/features/sa2_2026_05_mtd.csv`; builder `scripts/build_sd_monthly_rainfall_review.py --year 2026 --month 5`.
+- **Validation.** May daily-grid sums were cross-checked against SILO's published monthly grid (`2026.monthly_rain.nc`, Jan–May): agreement within 0.1 mm across all 186 valid SA2s (correlation 1.00000).
+- **Outputs.** `data/features/sd_2026_05_rainfall_review.csv`, `data/features/state_2026_05_rainfall_review.csv`, `data/features/sa2_2026_05_rainfall_review.csv` (per-SA2 detail), intermediate `data/features/sa2_2026_05_mtd.csv`; builder `scripts/build_sd_monthly_rainfall_review.py --year 2026 --month 5`.
