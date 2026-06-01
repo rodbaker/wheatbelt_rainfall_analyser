@@ -95,6 +95,29 @@ def decile_from_pct(p):
     return max(1, min(10, int(p / 10) + 1))
 
 
+def sa2_ytd_for_year(ytd_lookup, sa2, yr, month, target_rain, target_year):
+    """Cumulative Jan..month rainfall for one SA2 in one year.
+
+    Prior full months (1..month-1) come from the monthly history; the final
+    month comes from the monthly history too, EXCEPT for the target year,
+    where it comes from the daily-grid sum (target_rain) since the in-progress
+    month is absent from the monthly NetCDF. Returns None if any month missing.
+    """
+    total = 0.0
+    for m in range(1, month):
+        v = ytd_lookup.get(sa2, {}).get((yr, m))
+        if v is None:
+            return None
+        total += v
+    if yr == target_year:
+        v = target_rain.get(sa2)
+    else:
+        v = ytd_lookup.get(sa2, {}).get((yr, month))
+    if v is None:
+        return None
+    return total + v
+
+
 def load_wheat_areas():
     """abs_sa2_code -> 2020-21 wheat area_ha_for_weighting."""
     wheat = {}
@@ -204,6 +227,20 @@ def main():
         if pd.isna(v) or v < 0:
             continue
         hist_lookup[int(r["sa2_code"])][int(r["year"])] = float(v)
+
+    # ---- monthly lookup for YTD accumulation (months 1..month, all years
+    # incl. target year for the prior full months). sa2 -> {(year,m): mm}.
+    ytd_hist = hist[
+        (hist["month"] <= month)
+        & (hist["year"].isin(hist_years + [year]))
+        & (hist["is_partial_month"] != True)  # noqa: E712
+    ]
+    ytd_lookup = defaultdict(dict)
+    for _, r in ytd_hist.iterrows():
+        v = r["rainfall_mm"]
+        if pd.isna(v) or v < 0:
+            continue
+        ytd_lookup[int(r["sa2_code"])][(int(r["year"]), int(r["month"]))] = float(v)
 
     # ---- build SD membership with weights (all SDs; floor applied later)
     sd_members = defaultdict(list)
@@ -342,6 +379,50 @@ def main():
         sr["percentile_rank"] = state_pr.get(sr["state"], float("nan"))
         sr["decile"] = state_decile.get(sr["state"])
 
+    # ---- per-STATE YTD accumulation (Jan..month) vs the long-term profile.
+    # State-weighted cumulative rainfall for the target year, ranked against
+    # each historical year's same Jan..month window. Decimal decile + % of
+    # the historical median accumulation.
+    state_ytd = {}
+    for abbr, members in members_by_state.items():
+        cur_vw = []
+        for m in members:
+            cum = sa2_ytd_for_year(
+                ytd_lookup, m["sa2_code"], year, month, target_rain, year
+            )
+            if cum is not None:
+                cur_vw.append((cum, m["weight"]))
+        cur_wm = weighted_mean(cur_vw)
+        yr_series = []
+        for y in hist_years:
+            yr_vw = []
+            for m in members:
+                cum = sa2_ytd_for_year(
+                    ytd_lookup, m["sa2_code"], y, month, target_rain, year
+                )
+                if cum is not None:
+                    yr_vw.append((cum, m["weight"]))
+            wm = weighted_mean(yr_vw)
+            if wm is not None:
+                yr_series.append(wm)
+        if cur_wm is not None and yr_series:
+            med = statistics.median(yr_series)
+            state_ytd[abbr] = {
+                "ytd_mm": cur_wm,
+                "ytd_median_mm": med,
+                "ytd_pct_of_median": (cur_wm / med * 100) if med > 0 else float("nan"),
+                "ytd_percentile_rank": pct_rank(yr_series, cur_wm),
+            }
+
+    for sr in state_rows:
+        y = state_ytd.get(sr["state"])
+        if y:
+            sr["ytd_mm"] = y["ytd_mm"]
+            sr["ytd_median_mm"] = y["ytd_median_mm"]
+            sr["ytd_pct_of_median"] = y["ytd_pct_of_median"]
+            sr["ytd_percentile_rank"] = y["ytd_percentile_rank"]
+            sr["ytd_decile_decimal"] = round(y["ytd_percentile_rank"] / 10.0, 1)
+
     state_df = pd.DataFrame(state_rows)
     state_df["__ord"] = state_df["state"].map(
         {s: i for i, s in enumerate(STATE_ORDER)}
@@ -349,6 +430,12 @@ def main():
     state_df = (
         state_df.sort_values("__ord").drop(columns="__ord").reset_index(drop=True)
     )
+
+    # ---- decimal decile (house convention: percentile rank / 10, one dp).
+    # The integer `decile` (1-10 bucket) is retained for the dry/mid/wet flag
+    # and for sorting driest/wettest.
+    sd_df["decile_decimal"] = (sd_df["percentile_rank"] / 10.0).round(1)
+    state_df["decile_decimal"] = (state_df["percentile_rank"] / 10.0).round(1)
 
     # ---- write CSVs
     round_cols = [
@@ -358,9 +445,13 @@ def main():
         "pct_of_median",
         "percentile_rank",
         "anomaly_mm",
+        "ytd_mm",
+        "ytd_median_mm",
+        "ytd_pct_of_median",
+        "ytd_percentile_rank",
     ]
     sd_out = sd_df.copy()
-    for col in round_cols:
+    for col in [c for c in round_cols if c in sd_out.columns]:
         sd_out[col] = sd_out[col].round(1)
     sd_out.to_csv(out_sd, index=False)
 
@@ -406,8 +497,29 @@ def main():
     for _, r in state_df.iterrows():
         print(
             f"| {r['state']} | {r['wheat_kha']:.0f} | {r['rain_mm']:.1f} "
-            f"| {r['pct_of_median']:.0f}% | D{r['decile']} {flag(r['decile'])} |"
+            f"| {r['pct_of_median']:.0f}% | {r['decile_decimal']:.1f} "
+            f"{flag(r['decile'])} |"
         )
+
+    # ---- YTD accumulation table
+    if "ytd_mm" in state_df.columns:
+        print()
+        print(f"## Year-to-date accumulation (Jan–{month_name})")
+        print()
+        print(
+            "| State | YTD 2026 (mm) | YTD median (mm) | % of median "
+            "| YTD decile |"
+        )
+        print("|---|---:|---:|---:|---:|")
+        for _, r in state_df.iterrows():
+            if pd.isna(r.get("ytd_mm")):
+                continue
+            yd = r["ytd_decile_decimal"]
+            yflag = flag(int(r["ytd_percentile_rank"] // 10) + 1)
+            print(
+                f"| {r['state']} | {r['ytd_mm']:.0f} | {r['ytd_median_mm']:.0f} "
+                f"| {r['ytd_pct_of_median']:.0f}% | {yd:.1f} {yflag} |"
+            )
 
     for abbr in STATE_ORDER:
         sub = sd_df[sd_df["state"] == abbr]
@@ -426,7 +538,8 @@ def main():
             print(
                 f"| {r['sd_name']} | {r['wheat_kha']:.0f} | {r['rain_mm']:.1f} "
                 f"| {r['hist_scaled_median_mm']:.1f} | {r['pct_of_median']:.0f}% "
-                f"| D{r['decile']} {flag(r['decile'])} | {r['anomaly_mm']:+.1f} |"
+                f"| {r['decile_decimal']:.1f} {flag(r['decile'])} "
+                f"| {r['anomaly_mm']:+.1f} |"
             )
 
     print()
@@ -443,9 +556,9 @@ def main():
             ["decile", "pct_of_median"], ascending=False
         ).iloc[0]
         print(
-            f"| {abbr} | {driest['sd_name']} | D{driest['decile']} "
+            f"| {abbr} | {driest['sd_name']} | {driest['decile_decimal']:.1f} "
             f"| {driest['pct_of_median']:.0f}% | {wettest['sd_name']} "
-            f"| D{wettest['decile']} | {wettest['pct_of_median']:.0f}% |"
+            f"| {wettest['decile_decimal']:.1f} | {wettest['pct_of_median']:.0f}% |"
         )
 
     print()
