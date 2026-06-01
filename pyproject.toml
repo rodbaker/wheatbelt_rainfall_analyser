@@ -18,7 +18,9 @@ dependencies = [
     "python-dateutil>=2.8.0",
     "duckdb>=0.8.0",
     "xarray",
-    "netCDF4"
+    "netCDF4",
+    "matplotlib",
+    "geopandas"
 ]
 
 [tool.setuptools]
