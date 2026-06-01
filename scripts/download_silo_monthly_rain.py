@@ -48,6 +48,9 @@ def validate_monthly_rain(path: Path, year: int, require_complete: bool = True) 
             raise ValueError("time axis is empty")
         if require_complete and n_time != 12:
             raise ValueError(f"expected 12 time steps, got {n_time}")
+        months = [int(t.dt.month.values) for t in ds.time]
+        if require_complete and sorted(months) != list(range(1, 13)):
+            raise ValueError("expected exactly one timestamp for each calendar month")
         bad_years = [
             str(t.values) for t in ds.time if int(str(t.dt.year.values)) != year
         ]

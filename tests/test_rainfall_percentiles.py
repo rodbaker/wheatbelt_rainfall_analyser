@@ -7,12 +7,12 @@ import xarray as xr
 from src.rainfall import percentiles as pc
 
 
-def _write_grid(path, year, n_months, value):
+def _write_grid(path, year, n_months, value, *, lat=None, lon=None):
     # NOTE: start on the 1st — "MS" (month-start) snaps forward, so a -01-15 start
     # would push the 12th month into year+1 and trip the in-year validation.
     times = pd.date_range(f"{year}-01-01", periods=n_months, freq="MS")
-    lat = np.array([-31.0, -30.95])
-    lon = np.array([115.0, 115.05])
+    lat = np.array([-31.0, -30.95]) if lat is None else np.asarray(lat)
+    lon = np.array([115.0, 115.05]) if lon is None else np.asarray(lon)
     data = np.full((n_months, lat.size, lon.size), float(value))
     xr.Dataset(
         {"monthly_rain": (("time", "lat", "lon"), data)},
@@ -149,11 +149,47 @@ def test_load_month_stack_selects_the_requested_month_not_index_zero(tmp_path):
 
 
 def test_load_month_stack_missing_month_raises_clearly(tmp_path):
-    # A partial file (Jan-Apr only) is asked for July -> clear ValueError, not IndexError.
+    # A partial target file (Jan-Apr only) is asked for July -> clear ValueError.
     _write_grid(tmp_path / "2026.monthly_rain.nc", 2026, 4, 10)
+    _write_grid(tmp_path / "2025.monthly_rain.nc", 2025, 12, 10)
     try:
-        pc.load_month_stack(7, 2026, 2026, 2026, grids_dir=tmp_path)
+        pc.load_month_stack(7, 2026, 2025, 2025, grids_dir=tmp_path)
     except ValueError as exc:
         assert "month 7" in str(exc) and "2026.monthly_rain.nc" in str(exc)
     else:
         raise AssertionError("expected ValueError naming the missing month")
+
+
+def test_load_month_stack_maps_available_month_from_partial_target(tmp_path):
+    _write_grid(tmp_path / "2025.monthly_rain.nc", 2025, 12, 10)
+    _write_grid(tmp_path / "2026.monthly_rain.nc", 2026, 4, 20)
+    target, stack, years = pc.load_month_stack(
+        3, 2026, 2025, 2025, grids_dir=tmp_path
+    )
+    assert target[0, 0] == 20
+    assert stack[0, 0, 0] == 10
+    assert years == [2025]
+
+
+def test_load_month_stack_rejects_partial_baseline_file(tmp_path):
+    _write_grid(tmp_path / "2025.monthly_rain.nc", 2025, 4, 10)
+    try:
+        pc.load_month_stack(3, 2025, 2025, 2025, grids_dir=tmp_path)
+    except ValueError as exc:
+        assert "each calendar month" in str(exc)
+    else:
+        raise AssertionError("expected ValueError for partial baseline file")
+
+
+def test_load_month_stack_rejects_shifted_baseline_coordinates(tmp_path):
+    _write_grid(tmp_path / "2025.monthly_rain.nc", 2025, 12, 10)
+    _write_grid(
+        tmp_path / "2026.monthly_rain.nc", 2026, 12, 20,
+        lon=[115.05, 115.10],
+    )
+    try:
+        pc.load_month_stack(3, 2025, 2025, 2026, grids_dir=tmp_path)
+    except ValueError as exc:
+        assert "lat/lon coordinates do not match" in str(exc)
+    else:
+        raise AssertionError("expected ValueError for shifted baseline grid")

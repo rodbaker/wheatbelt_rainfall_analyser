@@ -144,3 +144,23 @@ def test_wrong_year_rejected_even_when_not_require_complete(tmp_path):
 
     assert status.startswith("invalid")
     assert not (tmp_path / f"{year}.monthly_rain.nc").exists()
+
+
+def test_complete_year_rejects_duplicate_calendar_months(tmp_path):
+    """Twelve timestamps are insufficient if they do not cover Jan-Dec once each."""
+    year = 2000
+
+    def duplicate_month_fetch(tmp_):
+        lat = np.array([-31.0, -30.95])
+        lon = np.array([115.0, 115.05])
+        times = pd.to_datetime([f"{year}-01-01"] * 12)
+        data = np.ones((12, lat.size, lon.size))
+        xr.Dataset(
+            {"monthly_rain": (("time", "lat", "lon"), data)},
+            coords={"time": times, "lat": lat, "lon": lon},
+        ).to_netcdf(tmp_)
+
+    status = dl.install_year(year, duplicate_month_fetch, dest_dir=tmp_path, min_bytes=0)
+
+    assert status.startswith("invalid")
+    assert not (tmp_path / f"{year}.monthly_rain.nc").exists()

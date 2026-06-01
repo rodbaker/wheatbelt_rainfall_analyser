@@ -9,6 +9,23 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 GRIDS_DIR = REPO_ROOT / "data" / "meta" / "monthly_rain"
 
 
+def _validate_complete_grid(path: Path, year: int) -> None:
+    """Raise ValueError unless path is a complete monthly grid for year."""
+    with xr.open_dataset(path) as ds:
+        if "monthly_rain" not in ds:
+            raise ValueError(f"{path.name}: variable 'monthly_rain' missing")
+        if "lat" not in ds.dims or "lon" not in ds.dims:
+            raise ValueError(f"{path.name}: dimension 'lat'/'lon' missing")
+        years = [int(t.dt.year.values) for t in ds.time]
+        months = [int(t.dt.month.values) for t in ds.time]
+        if len(months) != 12 or sorted(months) != list(range(1, 13)):
+            raise ValueError(
+                f"{path.name}: expected exactly one timestamp for each calendar month"
+            )
+        if any(value != year for value in years):
+            raise ValueError(f"{path.name}: time coordinates belong to the wrong year")
+
+
 def latest_complete_year(grids_dir: Path = GRIDS_DIR) -> int:
     """Newest year whose grid has 12 timestamps all belonging to that year."""
     grids_dir = Path(grids_dir)
@@ -18,11 +35,10 @@ def latest_complete_year(grids_dir: Path = GRIDS_DIR) -> int:
             year = int(path.name.split(".")[0])
         except ValueError:
             continue  # non-year prefix (e.g. a stray/renamed file) — skip
-        with xr.open_dataset(path) as ds:
-            if len(ds.time) != 12:
-                continue
-            if any(int(str(t.dt.year.values)) != year for t in ds.time):
-                continue
+        try:
+            _validate_complete_grid(path, year)
+        except (OSError, ValueError):
+            continue
         if best is None or year > best:
             best = year
     if best is None:
@@ -55,7 +71,7 @@ def cell_percentile(target_grid: np.ndarray, baseline_stack: np.ndarray) -> np.n
     return pct
 
 
-def _month_grid(path: Path, month: int) -> np.ndarray:
+def _month_grid(path: Path, month: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Return the (lat, lon) slice for `month` from a monthly_rain file.
 
     Expects exactly one timestamp for `month` in the file. Raises ValueError
@@ -70,7 +86,11 @@ def _month_grid(path: Path, month: int) -> np.ndarray:
                 f"{path.name}: expected exactly 1 timestamp for month {month}, "
                 f"found {n}"
             )
-        return sel.isel(time=0).values.astype("float64")
+        return (
+            sel.isel(time=0).values.astype("float64"),
+            ds.lat.values,
+            ds.lon.values,
+        )
 
 
 def load_month_stack(
@@ -99,7 +119,14 @@ def load_month_stack(
     if not target_path.exists():
         raise FileNotFoundError(f"missing target grid {target_path}")
 
-    target = _month_grid(target_path, month)
-    stack = np.stack([_month_grid(grids_dir / f"{y}.monthly_rain.nc", month)
-                      for y in years], axis=0)
+    target, target_lat, target_lon = _month_grid(target_path, month)
+    baseline = []
+    for baseline_year in years:
+        path = grids_dir / f"{baseline_year}.monthly_rain.nc"
+        _validate_complete_grid(path, baseline_year)
+        grid, lat, lon = _month_grid(path, month)
+        if not np.array_equal(lat, target_lat) or not np.array_equal(lon, target_lon):
+            raise ValueError(f"{path.name}: lat/lon coordinates do not match target grid")
+        baseline.append(grid)
+    stack = np.stack(baseline, axis=0)
     return target, stack, years
