@@ -473,7 +473,9 @@ from src.rainfall import percentiles as pc
 
 
 def _write_grid(path, year, n_months, value):
-    times = pd.date_range(f"{year}-01-15", periods=n_months, freq="MS")
+    # NOTE: start on the 1st — "MS" (month-start) snaps forward, so a -01-15 start
+    # would push the 12th month into year+1 and trip the in-year validation.
+    times = pd.date_range(f"{year}-01-01", periods=n_months, freq="MS")
     lat = np.array([-31.0, -30.95])
     lon = np.array([115.0, 115.05])
     data = np.full((n_months, lat.size, lon.size), float(value))
