@@ -75,3 +75,26 @@ def test_cell_percentile_all_baseline_nan_is_nan():
     target = np.array([10.0]).reshape(1, 1)
     out = pc.cell_percentile(target, baseline)
     assert np.isnan(out[0, 0])
+
+
+def test_cell_percentile_mid_rank_value():
+    # Plain non-clamped path: baseline [10,20,30,40]; target 25.
+    # count(<25)=2 -> pct = 100*(2+1)/4 = 75.0
+    baseline = np.array([10.0, 20.0, 30.0, 40.0]).reshape(4, 1, 1)
+    target = np.array([25.0]).reshape(1, 1)
+    out = pc.cell_percentile(target, baseline)
+    assert abs(out[0, 0] - 75.0) < 1e-9
+
+
+def test_cell_percentile_multicell_grid_axis_contract():
+    # 2x2 grid, distinct per-cell targets, to lock the (year, lat, lon) axis handling.
+    # Baseline years stacked on axis 0; each cell baseline = [0,10,20,30].
+    baseline = (np.arange(4).reshape(4, 1, 1) * 10.0) * np.ones((4, 2, 2))
+    target = np.array([[5.0, 15.0], [25.0, 35.0]])  # ranks differ per cell
+    out = pc.cell_percentile(target, baseline)
+    assert out.shape == (2, 2)
+    # count(<t)/4 *100 with +1: 5->1, 15->2, 25->3, 35->4 valid-below
+    expected = np.array([[100 * 2 / 4, 100 * 3 / 4],
+                         [100 * 4 / 4, 100 * 5 / 4]])
+    expected = np.clip(expected, None, 100.0)
+    assert np.allclose(out, expected)
