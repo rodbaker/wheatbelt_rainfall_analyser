@@ -98,3 +98,28 @@ def test_cell_percentile_multicell_grid_axis_contract():
                          [100 * 4 / 4, 100 * 5 / 4]])
     expected = np.clip(expected, None, 100.0)
     assert np.allclose(out, expected)
+
+
+def test_load_month_stack_selects_month_and_baseline(tmp_path):
+    # Three baseline years, distinct values; target year 2002.
+    for yr, val in [(2000, 10), (2001, 20), (2002, 30)]:
+        _write_grid(tmp_path / f"{yr}.monthly_rain.nc", yr, 12, val)
+    target, stack, years = pc.load_month_stack(
+        month=7, year=2002, baseline_start=2000, baseline_end=2002, grids_dir=tmp_path
+    )
+    assert target.shape == (2, 2)            # lat x lon
+    assert stack.shape == (3, 2, 2)          # 3 baseline years
+    assert years == [2000, 2001, 2002]
+    assert target[0, 0] == 30.0              # 2002's July value
+    assert sorted(stack[:, 0, 0].tolist()) == [10.0, 20.0, 30.0]
+
+
+def test_load_month_stack_missing_year_raises(tmp_path):
+    _write_grid(tmp_path / "2000.monthly_rain.nc", 2000, 12, 10)
+    # baseline asks for 2000-2002 but only 2000 exists
+    try:
+        pc.load_month_stack(7, 2000, 2000, 2002, grids_dir=tmp_path)
+    except FileNotFoundError as exc:
+        assert "2001" in str(exc) and "2002" in str(exc)
+    else:
+        raise AssertionError("expected FileNotFoundError naming missing years")

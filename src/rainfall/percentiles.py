@@ -53,3 +53,38 @@ def cell_percentile(target_grid: np.ndarray, baseline_stack: np.ndarray) -> np.n
     pct[np.isnan(target)] = np.nan
     pct[n_valid == 0] = np.nan
     return pct
+
+
+def _month_grid(path: Path, month: int) -> np.ndarray:
+    """Return the (lat, lon) slice for `month` from a monthly_rain file."""
+    with xr.open_dataset(path) as ds:
+        sel = ds["monthly_rain"].sel(
+            time=ds.time.dt.month == month
+        ).isel(time=0)
+        return sel.values.astype("float64")
+
+
+def load_month_stack(month, year, baseline_start, baseline_end, grids_dir=GRIDS_DIR):
+    """Load the target month grid + the same-month baseline stack across years.
+
+    Returns (target_grid, baseline_stack, years). Raises FileNotFoundError listing
+    every missing baseline-year file.
+    """
+    grids_dir = Path(grids_dir)
+    years = list(range(baseline_start, baseline_end + 1))
+
+    missing = [y for y in years if not (grids_dir / f"{y}.monthly_rain.nc").exists()]
+    if missing:
+        raise FileNotFoundError(
+            f"missing monthly_rain grids for baseline years {missing}; "
+            f"run scripts/download_silo_monthly_rain.py"
+        )
+
+    target_path = grids_dir / f"{year}.monthly_rain.nc"
+    if not target_path.exists():
+        raise FileNotFoundError(f"missing target grid {target_path}")
+
+    target = _month_grid(target_path, month)
+    stack = np.stack([_month_grid(grids_dir / f"{y}.monthly_rain.nc", month)
+                      for y in years], axis=0)
+    return target, stack, years
