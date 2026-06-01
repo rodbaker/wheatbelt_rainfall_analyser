@@ -28,3 +28,28 @@ def latest_complete_year(grids_dir: Path = GRIDS_DIR) -> int:
     if best is None:
         raise FileNotFoundError(f"no complete-year grids in {grids_dir}")
     return best
+
+
+def cell_percentile(target_grid: np.ndarray, baseline_stack: np.ndarray) -> np.ndarray:
+    """Per-cell rank-fraction percentile of target vs baseline (same calendar month).
+
+    pct = 100 * (count(baseline < target) + 1) / n_valid, where n_valid is the
+    per-cell count of non-NaN baseline values. Strict `<` (ties don't lift rank).
+    Clamped to 100. NaN where the target cell is NaN or n_valid == 0.
+    """
+    target = np.asarray(target_grid, dtype="float64")
+    stack = np.asarray(baseline_stack, dtype="float64")
+
+    valid = ~np.isnan(stack)
+    n_valid = valid.sum(axis=0)  # (lat, lon)
+
+    # count baseline strictly below target, ignoring NaN baseline cells
+    below = np.where(valid & (stack < target[np.newaxis, ...]), 1.0, 0.0).sum(axis=0)
+
+    with np.errstate(invalid="ignore", divide="ignore"):
+        pct = 100.0 * (below + 1.0) / n_valid
+    pct = np.clip(pct, None, 100.0)
+
+    pct[np.isnan(target)] = np.nan
+    pct[n_valid == 0] = np.nan
+    return pct
