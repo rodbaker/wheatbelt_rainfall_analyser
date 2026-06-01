@@ -17,9 +17,11 @@ Usage:
 """
 
 import argparse
+import os
 import sys
 import urllib.request
 from pathlib import Path
+from typing import Callable
 
 import xarray as xr
 
@@ -30,6 +32,73 @@ BASE_URL = (
     "/silo-open-data/Official/annual/monthly_rain"
 )
 MIN_FILE_BYTES = 1_000_000  # 1 MB — sanity guard; real files are ~14 MB
+
+
+def validate_monthly_rain(path: Path, year: int, require_complete: bool = True) -> None:
+    """Raise ValueError if `path` is not a valid monthly_rain grid for `year`."""
+    with xr.open_dataset(path) as ds:
+        if "monthly_rain" not in ds:
+            raise ValueError("variable 'monthly_rain' missing")
+        if "lat" not in ds.dims or "lon" not in ds.dims:
+            raise ValueError("dimension 'lat'/'lon' missing")
+        n_time = len(ds.time)
+        if n_time == 0:
+            raise ValueError("time axis is empty")
+        if require_complete and n_time != 12:
+            raise ValueError(f"expected 12 time steps, got {n_time}")
+        bad_years = [
+            str(t.values) for t in ds.time if int(str(t.dt.year.values)) != year
+        ]
+        if bad_years:
+            raise ValueError(f"time coordinates with wrong year: {bad_years[:3]}")
+
+
+def install_year(
+    year: int,
+    fetch: Callable[[Path], None],
+    dest_dir: Path = OUTPUT_DIR,
+    allow_replace: bool = False,
+    require_complete: bool = True,
+    min_bytes: int = MIN_FILE_BYTES,
+) -> str:
+    """Fetch one monthly grid: fetch -> temp (inside dest_dir) -> validate -> replace.
+
+    Returns "installed", "skipped", "invalid: <reason>", or "error: <reason>".
+    Validate-before-skip: an existing file is "skipped" only if it is valid; an
+    existing invalid file returns "invalid: ..." unless allow_replace re-fetches.
+    """
+    dest_dir = Path(dest_dir)
+    dest = dest_dir / f"{year}.monthly_rain.nc"
+
+    if dest.exists() and not allow_replace:
+        try:
+            validate_monthly_rain(dest, year, require_complete=require_complete)
+            return "skipped"
+        except Exception as exc:
+            return f"invalid: existing file {exc}"
+
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    tmp = dest_dir / f"{year}.monthly_rain.nc.tmp"
+
+    try:
+        fetch(tmp)
+    except Exception as exc:
+        tmp.unlink(missing_ok=True)
+        return f"error: {exc}"
+
+    try:
+        size = tmp.stat().st_size
+        if size < min_bytes:
+            raise ValueError(
+                f"downloaded file too small ({size} bytes < {min_bytes} minimum)"
+            )
+        validate_monthly_rain(tmp, year, require_complete=require_complete)
+    except Exception as exc:
+        tmp.unlink(missing_ok=True)
+        return f"invalid: {exc}"
+
+    os.replace(tmp, dest)
+    return "installed"
 
 
 def download_year(year: int, dry_run: bool = False) -> bool:
