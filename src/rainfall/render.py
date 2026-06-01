@@ -31,14 +31,28 @@ def _palette() -> ListedColormap:
     return ListedColormap([base(i / 9) for i in range(10)])
 
 
-def clip_to_regions(pct, lon, lat, mask_geom):
-    """Set cells whose centre falls outside `mask_geom` to NaN (hard wheatbelt clip)."""
+def clip_to_regions(pct, lon, lat, mask_geom, margin=0.5):
+    """Set cells whose centre falls outside `mask_geom` to NaN (hard wheatbelt clip).
+
+    Cells outside the mask's bounding box (plus `margin` degrees) are blanked
+    without a per-cell point-in-polygon test, so the expensive containment check
+    only runs near the wheatbelt rather than across the whole national grid.
+    """
+    lon = np.asarray(lon, dtype="float64")
+    lat = np.asarray(lat, dtype="float64")
+    minx, miny, maxx, maxy = mask_geom.bounds
+    minx -= margin; miny -= margin; maxx += margin; maxy += margin
+
     prepared = prep(mask_geom)
-    out = np.array(pct, dtype="float64")
+    out = np.full(np.asarray(pct, dtype="float64").shape, np.nan)
     for j, la in enumerate(lat):
+        if la < miny or la > maxy:
+            continue
         for i, lo in enumerate(lon):
-            if not prepared.contains(Point(float(lo), float(la))):
-                out[j, i] = np.nan
+            if lo < minx or lo > maxx:
+                continue
+            if prepared.contains(Point(float(lo), float(la))):
+                out[j, i] = pct[j, i]
     return out
 
 
@@ -70,6 +84,11 @@ def render_percentile_map(pct, regions, *, lon, lat, month, year,
         pt = row.geometry.representative_point()
         ax.annotate(row["SA2_NAME16"], (pt.x, pt.y), fontsize=7,
                     ha="center", va="center")
+
+    minx, miny, maxx, maxy = regions.total_bounds
+    ax.set_xlim(minx - 0.3, maxx + 0.3)
+    ax.set_ylim(miny - 0.3, maxy + 0.3)
+    ax.set_aspect("equal")
 
     ax.set_title(f"WA Wheatbelt {_MONTHS[month]} Rainfall Percentiles", fontsize=16)
     ax.set_axis_off()
