@@ -116,3 +116,15 @@ def test_existing_invalid_file_not_silently_accepted(tmp_path):
     status = dl.install_year(year, fetch, dest_dir=tmp_path, allow_replace=False)
     assert status.startswith("invalid")
     assert called["fetch"] is False
+
+
+def test_partial_year_allowed_when_not_require_complete(tmp_path):
+    """Current-year partial files validate when require_complete=False."""
+    year = 2026
+    fetch = _good_fetch(year, 4)  # Jan-Apr only
+
+    status = dl.install_year(
+        year, fetch, dest_dir=tmp_path, require_complete=False, min_bytes=0
+    )
+
+    assert status == "installed"
