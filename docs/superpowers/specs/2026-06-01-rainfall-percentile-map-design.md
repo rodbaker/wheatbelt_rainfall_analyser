@@ -16,15 +16,15 @@ Reference artifact: `reports/figures/wa_july_percentiles.png` (made in QGIS).
 | Topic | Decision |
 |---|---|
 | Render style | **Raster surface** (per-grid-cell percentile), not a flat per-region choropleth — matches the within-region gradients of the QGIS map. |
-| Baseline | **1911 → latest complete year**, exposed as `--baseline-start` (default 1911) and `--baseline-end` (default latest complete year on disk). Requires a one-time ~1.3 GB SILO `monthly_rain` backfill to the HDD-symlinked path. |
+| Baseline | **1911 → latest complete year**, exposed as `--baseline-start` (default 1911) and `--baseline-end` (default = latest *structurally complete* year, see CLI §5 — a grid with 12 timestamps all in that year). Requires a one-time ~1.3 GB SILO `monthly_rain` backfill to the HDD-symlinked path. |
 | Target | Monthly rainfall percentile for `--month` and `--year`. |
-| Ranking | Per cell, compare the target month against the **same calendar month** across baseline years. **Target year is included in its own baseline** (matches a fixed climatology dataset). |
-| Percentile formula | `pct = 100 * ((baseline < target).sum(axis=0) + 1) / N`. Strict `<` so values equal to the target do **not** lift its rank (documented tie behaviour). Clamp to 100 defensively. NaN-preserving over ocean/nodata cells. |
-| Colour scale | 10 fixed bins via `BoundaryNorm([0,10,20,30,40,50,60,70,80,90,100])`; discrete 10-colour palette sampled from `RdBu` (red = dry ≤10, pale mid, blue = wet >90). Bin labels `<=10, 10-20, …, 80-90, >90`. Exact BoM hex ramp is a later refinement only if visual comparison shows a meaningful mismatch. |
-| Boundaries overlay | `--regions sa2|sd`, **default `sa2`**. SA2 reproduces the reference map's outlines + town labels directly. SD is a first-class option via the **same overlay function** — a region column selected by the flag, geometries **dissolved only for `sd`**. No numerical regional aggregation in scope. |
-| Rendering stack | `xarray` + Matplotlib `pcolormesh` for the raster; `geopandas` for boundary outlines + labels. **No `rasterio`** unless grid metadata or export format actually requires it (it does not, for PNG). |
-| Output | `reports/figures/wa_{month}_{year}_percentiles.png` — raster surface, SD/SA2 overlay, title, binned legend, source note, and **baseline period in the caption**. |
-| Dependencies | Add only what the implementation needs (`geopandas` + its stack), in a **separate dependency commit**. |
+| Ranking | Per cell, compare the target month against the **same calendar month** across baseline years. **The target year is included in the baseline only when it falls inside the selected complete-year interval** (`baseline_start..baseline_end`). A completed month in a partial current-year file (e.g. Mar 2026) can still be mapped against the latest *complete* annual baseline that excludes 2026. |
+| Percentile formula | Per cell: `pct = 100 * (count(baseline < target) + 1) / n_valid`, where `n_valid` is the number of **non-NaN** baseline values **in that cell** (not a global N). Strict `<` so values equal to the target do **not** lift its rank (documented tie behaviour). Clamp to 100 defensively. Return NaN if the target cell is NaN **or** the cell has zero valid baseline values. |
+| Colour scale / bins | 10 right-closed bins. Compute bin index with `np.digitize(pct, [10,20,30,40,50,60,70,80,90], right=True)` → indices 0–9, rendered categorically with a discrete 10-colour `ListedColormap` sampled from `RdBu` (red = dry, pale mid, blue = wet). Legend labels `<=10, 10-20, …, 80-90, >90`. (Right-closed so exactly 10 → the `<=10` bin, matching the label.) Exact BoM hex ramp is a later refinement only if visual comparison shows a meaningful mismatch. |
+| Boundaries overlay | `--regions sa2|sd`, **default `sa2`**. SA2 reproduces the reference map's outlines + town labels directly. SD is a first-class option via the **same overlay function** (region/label column selected by the flag; geometries **dissolved only for `sd`**). **SD dissolve strategy is unresolved** — the only in-repo concordance is 2021-SA2→2011-SD keyed differently from the 2016-SA2 geojson, and it lives at an external absolute path. A repo-managed SD mapping or SD boundary asset must be pinned before SD is implementable (see Open Items). No numerical regional aggregation in scope. |
+| Rendering stack | `xarray` + **Matplotlib** `pcolormesh` for the raster; `geopandas` for boundary outlines + labels. **No `rasterio`** (PNG output does not require it). |
+| Output | `reports/figures/wa_{month}_{year}_percentiles.png` — raster surface, SA2/SD overlay, title, binned legend, source note, and **baseline period in the caption**. |
+| Dependencies | Add **`matplotlib` and `geopandas`** (let resolution provide the GeoPandas stack: shapely, pyproj, fiona), in a **separate dependency commit**. |
 | Backfill | Resumable, validate-before-install downloads, written directly through the HDD `monthly_rain/` symlink. |
 
 ---
@@ -44,9 +44,12 @@ Mirror the just-hardened daily downloader. Refactor to an injectable
   dims present, 12 time steps, all timestamps in `year`. Validation runs on the
   temp file **before** the replace.
 - On validation failure or fetch error: existing file preserved, temp removed.
-- **Resumable:** existing valid files are skipped, so re-running the backfill after
-  an interruption continues where it stopped. (No HTTP range/partial-resume within
-  a single file — granularity is per-year-file, which is sufficient.)
+- **Resumable, validate-before-skip:** an existing file is skipped **only if it
+  passes `validate_monthly_rain`**. An existing file that is present but invalid
+  (truncated/partial from an interrupted run) does **not** silently count as done —
+  it fails clearly and requires `--replace` to re-fetch. Re-running the backfill
+  thus continues from where it stopped without trusting half-written files. (No HTTP
+  range/partial-resume within a single file — granularity is per-year-file.)
 
 **Interface:** `install_year(year, fetch, dest_dir=OUTPUT_DIR, allow_replace=False, require_complete=True, min_bytes=...) -> str` (`"installed"|"skipped"|"invalid: …"|"error: …"`), matching the daily downloader's contract.
 
@@ -59,8 +62,10 @@ Mirror the just-hardened daily downloader. Refactor to an injectable
   returns the target 2-D grid and the `(N, lat, lon)` baseline stack. Raises a
   clear error naming any **missing** baseline-year file (→ "run the backfill").
 - `cell_percentile(target_grid, baseline_stack) -> pct_grid`:
-  `100 * ((baseline_stack < target_grid).sum(axis=0) + 1) / N`, clamped to 100,
-  NaN where the target cell is NaN (ocean/nodata).
+  per cell, `100 * (count(baseline < target) + 1) / n_valid`, where `n_valid`
+  counts the **non-NaN** baseline values **in that cell** (NaNs in the stack are
+  ignored, not counted in the denominator and never counted as `< target`).
+  Clamp to 100. Return NaN where the target cell is NaN **or** `n_valid == 0`.
 
 **Interface:** pure NumPy/xarray in, NumPy/xarray out. No file writes, no Matplotlib.
 **Most heavily tested unit.**
@@ -69,35 +74,38 @@ Mirror the just-hardened daily downloader. Refactor to an injectable
 
 - `load_wheatbelt_regions(level: str) -> GeoDataFrame` where `level in {"sa2","sd"}`:
   - Source: `data/meta/SA2_ABS_Regions.geojson`. **This file is national** (190
-    features across all states), so first **filter to the wheatbelt subset** that
-    matches the reference map's region set (the QGIS map shows the WA wheatbelt
-    SA2s — Northampton…Esperance/Albany). The filter must be made explicit and
-    verified against the reference; candidate keys present in the geojson are
-    `STE_NAME16 == "Western Australia"` plus an SA3/SA4 grain-belt filter, but the
-    authoritative subset is whatever reproduces the reference extent.
-  - `sa2`: keep the SA2 name column (`SA2_NAME16`) for labels.
-  - `sd`: **dissolve to Statistical Division using the project's existing
-    convention** — the SA2→SD correspondence already used by
-    `scripts/build_sd_sa2_breakdown.py` (`SD_CODE11`/`SD_NAME11`), NOT an ad-hoc
-    SA3/SA4 dissolve. Region/label column = `SD_NAME11`.
+    features across all states). The wheatbelt subset is **exactly the 26 WA
+    features** — these match the reference PNG's region set one-for-one — selected
+    explicitly with:
+    ```python
+    regions[regions["STE_NAME16"] == "Western Australia"]
+    ```
+    No additional SA3/SA4 filter is needed.
+  - `sa2`: keep the SA2 name column (`SA2_NAME16`) for labels. **This is the
+    default and reproduces the reference map.**
+  - `sd`: dissolve the 26 WA SA2 features to Statistical Division. **The mapping
+    is unresolved (blocking for SD only):** the in-repo concordance used by
+    `scripts/build_sd_sa2_breakdown.py` is keyed on **2021** SA2 codes
+    (`SA2_CODE21`) → **2011** SD (`SD_CODE11`), but the overlay geojson carries
+    **2016** SA2 keys (`SA2_MAIN16`), so the keys do not align; that concordance
+    also lives at an **external absolute path** outside the repo. Before SD is
+    implemented, pin one of: (a) a small repo-managed `SA2_2016 → SD` lookup
+    committed under `data/meta/`, or (b) a repo-managed SD boundary asset to load
+    directly. Region/label column = SD name.
   - One overlay function, region/label column selected by `level`; dissolve only
     when `sd`. Returns geometries in EPSG:4326 to match the SILO grid.
-- `clip_mask(regions) -> geometry`: union of the wheatbelt polygons, used to blank
-  raster cells outside the wheatbelt (reproduce the reference map's hard clip).
-
-**Open detail for implementation:** the exact wheatbelt subset filter and the
-precise SA2→SD correspondence file path must be pinned down by reading
-`build_sd_sa2_breakdown.py` and comparing the resulting extent to the reference
-PNG before the boundary unit is considered done. Flagged as the first task's
-acceptance check.
+- `clip_mask(regions) -> geometry`: union of the 26 wheatbelt polygons, used to
+  blank raster cells outside the wheatbelt (reproduce the reference map's hard clip).
 
 **Depends on:** `geopandas` (new dependency).
 
 ### 4. Renderer — `src/rainfall/render.py` (new)
 
 - `render_percentile_map(pct_grid, regions, *, month, year, baseline_start, baseline_end, out_path, level)`:
-  - `pcolormesh(lon, lat, pct_grid)` with `BoundaryNorm([0,10,…,100])` + discrete
-    10-colour RdBu (`ListedColormap` sampled from `RdBu`).
+  - Convert `pct_grid` → bin index `np.digitize(pct, [10,20,…,90], right=True)`
+    (0–9), then `pcolormesh(lon, lat, bin_index)` with a discrete 10-colour
+    `ListedColormap` sampled from `RdBu` (red = dry, blue = wet). NaN cells stay
+    masked. (Right-closed so pct == 10 → bin 0, the `<=10` class.)
   - Cells outside `clip_mask` masked → white, matching the reference.
   - Boundary outlines from `regions`; region labels at polygon representative points.
   - Title `WA Wheatbelt {Month name} Rainfall Percentiles`.
@@ -115,8 +123,13 @@ python scripts/plot_rainfall_percentiles.py \
     [--baseline-start 1911] [--baseline-end 2025] [--regions sa2|sd] [--out PATH]
 ```
 
-Wires units 2→3→4. `--baseline-end` defaults to the latest complete year present
-on disk. Fails clearly (naming the missing years) if the baseline is incomplete,
+Wires units 2→3→4. `--baseline-end` defaults to the **latest complete year**
+present on disk, defined **structurally**, not by filename existence: a year is
+"complete" iff its `{yr}.monthly_rain.nc` holds **12 timestamps all belonging to
+that year**. (Concretely, `2026.monthly_rain.nc` exists but holds only Jan–Apr
+2026, so it is *not* complete → the default `--baseline-end` is 2025.) A
+`latest_complete_year(grids_dir)` helper encapsulates this and is unit-tested.
+Fails clearly (naming the missing years) if the baseline interval is incomplete,
 directing the user to run the backfill.
 
 ---
@@ -137,9 +150,12 @@ CLI (--month --year --baseline-* --regions)
 
 - **Missing baseline year(s):** `load_month_stack` raises `FileNotFoundError`
   listing the absent years; CLI surfaces it with "run download_silo_monthly_rain.py".
-- **Partial target month** (e.g. current month incomplete): out of scope — the tool
-  targets completed months; document that the target year/month must be present and
-  complete in `monthly_rain`.
+- **Target in a partial-year file:** a *completed* month inside a current-year
+  partial file (e.g. Mar 2026, where `2026.monthly_rain.nc` holds Jan–Apr) **is
+  mappable** — its month slice is read from the partial file and ranked against the
+  latest *complete* annual baseline (which excludes the partial year). What is out
+  of scope is an *incomplete* target month (the requested month not present in the
+  target file) → fail clearly.
 - **All-NaN / ocean cells:** preserved as NaN → masked white, never coloured.
 - **Backfill:** validate-before-replace guarantees a bad download never lands.
 
@@ -149,22 +165,41 @@ CLI (--month --year --baseline-* --regions)
 
 | Unit | Tests |
 |---|---|
-| Percentile engine | Hand-computed 3×3×N toy stack: formula correctness; **tie** (baseline value == target does not lift rank); **clamp** to 100 (target is max); NaN target → NaN out; known mid-rank value. |
-| Backfill downloader | Reuse the daily-downloader test pattern: temp inside dest dir; validation failure preserves existing file; successful atomic replace; temp cleanup on failure; **resume** (skip existing valid file). |
-| Boundary layer | `sa2` returns expected wheatbelt polygon count with label column; `sd` dissolves to the expected (smaller) SD count with valid geometry; CRS is EPSG:4326. |
-| Renderer | Smoke: runs headless, writes a non-empty PNG; correct number of legend bins. Visual fidelity to the reference is eyeballed, **not** asserted pixel-wise. |
+| Percentile engine | Hand-computed 3×3×N toy stack: formula correctness; **tie** (baseline value == target does not lift rank); **clamp** to 100 (target is max); NaN target → NaN out; known mid-rank value; **baseline-NaN policy** (a cell with some NaN baseline years divides by `n_valid`, not global N; a cell with all-NaN baseline → NaN out). |
+| Latest-complete-year helper | `latest_complete_year` returns the newest year whose grid has 12 timestamps all in that year; a partial current-year file (Jan–Apr only) is excluded. |
+| Backfill downloader | Reuse the daily-downloader test pattern: temp inside dest dir; validation failure preserves existing file; successful atomic replace; temp cleanup on failure; **validate-before-skip** (an existing *valid* file is skipped; an existing *invalid* file is not silently accepted — fails without `--replace`). |
+| Boundary layer | `sa2` returns **exactly 26** WA polygons with the `SA2_NAME16` label column; CRS is EPSG:4326. (`sd` tests deferred until the SD mapping is pinned — see Open Items.) |
+| Renderer | Smoke: runs headless, writes a non-empty PNG; **right-closed binning** (pct == 10 lands in the `<=10` bin via `np.digitize(..., right=True)`); correct number of legend bins. Visual fidelity to the reference is eyeballed, **not** asserted pixel-wise. |
 
 ---
 
 ## Commit plan (separate, per instruction)
 
-1. **deps:** add `geopandas` (+ resolved stack) to `requirements.txt` / `pyproject.toml`.
+1. **deps:** add **`matplotlib` and `geopandas`** to `requirements.txt` /
+   `pyproject.toml`; let resolution provide the GeoPandas stack (shapely, pyproj,
+   fiona).
 2. **feat: 1911 monthly_rain backfill** — harden monthly downloader + tests. (The
    ~1.3 GB backfill *run* is an operational step to the HDD, not part of a commit.)
-3. **feat: rainfall percentile map** — engine + boundaries + renderer + CLI + tests.
+3. **feat: rainfall percentile map** — engine + `latest_complete_year` helper +
+   SA2 boundaries + renderer + CLI + tests. SD overlay lands here **only if** the
+   SD mapping (Open Items) is pinned first; otherwise SD ships in a follow-up and
+   this commit is SA2-only (which fully reproduces the reference map).
 
 `daily_rain.bak-premigrate/` stays in place (unrelated to this work; awaits one real
 daily refresh as already documented).
+
+---
+
+## Open items (resolve before / during planning)
+
+1. **SD overlay mapping — blocking for SD only (not for the reference map).**
+   The 2016-SA2 overlay geojson cannot be dissolved with the existing
+   2021-SA2→2011-SD concordance (key mismatch) and that concordance is at an
+   external absolute path. Decide before SD is implemented: (a) commit a small
+   repo-managed `SA2_2016 → SD` lookup under `data/meta/`, or (b) commit a
+   repo-managed SD boundary asset to load directly. **SA2 (the default) is fully
+   unblocked** and reproduces the reference map, so SD can be deferred to a
+   follow-up without holding up the main deliverable.
 
 ---
 
