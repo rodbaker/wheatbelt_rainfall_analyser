@@ -123,7 +123,8 @@ def main() -> None:
                         help="Re-download and atomically replace an existing file "
                              "(validated before it overwrites the prior version)")
     parser.add_argument("--skip-validate", action="store_true",
-                        help="Accept partial files (no 12-month completeness check)")
+                        help="Accept partial current-year files "
+                             "(no 12-month completeness check)")
     args = parser.parse_args()
 
     require_complete = not args.skip_validate
@@ -131,7 +132,7 @@ def main() -> None:
     skipped: list[int] = []
     failed: list[int] = []
 
-    print(f"\n=== Installing {len(args.years)} year(s) -> {OUTPUT_DIR} ===\n")
+    print(f"\n=== Installing {len(args.years)} year(s) → {OUTPUT_DIR} ===\n")
     for year in sorted(args.years):
         dest = OUTPUT_DIR / f"{year}.monthly_rain.nc"
         if args.dry_run:
@@ -152,6 +153,8 @@ def main() -> None:
             print(f"  OK   {year}.monthly_rain.nc ({dest.stat().st_size / 1e6:.1f} MB)")
         elif status == "skipped":
             skipped.append(year)
+            # "and valid" is intentional: install_year validates an existing file
+            # before skipping it (validate-before-skip), unlike the daily twin.
             print(f"  SKIP {year} — already exists and valid (use --replace to refresh)")
         else:
             failed.append(year)

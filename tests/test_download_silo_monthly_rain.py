@@ -128,3 +128,19 @@ def test_partial_year_allowed_when_not_require_complete(tmp_path):
     )
 
     assert status == "installed"
+
+
+def test_wrong_year_rejected_even_when_not_require_complete(tmp_path):
+    """The year-coordinate check still fires when completeness is relaxed."""
+    year = 2026
+    # 4 months of data but timestamps belong to 2025, not the requested 2026.
+    def wrong_year_fetch(tmp_):
+        _write_monthly_rain_nc(tmp_, 2025, 4, value=1.0)
+
+    status = dl.install_year(
+        year, wrong_year_fetch, dest_dir=tmp_path,
+        require_complete=False, min_bytes=0,
+    )
+
+    assert status.startswith("invalid")
+    assert not (tmp_path / f"{year}.monthly_rain.nc").exists()
