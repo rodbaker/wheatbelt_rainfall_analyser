@@ -421,10 +421,29 @@ Usage:
     python scripts/download_silo_monthly_rain.py --years 2026 --skip-validate
 ```
 
+- [ ] **Step 2b: Add the partial-year test (mirrors the daily suite)**
+
+The monthly current-year file is partial (<12 months) for most of the year, so the
+`require_complete=False` path is load-bearing once the CLI is wired. Append to
+`tests/test_download_silo_monthly_rain.py`:
+
+```python
+def test_partial_year_allowed_when_not_require_complete(tmp_path):
+    """Current-year partial files validate when require_complete=False."""
+    year = 2026
+    fetch = _good_fetch(year, 4)  # Jan-Apr only
+
+    status = dl.install_year(
+        year, fetch, dest_dir=tmp_path, require_complete=False, min_bytes=0
+    )
+
+    assert status == "installed"
+```
+
 - [ ] **Step 3: Verify tests still green + CLI smoke + no dead imports**
 
 Run: `.venv/bin/python -m pytest tests/test_download_silo_monthly_rain.py -p no:cacheprovider -q`
-Expected: 6 passed.
+Expected: 7 passed.
 
 Run: `.venv/bin/python scripts/download_silo_monthly_rain.py --years 2025 --dry-run`
 Expected: prints `[dry-run] 2025: would skip (exists)` and a Summary (2025 already on disk).
@@ -435,7 +454,7 @@ Expected: `parse OK; calendar used: False` (the old `import calendar` is unused 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add scripts/download_silo_monthly_rain.py
+git add scripts/download_silo_monthly_rain.py tests/test_download_silo_monthly_rain.py
 git commit -m "feat: drive monthly_rain CLI through hardened install_year + --replace"
 ```
 
