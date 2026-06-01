@@ -56,15 +56,30 @@ def cell_percentile(target_grid: np.ndarray, baseline_stack: np.ndarray) -> np.n
 
 
 def _month_grid(path: Path, month: int) -> np.ndarray:
-    """Return the (lat, lon) slice for `month` from a monthly_rain file."""
+    """Return the (lat, lon) slice for `month` from a monthly_rain file.
+
+    Expects exactly one timestamp for `month` in the file. Raises ValueError
+    (naming the path + month) if the month is absent or duplicated, rather than
+    failing with an opaque IndexError or silently taking the first match.
+    """
     with xr.open_dataset(path) as ds:
-        sel = ds["monthly_rain"].sel(
-            time=ds.time.dt.month == month
-        ).isel(time=0)
-        return sel.values.astype("float64")
+        sel = ds["monthly_rain"].sel(time=ds.time.dt.month == month)
+        n = sel.sizes.get("time", 0)
+        if n != 1:
+            raise ValueError(
+                f"{path.name}: expected exactly 1 timestamp for month {month}, "
+                f"found {n}"
+            )
+        return sel.isel(time=0).values.astype("float64")
 
 
-def load_month_stack(month, year, baseline_start, baseline_end, grids_dir=GRIDS_DIR):
+def load_month_stack(
+    month: int,
+    year: int,
+    baseline_start: int,
+    baseline_end: int,
+    grids_dir: Path = GRIDS_DIR,
+) -> tuple[np.ndarray, np.ndarray, list[int]]:
     """Load the target month grid + the same-month baseline stack across years.
 
     Returns (target_grid, baseline_stack, years). Raises FileNotFoundError listing

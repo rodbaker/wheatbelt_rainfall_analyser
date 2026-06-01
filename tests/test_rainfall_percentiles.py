@@ -123,3 +123,37 @@ def test_load_month_stack_missing_year_raises(tmp_path):
         assert "2001" in str(exc) and "2002" in str(exc)
     else:
         raise AssertionError("expected FileNotFoundError naming missing years")
+
+
+def _write_month_varying_grid(path, year):
+    """A grid whose value equals the month number (Jan=1 ... Dec=12) in every cell."""
+    times = pd.date_range(f"{year}-01-01", periods=12, freq="MS")
+    lat = np.array([-31.0, -30.95])
+    lon = np.array([115.0, 115.05])
+    data = np.zeros((12, lat.size, lon.size))
+    for m in range(12):
+        data[m, :, :] = m + 1
+    xr.Dataset(
+        {"monthly_rain": (("time", "lat", "lon"), data)},
+        coords={"time": times, "lat": lat, "lon": lon},
+    ).to_netcdf(path)
+
+
+def test_load_month_stack_selects_the_requested_month_not_index_zero(tmp_path):
+    # Values vary by month, so this distinguishes "month 7" from "time index 0".
+    _write_month_varying_grid(tmp_path / "2010.monthly_rain.nc", 2010)
+    target, _stack, _years = pc.load_month_stack(
+        month=7, year=2010, baseline_start=2010, baseline_end=2010, grids_dir=tmp_path
+    )
+    assert target[0, 0] == 7.0  # July, not January (which would be 1.0)
+
+
+def test_load_month_stack_missing_month_raises_clearly(tmp_path):
+    # A partial file (Jan-Apr only) is asked for July -> clear ValueError, not IndexError.
+    _write_grid(tmp_path / "2026.monthly_rain.nc", 2026, 4, 10)
+    try:
+        pc.load_month_stack(7, 2026, 2026, 2026, grids_dir=tmp_path)
+    except ValueError as exc:
+        assert "month 7" in str(exc) and "2026.monthly_rain.nc" in str(exc)
+    else:
+        raise AssertionError("expected ValueError naming the missing month")
