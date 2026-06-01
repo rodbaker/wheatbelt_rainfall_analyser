@@ -14,7 +14,10 @@ def latest_complete_year(grids_dir: Path = GRIDS_DIR) -> int:
     grids_dir = Path(grids_dir)
     best = None
     for path in grids_dir.glob("*.monthly_rain.nc"):
-        year = int(path.name.split(".")[0])
+        try:
+            year = int(path.name.split(".")[0])
+        except ValueError:
+            continue  # non-year prefix (e.g. a stray/renamed file) — skip
         with xr.open_dataset(path) as ds:
             if len(ds.time) != 12:
                 continue

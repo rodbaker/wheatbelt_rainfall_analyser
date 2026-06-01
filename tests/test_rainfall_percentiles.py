@@ -25,3 +25,12 @@ def test_latest_complete_year_excludes_partial(tmp_path):
     _write_grid(tmp_path / "2024.monthly_rain.nc", 2024, 12, 10)
     _write_grid(tmp_path / "2025.monthly_rain.nc", 2025, 4, 10)  # partial
     assert pc.latest_complete_year(tmp_path) == 2024
+
+
+def test_latest_complete_year_ignores_non_grid_files(tmp_path):
+    # A concurrent download writes *.monthly_rain.nc.tmp temp files; the glob
+    # excludes them, and a non-year-prefixed grid must not raise.
+    _write_grid(tmp_path / "2024.monthly_rain.nc", 2024, 12, 10)
+    (tmp_path / "2025.monthly_rain.nc.tmp").write_bytes(b"partial download")
+    _write_grid(tmp_path / "backup.monthly_rain.nc", 2099, 12, 10)
+    assert pc.latest_complete_year(tmp_path) == 2024
