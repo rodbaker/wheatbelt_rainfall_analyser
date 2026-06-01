@@ -10,9 +10,12 @@ def test_load_wheatbelt_regions_returns_26_wa_sa2():
     assert len(regions) == 26
     assert (regions["STE_NAME16"] == "Western Australia").all()
     assert "SA2_NAME16" in regions.columns
-    # Reference-map landmarks present
+    # Intentional content anchors: these reference-map SA2s must be present, so a
+    # silent ABS re-source that drops/renames a wheatbelt region fails loudly.
     names = set(regions["SA2_NAME16"])
     assert {"Moora", "Dowerin", "Merredin", "Esperance Region"} <= names
+    # Source polygons must be valid (a union can mask an invalid input otherwise).
+    assert regions.geometry.is_valid.all()
 
 
 def test_regions_crs_is_wgs84():
