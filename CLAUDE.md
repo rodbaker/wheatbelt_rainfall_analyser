@@ -183,10 +183,12 @@ Reads `event_log.csv` → markdown daily digest + Power BI CSV exports. Report i
 
 ## Downstream Integration
 
-This project is one of several data sources feeding into a **weekly grains market update assembler** at:
-`/home/roddyb/projects/grains-market-monitor/`
+This project is one of several data sources feeding the **WA Grain Trade Monitor brief assemblers**:
 
-The assembler reads this project's output to populate the **crop conditions** section of a weekly draft for an agricultural bank analyst audience (farm advisors, ag lending).
+- Interactive: `/monitor-brief` slash command in `/home/roddyb/projects/claude-notebooklm-research/`
+- Headless / source-pack: `/home/roddyb/projects/reporter/` (`wheatbelt_risk_glob` in its `config.json`)
+
+The assemblers read this project's output to populate the **crop conditions** section of a weekly draft for an agricultural bank analyst audience (farm advisors, ag lending).
 
 ### What the assembler reads
 

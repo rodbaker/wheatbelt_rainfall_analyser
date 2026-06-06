@@ -93,7 +93,7 @@ Output CSV: `data/features/wheat_yield_analogue_summary.csv`. Methodology: `docs
 | `reports/daily/YYYY-MM-DD_risk_digest.md` | Daily markdown risk digest |
 | `reports/weekly/YYYY-WW_outlook.md` | Weekly outlook (M2 automation target) |
 
-The `event_log.csv` and `reports/weekly/` outputs feed a downstream weekly grains market update assembler at `../grains-market-monitor/`. Downstream integration is currently paused pending ACM/WRA review cycles — see `task_manager.md` for current status.
+The `event_log.csv` and `reports/weekly/` outputs feed the downstream weekly grains market brief assemblers (`/monitor-brief` in `../claude-notebooklm-research/`, headless fallback in `../reporter/`). Downstream integration is currently paused pending ACM/WRA review cycles — see `task_manager.md` for current status.
 
 ---
 
