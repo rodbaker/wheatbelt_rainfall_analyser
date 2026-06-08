@@ -163,6 +163,30 @@ data/derived/
 ### SILO Wrangler
 Pulls SILO API data → DuckDB + `data/obs/obs_daily.csv`. Respects rate limits, atomic writes, preserves quality codes.
 
+**Daily coverage (default).** The daily ingest pulls the **SA2-broadacre station universe** —
+every BOM station inside an ABS SA2 with total broadacre `area_ha >= 5000`
+(`config/silo_sources.yaml` → `coverage.mode: sa2_broadacre`, `min_broadacre_area_ha`). That
+is ~1,293 stations across 159 SA2s, up from the legacy 16 hand-picked `active`-tier stations.
+Zero-station included SA2s are gap-filled with a targeted SILO Data Drill point; the result is
+summarised in `data/meta/sa2_coverage_report.csv` with `gap_status` ∈ {`internal_bom`,
+`data_drill_gapfill`, `unresolved_gap`}.
+
+Speed comes from `api.concurrency` (default 10); `concurrency: 1` = legacy sequential
+execution mechanics. To restore the legacy small daily run use `--coverage-mode active_tier`
+(or set `coverage.mode: active_tier`).
+
+**Known unresolved gaps (2 SA2s).** At the 5,000 ha default, two SA2s report `unresolved_gap`:
+**Esperance (51274)** and **Capel (51007)**. These are *urban town* SA2s with no internal BOM
+station; the surrounding cropland is already covered by their agricultural neighbours (e.g.
+"Esperance Surrounds" (51275) has 29 stations and is `internal_bom`). They are unresolvable
+here because `SA2_ABS_Regions.geojson` uses 2016 SA2 codes while `crop_context_sa2.csv` uses
+2021 codes, and no safe 1:1 polygon exists for the renamed town SA2. A conservative
+name-fallback (`build_sa2_polygon_index`) resolves genuine vintage renames where an unclaimed
+polygon exists, but correctly refuses to borrow a neighbour's polygon. The proper long-term
+fix is an official ABS SA2 2016↔2021 correspondence file (a deferred follow-up). Because the
+real cropping is covered by the neighbouring SA2s, this is low operational concern — and it is
+surfaced loudly (WARNING) rather than silently dropped.
+
 ### Risk Engine
 Reads DuckDB → `WeatherEventDetector` → `data/derived/event_log.csv`. Phenology-aware: flowering window active → 3x frost risk multiplier. Stage detection via `get_current_crop_stage()` with month-based fallback.
 

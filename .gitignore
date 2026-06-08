@@ -71,6 +71,7 @@ docs/_build/
 *.gz
 data/meta/*.nc
 data/meta/crop_context_sa2.csv
+data/meta/sa2_coverage_report.csv
 data/weather.duckdb
 
 # Temporary files

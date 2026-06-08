@@ -47,7 +47,9 @@ fi
 # Step 1: Ingest SILO data
 echo ""
 echo "--- Step 1: SILO Wrangler ---"
-python src/agents/silo_wrangler/run_ingest.py --date "$TARGET_DATE"
+# Daily coverage = broadacre-cropping SA2s (~1,293 stations at the 5,000 ha default),
+# up from the legacy 16 active-tier stations. Fallback: --coverage-mode active_tier.
+python src/agents/silo_wrangler/run_ingest.py --date "$TARGET_DATE" --coverage-mode sa2_broadacre
 
 # Step 2: Run risk engine
 echo ""
