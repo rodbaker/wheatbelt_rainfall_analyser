@@ -115,7 +115,7 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 CROP_SA2_KEY = "station_sa2_5dig16"   # 5-digit 2016 SA2 code in crop_context_sa2.csv
-CROP_FULL_KEY = "sa2_code"            # 9-digit 2021/2016 SA2 code (SA2_MAIN16 in geojson)
+CROP_SA2_9DIG_KEY = "sa2_code"            # 9-digit 2021/2016 SA2 code (SA2_MAIN16 in geojson)
 
 
 def _norm_sa2(series: pd.Series) -> pd.Series:
@@ -458,8 +458,8 @@ def build_sa2_polygon_index(crop_df: pd.DataFrame, geojson_path) -> Dict[str, "o
     import json
     from shapely.geometry import shape
 
-    codes = crop_df[[CROP_FULL_KEY, CROP_SA2_KEY]].copy()
-    codes["nine"] = _norm_sa2(codes[CROP_FULL_KEY])
+    codes = crop_df[[CROP_SA2_9DIG_KEY, CROP_SA2_KEY]].copy()
+    codes["nine"] = _norm_sa2(codes[CROP_SA2_9DIG_KEY])
     codes["five"] = _norm_sa2(codes[CROP_SA2_KEY])
     nine_to_five = dict(zip(codes["nine"], codes["five"]))
 
