@@ -135,3 +135,69 @@ def build_coverage_report(
             "gap_status": status,
         })
     return pd.DataFrame(rows, columns=COVERAGE_COLUMNS)
+
+
+def build_sa2_polygon_index(crop_df: pd.DataFrame, geojson_path) -> Dict[str, "object"]:  # values are shapely BaseGeometry
+    """Map 5-digit SA2 code -> shapely polygon.
+
+    Deterministic by code: the 5-digit code is mapped to its 9-digit SA2_MAIN16
+    via the crop table, and the GeoJSON is indexed by SA2_MAIN16.
+    """
+    import json
+
+    from shapely.geometry import shape
+
+    codes = crop_df[[CROP_SA2_9DIG_KEY, CROP_SA2_KEY]].copy()
+    codes["nine"] = _norm_sa2(codes[CROP_SA2_9DIG_KEY])
+    codes["five"] = _norm_sa2(codes[CROP_SA2_KEY])
+    nine_to_five = dict(zip(codes["nine"], codes["five"]))
+
+    with open(geojson_path) as f:
+        gj = json.load(f)
+
+    index: Dict[str, object] = {}
+    for feat in gj.get("features", []):
+        props = feat.get("properties", {})
+        nine = _norm_sa2(pd.Series([props.get("SA2_MAIN16")])).iloc[0]
+        five = nine_to_five.get(nine)
+        if five and feat.get("geometry"):
+            candidate = shape(feat["geometry"])
+            existing = index.get(five)
+            # Some SA2s appear twice in the ABS GeoJSON (a degenerate ~0-area
+            # artefact + the real polygon). Keep the larger so the result does
+            # not depend on feature ordering.
+            if existing is None or candidate.area > existing.area:
+                index[five] = candidate
+    logger.info("Built SA2 polygon index for %d SA2s", len(index))
+    return index
+
+
+def resolve_gap_points(
+    zero_station_sa2s: Set[str],
+    polygon_index: Dict[str, "object"],  # values are shapely BaseGeometry
+    existing_points: Optional[List[Tuple[float, float]]] = None,
+) -> Dict[str, Tuple[float, float]]:
+    """For each zero-station SA2 with a known polygon, return a (lat, lon) point
+    inside it. Reuses an existing grid point if one already falls inside;
+    otherwise injects the polygon's representative point. SA2s with no polygon
+    are omitted (caller marks them unresolved_gap).
+    """
+    from shapely.geometry import Point
+
+    existing_points = existing_points or []
+    result: Dict[str, Tuple[float, float]] = {}
+    for sa2 in sorted(zero_station_sa2s):
+        poly = polygon_index.get(sa2)
+        if poly is None:
+            continue
+        reused = None
+        for lat, lon in existing_points:           # Point(x=lon, y=lat)
+            if poly.contains(Point(lon, lat)):
+                reused = (round(float(lat), 4), round(float(lon), 4))
+                break
+        if reused is not None:
+            result[sa2] = reused
+        else:
+            rp = poly.representative_point()
+            result[sa2] = (round(float(rp.y), 4), round(float(rp.x), 4))
+    return result

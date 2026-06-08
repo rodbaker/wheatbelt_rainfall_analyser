@@ -1,6 +1,14 @@
 import pandas as pd
 
-from src.common.sa2_coverage import COVERAGE_COLUMNS, build_coverage_report, derive_station_universe, load_broadacre_sa2_areas, select_target_sa2s
+from src.common.sa2_coverage import (
+    COVERAGE_COLUMNS,
+    build_coverage_report,
+    build_sa2_polygon_index,
+    derive_station_universe,
+    load_broadacre_sa2_areas,
+    resolve_gap_points,
+    select_target_sa2s,
+)
 
 
 def _write_crop_csv(tmp_path):
@@ -90,3 +98,80 @@ def test_coverage_report_classifies_gap_status():
     assert by.loc["21007", "gap_status"] == "data_drill_gapfill"
     assert by.loc["31000", "gap_status"] == "unresolved_gap"
     assert by.loc["31000", "n_stations"] == 0
+
+
+def _geo_crop(tmp_path):
+    # crop table mapping 5-dig <-> 9-dig
+    crop = pd.DataFrame([
+        {"sa2_code": "201021007", "station_sa2_5dig16": "21007", "sa2_name": "GapDD",
+         "state": "Victoria", "crop": "wheat", "area_ha": "9000"},
+        {"sa2_code": "301031000", "station_sa2_5dig16": "31000", "sa2_name": "GapNone",
+         "state": "Queensland", "crop": "oats", "area_ha": "7000"},
+    ])
+    crop_path = tmp_path / "crop.csv"
+    crop.to_csv(crop_path, index=False)
+
+    # GeoJSON: a unit square per SA2, keyed by 9-digit SA2_MAIN16.
+    def square(cx, cy):
+        return {"type": "Polygon", "coordinates": [[
+            [cx, cy], [cx + 1, cy], [cx + 1, cy + 1], [cx, cy + 1], [cx, cy]]]}
+    gj = {"type": "FeatureCollection", "features": [
+        {"type": "Feature", "properties": {"SA2_MAIN16": 201021007},
+         "geometry": square(117.0, -32.0)},
+        {"type": "Feature", "properties": {"SA2_MAIN16": 301031000},
+         "geometry": square(140.0, -34.0)},
+    ]}
+    import json
+    geo_path = tmp_path / "regions.geojson"
+    geo_path.write_text(json.dumps(gj))
+    return crop_path, geo_path
+
+
+def test_polygon_index_keyed_by_5dig(tmp_path):
+    crop_path, geo_path = _geo_crop(tmp_path)
+    crop = pd.read_csv(crop_path, dtype=str)
+    idx = build_sa2_polygon_index(crop, geo_path)
+    assert set(idx.keys()) == {"21007", "31000"}
+
+
+def test_resolve_gap_points_injects_inside_polygon(tmp_path):
+    crop_path, geo_path = _geo_crop(tmp_path)
+    crop = pd.read_csv(crop_path, dtype=str)
+    idx = build_sa2_polygon_index(crop, geo_path)
+
+    points = resolve_gap_points({"21007", "31000"}, idx)
+    assert set(points.keys()) == {"21007", "31000"}
+    # representative point of the 117..118 / -32..-31 square is inside it
+    lat, lon = points["21007"]
+    assert 117.0 <= lon <= 118.0 and -32.0 <= lat <= -31.0
+    # deterministic: same call -> same point
+    assert resolve_gap_points({"21007"}, idx)["21007"] == points["21007"]
+
+
+def test_resolve_gap_points_reuses_existing_grid_point(tmp_path):
+    crop_path, geo_path = _geo_crop(tmp_path)
+    crop = pd.read_csv(crop_path, dtype=str)
+    idx = build_sa2_polygon_index(crop, geo_path)
+    existing = [(-31.5, 117.5)]   # inside the 21007 square
+    points = resolve_gap_points({"21007"}, idx, existing_points=existing)
+    assert points["21007"] == (-31.5, 117.5)
+
+
+def test_resolve_gap_points_skips_sa2_without_polygon(tmp_path):
+    crop_path, geo_path = _geo_crop(tmp_path)
+    crop = pd.read_csv(crop_path, dtype=str)
+    idx = build_sa2_polygon_index(crop, geo_path)
+    points = resolve_gap_points({"99999"}, idx)   # no polygon -> unresolved
+    assert "99999" not in points
+
+
+def test_resolve_gap_points_existing_point_outside_falls_back(tmp_path):
+    crop_path, geo_path = _geo_crop(tmp_path)
+    crop = pd.read_csv(crop_path, dtype=str)
+    idx = build_sa2_polygon_index(crop, geo_path)
+    # existing point is far outside the 21007 square (117..118 / -32..-31)
+    outside = [(-10.0, 100.0)]
+    points = resolve_gap_points({"21007"}, idx, existing_points=outside)
+    lat, lon = points["21007"]
+    assert 117.0 <= lon <= 118.0 and -32.0 <= lat <= -31.0   # representative_point, not the outside one
+    assert (lat, lon) != (-10.0, 100.0)
