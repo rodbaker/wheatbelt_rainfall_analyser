@@ -26,7 +26,7 @@
 - `scripts/cron_schedule.sh` — daily call → `--coverage-mode sa2_broadacre` (per-SA2 gap-fill is driven by `coverage.sa2_broadacre.enable_data_drill_gaps`, **not** `--hybrid`).
 - `CLAUDE.md` — document default daily coverage.
 
-**Conventions to follow:** tests are plain functions importing `from src.…`; run with `python -m pytest`. Station IDs are zero-padded to 6 (`str.zfill(6)`). All output CSVs go through `atomic_csv_write` / `append_to_daily_observations`.
+**Conventions to follow:** tests are plain functions importing `from src.…`; run with `python3 -m pytest`. Station IDs are zero-padded to 6 (`str.zfill(6)`). All output CSVs go through `atomic_csv_write` / `append_to_daily_observations`.
 
 ---
 
@@ -88,7 +88,7 @@ def test_select_threshold_excludes_null_area_and_fringe(tmp_path):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest tests/test_sa2_coverage.py -q`
+Run: `python3 -m pytest tests/test_sa2_coverage.py -q`
 Expected: FAIL — `ModuleNotFoundError: No module named 'src.common.sa2_coverage'`
 
 - [ ] **Step 3: Write minimal implementation**
@@ -165,7 +165,7 @@ def select_target_sa2s(areas_df: pd.DataFrame, threshold_ha: float = 5000) -> Se
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_sa2_coverage.py -q`
+Run: `python3 -m pytest tests/test_sa2_coverage.py -q`
 Expected: PASS (3 tests)
 
 - [ ] **Step 5: Commit**
@@ -217,7 +217,7 @@ def test_derive_station_universe_handles_float_sa2_codes():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest tests/test_sa2_coverage.py -q`
+Run: `python3 -m pytest tests/test_sa2_coverage.py -q`
 Expected: FAIL — `ImportError: cannot import name 'derive_station_universe'`
 
 - [ ] **Step 3: Write minimal implementation**
@@ -238,7 +238,7 @@ def derive_station_universe(target_sa2s: Set[str], stations_df: pd.DataFrame) ->
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_sa2_coverage.py -q`
+Run: `python3 -m pytest tests/test_sa2_coverage.py -q`
 Expected: PASS (5 tests)
 
 - [ ] **Step 5: Commit**
@@ -294,7 +294,7 @@ def test_coverage_report_classifies_gap_status():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest tests/test_sa2_coverage.py -q`
+Run: `python3 -m pytest tests/test_sa2_coverage.py -q`
 Expected: FAIL — `ImportError: cannot import name 'build_coverage_report'`
 
 - [ ] **Step 3: Write minimal implementation**
@@ -348,7 +348,7 @@ def build_coverage_report(
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_sa2_coverage.py -q`
+Run: `python3 -m pytest tests/test_sa2_coverage.py -q`
 Expected: PASS (6 tests)
 
 - [ ] **Step 5: Commit**
@@ -442,7 +442,7 @@ def test_resolve_gap_points_skips_sa2_without_polygon(tmp_path):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest tests/test_sa2_coverage.py -q`
+Run: `python3 -m pytest tests/test_sa2_coverage.py -q`
 Expected: FAIL — `ImportError: cannot import name 'build_sa2_polygon_index'`
 
 - [ ] **Step 3: Write minimal implementation**
@@ -510,7 +510,7 @@ def resolve_gap_points(
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_sa2_coverage.py -q`
+Run: `python3 -m pytest tests/test_sa2_coverage.py -q`
 Expected: PASS (10 tests)
 
 - [ ] **Step 5: Commit**
@@ -595,7 +595,7 @@ def test_writer_failure_counts_as_failed():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest tests/test_concurrent_ingest.py -q`
+Run: `python3 -m pytest tests/test_concurrent_ingest.py -q`
 Expected: FAIL — `ModuleNotFoundError: No module named 'src.agents.silo_wrangler.concurrent_ingest'`
 
 - [ ] **Step 3: Write minimal implementation**
@@ -695,7 +695,7 @@ def ingest_concurrently(
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_concurrent_ingest.py -q`
+Run: `python3 -m pytest tests/test_concurrent_ingest.py -q`
 Expected: PASS (3 tests)
 
 - [ ] **Step 5: Commit**
@@ -744,8 +744,8 @@ def test_default_config_derives_many_stations():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest tests/test_sa2_coverage.py -k config_or_derives -q`
-(Use: `python -m pytest "tests/test_sa2_coverage.py::test_shipped_config_defaults_to_sa2_broadacre" "tests/test_sa2_coverage.py::test_default_config_derives_many_stations" -q`)
+Run: `python3 -m pytest tests/test_sa2_coverage.py -k config_or_derives -q`
+(Use: `python3 -m pytest "tests/test_sa2_coverage.py::test_shipped_config_defaults_to_sa2_broadacre" "tests/test_sa2_coverage.py::test_default_config_derives_many_stations" -q`)
 Expected: FAIL — `KeyError: 'coverage'`
 
 - [ ] **Step 3: Add config block**
@@ -775,7 +775,7 @@ coverage:
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest "tests/test_sa2_coverage.py::test_shipped_config_defaults_to_sa2_broadacre" "tests/test_sa2_coverage.py::test_default_config_derives_many_stations" -q`
+Run: `python3 -m pytest "tests/test_sa2_coverage.py::test_shipped_config_defaults_to_sa2_broadacre" "tests/test_sa2_coverage.py::test_default_config_derives_many_stations" -q`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -818,7 +818,7 @@ def test_sa2_broadacre_mode_returns_large_universe():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest "tests/test_sa2_coverage.py::test_active_tier_mode_uses_config_tiers" "tests/test_sa2_coverage.py::test_sa2_broadacre_mode_returns_large_universe" -q`
+Run: `python3 -m pytest "tests/test_sa2_coverage.py::test_active_tier_mode_uses_config_tiers" "tests/test_sa2_coverage.py::test_sa2_broadacre_mode_returns_large_universe" -q`
 Expected: FAIL — `ImportError: cannot import name 'load_coverage_stations'`
 
 - [ ] **Step 3: Add helper to run_ingest.py**
@@ -887,7 +887,7 @@ with:
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest "tests/test_sa2_coverage.py::test_active_tier_mode_uses_config_tiers" "tests/test_sa2_coverage.py::test_sa2_broadacre_mode_returns_large_universe" -q`
+Run: `python3 -m pytest "tests/test_sa2_coverage.py::test_active_tier_mode_uses_config_tiers" "tests/test_sa2_coverage.py::test_sa2_broadacre_mode_returns_large_universe" -q`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -979,12 +979,12 @@ Note: the old `successful_stations` / `failed_stations` lists and their per-iter
 
 - [ ] **Step 3: Run the existing CLI smoke + coverage tests**
 
-Run: `python -m pytest tests/test_cli_smoke.py tests/test_concurrent_ingest.py -q`
+Run: `python3 -m pytest tests/test_cli_smoke.py tests/test_concurrent_ingest.py -q`
 Expected: PASS (no import/wiring errors). If `test_cli_smoke.py` invokes `--help`, the new option appears.
 
 - [ ] **Step 4: Manual dry-run sanity (small, no writes)**
 
-Run: `python src/agents/silo_wrangler/run_ingest.py --coverage-mode active_tier --date 2026-06-01 --dry-run -v 2>&1 | tail -20`
+Run: `python3 src/agents/silo_wrangler/run_ingest.py --coverage-mode active_tier --date 2026-06-01 --dry-run -v 2>&1 | tail -20`
 Expected: log shows "Concurrent ingest: requested=… succeeded=… elapsed=…s"; no exceptions.
 
 - [ ] **Step 5: Commit**
@@ -1139,17 +1139,17 @@ Fix the JSONL newline bug at the former `run_ingest.py:442` (`log_run_results`):
 
 - [ ] **Step 3: Run tests + dry-run sanity**
 
-Run: `python -m pytest tests/test_cli_smoke.py tests/test_sa2_coverage.py tests/test_concurrent_ingest.py -q`
+Run: `python3 -m pytest tests/test_cli_smoke.py tests/test_sa2_coverage.py tests/test_concurrent_ingest.py -q`
 Expected: PASS
 
-Run: `python src/agents/silo_wrangler/run_ingest.py --coverage-mode sa2_broadacre --date 2026-06-01 --dry-run -v 2>&1 | tail -25`
+Run: `python3 src/agents/silo_wrangler/run_ingest.py --coverage-mode sa2_broadacre --date 2026-06-01 --dry-run -v 2>&1 | tail -25`
 Expected: a `[DRY RUN] sa2_broadacre plan: zero_station_sa2s=… resolvable_via_data_drill=… unresolvable=… (no report written)` line and the run summary line. **No** `data/meta/sa2_coverage_report.csv` is written (dry-run writes no output). Confirm absence: `test ! -f data/meta/sa2_coverage_report.csv && echo "no report (correct)"` (if the file pre-existed from a prior live run, note its mtime is unchanged).
 
 - [ ] **Step 4: Inspect the coverage report (live run — network-heavy, ~5–8 min)**
 
 The coverage report is only written by a real (non-dry-run) ingest, because `data_drill_gapfill` means *successfully ingested*. Run one live date to produce it:
 
-Run: `python src/agents/silo_wrangler/run_ingest.py --coverage-mode sa2_broadacre --date 2026-06-01 -v 2>&1 | tail -30`
+Run: `python3 src/agents/silo_wrangler/run_ingest.py --coverage-mode sa2_broadacre --date 2026-06-01 -v 2>&1 | tail -30`
 Then: `head -3 data/meta/sa2_coverage_report.csv && echo "rows: $(wc -l < data/meta/sa2_coverage_report.csv)" && cut -d, -f7 data/meta/sa2_coverage_report.csv | sort | uniq -c`
 Expected: ~160 rows; `gap_status` counts with most `internal_bom`, a few `data_drill_gapfill`, ideally zero `unresolved_gap`. The run-summary log line shows `requested≈1293 succeeded=… elapsed=…s`. (This hits the live SILO API for the full universe — expect several minutes.)
 
@@ -1169,6 +1169,8 @@ git commit -m "feat(ingest): coverage report, per-SA2 gap-fill, run summary, jso
 - Modify: `CLAUDE.md`
 
 - [ ] **Step 1: Update the cron daily call**
+
+Note on the interpreter: keep whatever the existing cron line already uses (`python`) so this task doesn't change the production interpreter. (This dev environment only has `python3`, which is why the plan's *verification* commands use `python3`; the cron's runtime may activate a venv where `python` resolves.)
 
 In `scripts/cron_schedule.sh`, change the Step 1 ingest line from:
 
@@ -1223,7 +1225,7 @@ git commit -m "docs: switch daily cron to sa2_broadacre coverage + document scop
 
 - [ ] **Step 1: Run the entire test suite**
 
-Run: `python -m pytest tests/ -q`
+Run: `python3 -m pytest tests/ -q`
 Expected: PASS (all pre-existing tests + the new `test_sa2_coverage.py` and `test_concurrent_ingest.py`). Investigate any failure before proceeding.
 
 - [ ] **Step 2: Lint the new/changed Python**
