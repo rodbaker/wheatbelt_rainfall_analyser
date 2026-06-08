@@ -214,7 +214,10 @@ def run_daily_ingest(config: str, target_date: str, stations: str, days: int, ti
         # --- SA2-broadacre per-SA2 Data Drill gap-fill (config-driven, not --hybrid) ---
         coverage_mode_eff = coverage_mode or silo_config.get('coverage', {}).get('mode', 'active_tier')
         dd_covered_sa2s = set()
-        if coverage_mode_eff == 'sa2_broadacre':
+        # Only emit the coverage plan/report when stations were loaded via the
+        # coverage path. With --stations / --use-bom-dataset the ingested set is
+        # not the broadacre universe, so a coverage report would misrepresent it.
+        if coverage_mode_eff == 'sa2_broadacre' and not stations and not use_bom_dataset:
             gap_points, write_report, zero_station_sa2s = emit_coverage_plan(silo_config)
             if dry_run:
                 # Dry-run ingests nothing and writes NO report. data_drill_gapfill means
@@ -245,7 +248,13 @@ def run_daily_ingest(config: str, target_date: str, stations: str, days: int, ti
                     except Exception as exc:
                         logger.error("Gap-fill Data Drill failed for SA2 %s (%s,%s): %s",
                                      sa2_5, lat, lon, exc)
-                write_report(dd_covered_sa2s)
+                report_df = write_report(dd_covered_sa2s)
+                run_metadata['coverage_summary'] = {
+                    'included_sa2s': int(len(report_df)),
+                    'internal_bom': int((report_df['gap_status'] == 'internal_bom').sum()),
+                    'data_drill_gapfill': int((report_df['gap_status'] == 'data_drill_gapfill').sum()),
+                    'unresolved_gap': int((report_df['gap_status'] == 'unresolved_gap').sum()),
+                }
 
         # --- DATA DRILL GAP-FILL (--hybrid mode) ---
         if hybrid and dry_run:
