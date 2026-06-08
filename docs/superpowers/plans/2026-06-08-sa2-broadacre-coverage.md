@@ -1256,4 +1256,3 @@ git commit -m "chore: lint fixes for sa2_broadacre coverage"
 - **Politeness to SILO:** `api.rate_limit_seconds` (0.2) still applies per request inside each
   worker thread; combined with `concurrency: 10` this is ~50 req/s worst case. Lower
   `concurrency` if SILO pushes back.
-```
