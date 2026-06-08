@@ -31,6 +31,10 @@ import pandas as pd
 import xarray as xr
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT))
+
+from src.common.file_utils import atomic_csv_write  # noqa: E402
+
 MONTHLY_RAIN_DIR = REPO_ROOT / "data" / "meta" / "monthly_rain"
 SA2_UNIVERSE_CSV = REPO_ROOT / "data" / "meta" / "wa_wheatbelt_sa2_universe_2021.csv"
 GEOJSON_PATH = REPO_ROOT / "data" / "meta" / "SA2_ABS_Regions.geojson"
@@ -264,7 +268,9 @@ def run(
 
     out_path = output if output is not None else OUTPUT_CSV
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(out_path, index=False)
+    if not atomic_csv_write(df, str(out_path), backup=False):
+        print(f"ERROR: failed to write output CSV: {out_path}", file=sys.stderr)
+        sys.exit(1)
     try:
         display = out_path.relative_to(REPO_ROOT)
     except ValueError:

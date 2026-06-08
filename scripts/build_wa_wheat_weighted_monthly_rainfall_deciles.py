@@ -245,10 +245,16 @@ def compute_weighted_monthly_deciles(
         for (hist_year, hist_month), hist_group in groups.items():
             if hist_month != month or hist_year == year:
                 continue
-            hist_eligible = hist_group[
+            hist_mask = (
                 hist_group["sa2_code"].isin(contributing_codes)
                 & hist_group["rainfall_mm"].notna()
-            ]
+            )
+            # Partial-month rows (e.g. an in-progress current-year month appended
+            # via --current-year-csv) must never enter another year's historical
+            # baseline — they are sub-month totals and would bias the distribution.
+            if "is_partial_month" in hist_group.columns:
+                hist_mask &= ~hist_group["is_partial_month"].fillna(False).astype(bool)
+            hist_eligible = hist_group[hist_mask]
             if hist_eligible.empty:
                 continue
             hw = hist_eligible["area_ha_for_weighting"]

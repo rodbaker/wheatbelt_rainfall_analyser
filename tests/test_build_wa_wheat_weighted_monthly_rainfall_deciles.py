@@ -629,3 +629,58 @@ class TestSameSA2MaskForHistoricalDistribution:
         row = result[(result["year"] == 2026) & (result["month"] == 9)].iloc[0]
         # Only 11 historical years have SA2-A data for month 9
         assert row["historical_year_count"] == 11
+
+
+# ---------------------------------------------------------------------------
+# Partial-month rows must not contaminate other years' historical baselines
+# ---------------------------------------------------------------------------
+
+class TestPartialMonthExcludedFromBaseline:
+    """A partial current-year month (e.g. appended via --current-year-csv) is a
+    sub-month total; it must be excluded from every OTHER year's historical
+    baseline, not just suppressed for its own target row.
+    """
+
+    def test_partial_row_does_not_contaminate_prior_year_baseline(self):
+        # 12 full historical years for SA2-A, month 5 (varied so stats are
+        # well-defined). SA2-A is the whole universe → coverage = 100%.
+        full_entries = [(2005 + i, 5, 20.0 + i) for i in range(12)]  # 2005..2016
+        weights = _make_weights({"A": 1000.0})
+
+        # Baseline: NO partial row present at all.
+        hist_clean = _make_history({"A": full_entries})
+        result_clean = mod.compute_weighted_monthly_deciles(hist_clean, weights)
+        target_clean = result_clean[
+            (result_clean["year"] == 2010) & (result_clean["month"] == 5)
+        ].iloc[0]
+
+        # Same history plus a deliberately low partial current-year row (May 2026).
+        hist_partial = _make_history({"A": full_entries + [(2026, 5, 1.0)]})
+        hist_partial["is_partial_month"] = False
+        hist_partial.loc[
+            (hist_partial["year"] == 2026) & (hist_partial["month"] == 5),
+            "is_partial_month",
+        ] = True
+        result_partial = mod.compute_weighted_monthly_deciles(hist_partial, weights)
+        target_partial = result_partial[
+            (result_partial["year"] == 2010) & (result_partial["month"] == 5)
+        ].iloc[0]
+
+        # The prior full year's baseline must be IDENTICAL with/without the
+        # partial row — the partial 1.0mm value must not enter 2010's baseline.
+        assert (
+            target_partial["historical_year_count"]
+            == target_clean["historical_year_count"]
+        )
+        assert target_partial["historical_median_mm_wt"] == pytest.approx(
+            target_clean["historical_median_mm_wt"]
+        )
+        assert target_partial["historical_mean_mm_wt"] == pytest.approx(
+            target_clean["historical_mean_mm_wt"]
+        )
+
+        # And the partial target row itself is still suppressed.
+        partial_row = result_partial[
+            (result_partial["year"] == 2026) & (result_partial["month"] == 5)
+        ].iloc[0]
+        assert partial_row["climatology_quality_flag"] == "partial_month"
