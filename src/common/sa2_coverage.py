@@ -84,3 +84,54 @@ def derive_station_universe(target_sa2s: Set[str], stations_df: pd.DataFrame) ->
     logger.info("Derived station universe: %d stations across %d target SA2s",
                 len(selected), selected["sa2_5"].nunique())
     return selected
+
+
+COVERAGE_COLUMNS = [
+    "sa2_code", "sa2_name", "state", "broadacre_area_ha",
+    "n_stations", "station_ids", "gap_status",
+]
+
+
+def build_coverage_report(
+    target_sa2s: Set[str],
+    areas_df: pd.DataFrame,
+    station_universe: pd.DataFrame,
+    dd_covered_sa2s: Optional[Set[str]] = None,
+) -> pd.DataFrame:
+    """One row per included SA2 with a controlled gap_status:
+    internal_bom | data_drill_gapfill | unresolved_gap.
+
+    areas_df is expected to be unique per sa2_5 (as produced by
+    load_broadacre_sa2_areas); it is deduped defensively.
+    """
+    dd_covered_sa2s = dd_covered_sa2s or set()
+    # Dedupe defensively: callers should pass the aggregated frame from
+    # load_broadacre_sa2_areas (already unique per sa2_5), but guard against a
+    # raw frame so area_lookup.loc[sa2] always yields a Series, never a slice.
+    area_lookup = areas_df.drop_duplicates("sa2_5").set_index("sa2_5")
+    ids_by_sa2: Dict[str, List[str]] = {}
+    if not station_universe.empty:
+        for sa2, grp in station_universe.groupby("sa2_5"):
+            ids_by_sa2[sa2] = sorted(grp["station_id"].astype(str))
+
+    rows = []
+    for sa2 in sorted(target_sa2s):
+        ids = ids_by_sa2.get(sa2, [])
+        n = len(ids)
+        if n > 0:
+            status = "internal_bom"
+        elif sa2 in dd_covered_sa2s:
+            status = "data_drill_gapfill"
+        else:
+            status = "unresolved_gap"
+        meta = area_lookup.loc[sa2] if sa2 in area_lookup.index else None
+        rows.append({
+            "sa2_code": sa2,
+            "sa2_name": "" if meta is None else meta["sa2_name"],
+            "state": "" if meta is None else meta["state"],
+            "broadacre_area_ha": 0.0 if meta is None else round(float(meta["total_area_ha"]), 2),
+            "n_stations": n,
+            "station_ids": ";".join(ids),
+            "gap_status": status,
+        })
+    return pd.DataFrame(rows, columns=COVERAGE_COLUMNS)

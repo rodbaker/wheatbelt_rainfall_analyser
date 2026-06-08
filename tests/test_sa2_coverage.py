@@ -1,6 +1,6 @@
 import pandas as pd
 
-from src.common.sa2_coverage import derive_station_universe, load_broadacre_sa2_areas, select_target_sa2s
+from src.common.sa2_coverage import COVERAGE_COLUMNS, build_coverage_report, derive_station_universe, load_broadacre_sa2_areas, select_target_sa2s
 
 
 def _write_crop_csv(tmp_path):
@@ -66,3 +66,27 @@ def test_derive_station_universe_handles_float_sa2_codes():
     df["sa2_code"] = df["sa2_code"].astype(float)
     uni = derive_station_universe({"11060"}, df)
     assert set(uni["station_id"]) == {"008137", "009999"}
+
+
+def test_coverage_report_classifies_gap_status():
+    areas = pd.DataFrame([
+        {"sa2_5": "11060", "sa2_name": "Big",    "state": "NSW", "total_area_ha": 5500.0},
+        {"sa2_5": "21007", "sa2_name": "GapDD",  "state": "VIC", "total_area_ha": 9000.0},
+        {"sa2_5": "31000", "sa2_name": "GapNone","state": "QLD", "total_area_ha": 7000.0},
+    ])
+    universe = pd.DataFrame([
+        {"station_id": "008137", "sa2_5": "11060"},
+        {"station_id": "009999", "sa2_5": "11060"},
+    ])
+    target = {"11060", "21007", "31000"}
+    dd_covered = {"21007", "11060"}    # 11060 also in dd_covered -> internal_bom must still win
+
+    rep = build_coverage_report(target, areas, universe, dd_covered_sa2s=dd_covered)
+    assert list(rep.columns) == COVERAGE_COLUMNS
+    by = rep.set_index("sa2_code")
+    assert by.loc["11060", "gap_status"] == "internal_bom"
+    assert by.loc["11060", "n_stations"] == 2
+    assert by.loc["11060", "station_ids"] == "008137;009999"
+    assert by.loc["21007", "gap_status"] == "data_drill_gapfill"
+    assert by.loc["31000", "gap_status"] == "unresolved_gap"
+    assert by.loc["31000", "n_stations"] == 0
