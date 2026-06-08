@@ -1,8 +1,10 @@
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from src.common.config_loader import load_config
+from src.agents.silo_wrangler.run_ingest import load_coverage_stations
 from src.common.sa2_coverage import (
     COVERAGE_COLUMNS,
     build_coverage_report,
@@ -12,6 +14,8 @@ from src.common.sa2_coverage import (
     resolve_gap_points,
     select_target_sa2s,
 )
+
+_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _write_crop_csv(tmp_path):
@@ -207,9 +211,6 @@ def test_resolve_gap_points_existing_point_outside_falls_back(tmp_path):
     assert (lat, lon) != (-10.0, 100.0)
 
 
-_ROOT = Path(__file__).resolve().parents[1]
-
-
 def test_shipped_config_defaults_to_sa2_broadacre():
     cfg = load_config(str(_ROOT / "config" / "silo_sources.yaml"))
     cov = cfg["coverage"]
@@ -226,4 +227,31 @@ def test_default_config_derives_many_stations():
     cov = cfg["coverage"]["sa2_broadacre"]
     areas = load_broadacre_sa2_areas(_ROOT / cov["crop_context_file"], cov["area_column"])
     target = select_target_sa2s(areas, cov["min_broadacre_area_ha"])
-    assert len(target) > 100        # ~159 SA2s at 5000 ha; far more than the 16 active tier
+    assert len(target) > 150  # ~159 SA2s at 5000 ha; far more than the 16 active tier
+
+
+def test_active_tier_mode_uses_config_tiers():
+    cfg = load_config(str(_ROOT / "config" / "silo_sources.yaml"))
+    stations = load_coverage_stations(cfg, coverage_mode="active_tier", tiers="active")
+    # active tier is the small hand-picked set; currently 16 stations
+    assert 5 <= len(stations) <= 40
+    assert all(isinstance(k, str) for k in stations)
+
+
+def test_sa2_broadacre_mode_returns_large_universe():
+    cfg = load_config(str(_ROOT / "config" / "silo_sources.yaml"))
+    stations = load_coverage_stations(cfg, coverage_mode="sa2_broadacre", tiers="active")
+    assert len(stations) > 500       # ~1,293 stations at the 5000 ha default
+
+
+def test_load_coverage_stations_missing_sa2_block_raises():
+    cfg = {"coverage": {"mode": "sa2_broadacre"}, "bom_dataset": {"file_path": "x"}}
+    with pytest.raises(ValueError):
+        load_coverage_stations(cfg, coverage_mode="sa2_broadacre")
+
+
+def test_load_coverage_stations_missing_bom_dataset_raises():
+    cfg = {"coverage": {"mode": "sa2_broadacre", "sa2_broadacre": {
+        "crop_context_file": "data/meta/crop_context_sa2.csv"}}}
+    with pytest.raises(ValueError):
+        load_coverage_stations(cfg, coverage_mode="sa2_broadacre")

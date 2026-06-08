@@ -20,7 +20,10 @@ load_dotenv()
 
 from src.common.config_loader import load_config
 from src.common.logging_utils import setup_logging
-from src.common.stations_loader import load_wheatbelt_stations_for_config, generate_data_drill_grid
+from src.common.stations_loader import load_wheatbelt_stations_for_config, generate_data_drill_grid, WheatbeltStationsLoader
+from src.common.sa2_coverage import (
+    load_broadacre_sa2_areas, select_target_sa2s, derive_station_universe,
+)
 from src.data.duckdb_storage import DuckDBStorage
 from src.agents.silo_wrangler.api_client import SILOAPIClient
 from src.agents.silo_wrangler.data_processor import WeatherDataProcessor
@@ -45,11 +48,13 @@ logger = logging.getLogger(__name__)
 @click.option('--hybrid', is_flag=True, help='Gap-fill with SILO Data Drill after PPD station ingestion')
 @click.option('--hybrid-states', help='Comma-separated state names to run Data Drill for (e.g., "Western Australia"). Defaults to all wheatbelt_bounds regions.')
 @click.option('--dd-max-points', type=int, default=None, help='Limit Data Drill grid points (useful for testing)')
+@click.option('--coverage-mode', default=None,
+              help='Override coverage.mode: sa2_broadacre | active_tier')
 @click.option('--verbose', '-v', is_flag=True, help='Enable verbose logging')
 def run_daily_ingest(config: str, target_date: str, stations: str, days: int, tiers: str, include_poor: bool,
                     use_bom_dataset: bool, states: str, sample_size: int, sample_seed: int,
                     min_cropping_area: int, dry_run: bool, hybrid: bool, hybrid_states: str,
-                    dd_max_points: int, verbose: bool):
+                    dd_max_points: int, coverage_mode: str, verbose: bool):
     """
     Run daily SILO data ingestion for configured stations
     
@@ -124,10 +129,10 @@ def run_daily_ingest(config: str, target_date: str, stations: str, days: int, ti
             logger.info(f"Using BOM wheatbelt dataset: {len(station_list)} stations loaded ({filter_str})")
             logger.info(f"Final selection includes stations from: {actual_states_str}")
         else:
-            # Load stations by tier from config
-            station_list = load_stations_by_tier(silo_config, tiers)
+            station_list = load_coverage_stations(silo_config, coverage_mode, tiers)
             silo_config['stations'] = station_list
-            logger.info(f"Using {tiers} tier stations: {len(station_list)} stations loaded")
+            mode = coverage_mode or silo_config.get('coverage', {}).get('mode', 'active_tier')
+            logger.info(f"Coverage mode '{mode}': {len(station_list)} stations loaded")
             
         # Initialize agents
         api_client = SILOAPIClient(silo_config)
@@ -423,6 +428,38 @@ def load_stations_by_tier(silo_config: Dict[str, Any], tiers: str) -> Dict[str, 
         logger.info("Automatic quality filtering is enabled - poor quality stations will be filtered during processing")
     
     return station_list
+
+
+def load_coverage_stations(silo_config, coverage_mode=None, tiers="active"):
+    """Return {station_id: station_name} for the configured coverage mode.
+
+    coverage_mode: 'sa2_broadacre' | 'active_tier'. Defaults to
+    silo_config['coverage']['mode'] (or 'active_tier' if absent).
+    """
+    cov = silo_config.get("coverage", {})
+    mode = coverage_mode or cov.get("mode", "active_tier")
+
+    if mode == "active_tier":
+        return load_stations_by_tier(silo_config, tiers)
+
+    if mode == "sa2_broadacre":
+        sb = cov.get("sa2_broadacre")
+        if sb is None:
+            raise ValueError(
+                "coverage.sa2_broadacre block is required when coverage mode is 'sa2_broadacre'")
+        stations_file = silo_config.get("bom_dataset", {}).get("file_path")
+        if not stations_file:
+            raise ValueError(
+                "bom_dataset.file_path is required for sa2_broadacre coverage")
+        areas = load_broadacre_sa2_areas(sb["crop_context_file"], sb.get("area_column", "area_ha"))
+        target = select_target_sa2s(areas, sb.get("min_broadacre_area_ha", 5000))
+        loader = WheatbeltStationsLoader(stations_file)
+        universe = derive_station_universe(target, loader._stations_df)
+        logger.info("sa2_broadacre coverage: %d SA2s -> %d stations",
+                    len(target), len(universe))
+        return dict(zip(universe["station_id"], universe["name"]))
+
+    raise ValueError(f"Unknown coverage mode: {mode}")
 
 
 def log_run_results(run_metadata: Dict[str, Any], log_file_path: str):
