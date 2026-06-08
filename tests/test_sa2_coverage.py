@@ -1,6 +1,6 @@
 import pandas as pd
 
-from src.common.sa2_coverage import load_broadacre_sa2_areas, select_target_sa2s
+from src.common.sa2_coverage import derive_station_universe, load_broadacre_sa2_areas, select_target_sa2s
 
 
 def _write_crop_csv(tmp_path):
@@ -41,3 +41,28 @@ def test_select_threshold_excludes_null_area_and_fringe(tmp_path):
     assert select_target_sa2s(areas, threshold_ha=5000) == {"11060"}
     # any >=1 threshold drops the 0.0-area SA2
     assert "21007" not in select_target_sa2s(areas, threshold_ha=1)
+
+
+def _stations_df():
+    # Mirrors WheatbeltStationsLoader._stations_df after column rename:
+    # station_id (zfilled str), name, sa2_code (the 5-dig SA2), latitude, longitude.
+    return pd.DataFrame([
+        {"station_id": "008137", "name": "ALPHA", "sa2_code": 11060, "latitude": -31.0, "longitude": 117.0},
+        {"station_id": "009999", "name": "BETA",  "sa2_code": 11060, "latitude": -31.5, "longitude": 117.5},
+        {"station_id": "055325", "name": "GAMMA", "sa2_code": 99999, "latitude": -31.2, "longitude": 150.0},
+    ])
+
+
+def test_derive_station_universe_filters_to_target_sa2s():
+    uni = derive_station_universe({"11060"}, _stations_df())
+    assert set(uni["station_id"]) == {"008137", "009999"}   # GAMMA's SA2 not in target
+    assert "sa2_5" in uni.columns
+    assert set(uni["sa2_5"]) == {"11060"}
+
+
+def test_derive_station_universe_handles_float_sa2_codes():
+    # pandas may load SA2_5DIG16 as float when NaNs present -> 11060.0
+    df = _stations_df()
+    df["sa2_code"] = df["sa2_code"].astype(float)
+    uni = derive_station_universe({"11060"}, df)
+    assert set(uni["station_id"]) == {"008137", "009999"}

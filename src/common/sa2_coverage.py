@@ -72,3 +72,15 @@ def select_target_sa2s(areas_df: pd.DataFrame, threshold_ha: float = 5000) -> Se
     >= 1 drops the 0.0-area SA2s.
     """
     return set(areas_df.loc[areas_df["total_area_ha"] >= threshold_ha, "sa2_5"])
+
+
+def derive_station_universe(target_sa2s: Set[str], stations_df: pd.DataFrame) -> pd.DataFrame:
+    """Select stations whose SA2 (column 'sa2_code', the 5-digit code as loaded
+    by WheatbeltStationsLoader) is in target_sa2s. Adds a normalised 'sa2_5'.
+    """
+    df = stations_df.copy()
+    df["sa2_5"] = _norm_sa2(df["sa2_code"])
+    selected = df[df["sa2_5"].isin(target_sa2s)].copy()
+    logger.info("Derived station universe: %d stations across %d target SA2s",
+                len(selected), selected["sa2_5"].nunique())
+    return selected
