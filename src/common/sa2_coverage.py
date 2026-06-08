@@ -81,6 +81,10 @@ def derive_station_universe(target_sa2s: Set[str], stations_df: pd.DataFrame) ->
     df = stations_df.copy()
     df["sa2_5"] = _norm_sa2(df["sa2_code"])
     selected = df[df["sa2_5"].isin(target_sa2s)].copy()
+    # WheatbeltStationsLoader left-joins station_regions.csv, which has duplicate
+    # station_id rows; that fan-out would otherwise inflate n_stations and repeat
+    # IDs downstream. Collapse to one row per station.
+    selected = selected.drop_duplicates(subset="station_id").reset_index(drop=True)
     logger.info("Derived station universe: %d stations across %d target SA2s",
                 len(selected), selected["sa2_5"].nunique())
     return selected
@@ -112,7 +116,7 @@ def build_coverage_report(
     ids_by_sa2: Dict[str, List[str]] = {}
     if not station_universe.empty:
         for sa2, grp in station_universe.groupby("sa2_5"):
-            ids_by_sa2[sa2] = sorted(grp["station_id"].astype(str))
+            ids_by_sa2[sa2] = sorted(set(grp["station_id"].astype(str)))
 
     rows = []
     for sa2 in sorted(target_sa2s):

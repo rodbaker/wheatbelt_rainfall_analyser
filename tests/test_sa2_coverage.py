@@ -165,6 +165,33 @@ def test_resolve_gap_points_skips_sa2_without_polygon(tmp_path):
     assert "99999" not in points
 
 
+def test_derive_station_universe_dedupes_station_id():
+    # Simulate the station_regions.csv merge fan-out: same station_id appears twice.
+    df = pd.DataFrame([
+        {"station_id": "008137", "name": "ALPHA", "sa2_code": 11060, "latitude": -31.0, "longitude": 117.0},
+        {"station_id": "008137", "name": "ALPHA", "sa2_code": 11060, "latitude": -31.0, "longitude": 117.0},
+        {"station_id": "009999", "name": "BETA",  "sa2_code": 11060, "latitude": -31.5, "longitude": 117.5},
+    ])
+    uni = derive_station_universe({"11060"}, df)
+    assert len(uni) == 2
+    assert sorted(uni["station_id"]) == ["008137", "009999"]
+
+
+def test_coverage_report_counts_unique_stations_only():
+    areas = pd.DataFrame([
+        {"sa2_5": "11060", "sa2_name": "Big", "state": "NSW", "total_area_ha": 5500.0},
+    ])
+    universe = pd.DataFrame([
+        {"station_id": "008137", "sa2_5": "11060"},
+        {"station_id": "008137", "sa2_5": "11060"},   # duplicate
+        {"station_id": "009999", "sa2_5": "11060"},
+    ])
+    rep = build_coverage_report({"11060"}, areas, universe)
+    row = rep.set_index("sa2_code").loc["11060"]
+    assert row["n_stations"] == 2
+    assert row["station_ids"] == "008137;009999"
+
+
 def test_resolve_gap_points_existing_point_outside_falls_back(tmp_path):
     crop_path, geo_path = _geo_crop(tmp_path)
     crop = pd.read_csv(crop_path, dtype=str)
