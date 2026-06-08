@@ -1,0 +1,773 @@
+state,broad_type,commodity,source_year,feature_count,area_ha
+ACT,Animals,chickens,2015,1,5.23493003845
+ACT,Flowers and bulbs,turf,2015,2,86.0375003815
+ACT,Fruits,apples,2015,4,6.432459950439
+ACT,Fruits,grapes wine,2015,9,150.76416964270464
+ACT,Fruits,olives,2020,2,23.6859998703
+ACT,Vegetables and herbs,truffles,2021,1,10.1079998016
+ACT,Vegetables and herbs,truffles,2022,1,1.67967998981
+NSW,Animals,alpacas,2017,6,79.76674956079
+NSW,Animals,cattle,2017,206,5426.03437358544
+NSW,Animals,cattle dairy,2017,912,2152.406017928559
+NSW,Animals,chicken eggs,2017,3,25.687325553622
+NSW,Animals,chickens,2017,721,3580.1350356213034
+NSW,Animals,deer,2017,4,58.135109245764006
+NSW,Animals,ducks,2017,2,5.9377601146700005
+NSW,Animals,emus,2017,1,0.90818297863
+NSW,Animals,horses,2017,1206,16418.577399088204
+NSW,Animals,ostriches,2017,4,47.392627298761
+NSW,Animals,pigs,2017,102,1222.4604478190356
+NSW,Animals,sheep,2017,16,159.690175354522
+NSW,Animals,turkeys,2017,1,8.84879970551
+NSW,Cereals,rice,2017,2,102.14800262450001
+NSW,Flowers and bulbs,cycads,2017,12,24.772599034048998
+NSW,Flowers and bulbs,flowers and foliage,2017,9,50.566508054732004
+NSW,Flowers and bulbs,palms,2017,26,28.289215035732
+NSW,Flowers and bulbs,turf,2017,159,2502.7495880105257
+NSW,Forest,christmas trees,2017,11,104.361955314818
+NSW,Forest,eucalyptus oil,2017,19,902.60822260338
+NSW,Forest,lemon myrtle,2017,11,26.272138208174
+NSW,Forest,tea tree,2017,203,6528.420932029116
+NSW,Fruits,apples,2017,6,55.390818417101
+NSW,Fruits,apricots,2017,3,12.36669969558
+NSW,Fruits,avocados,2022,45,148.134937345907
+NSW,Fruits,avocados,2023,364,2155.446253836021
+NSW,Fruits,bananas,2022,18,119.985797405172
+NSW,Fruits,bananas,2023,178,744.014739990091
+NSW,Fruits,blueberries,2017,381,2233.3154254263623
+NSW,Fruits,cherries,2017,47,899.0033442393509
+NSW,Fruits,citrus,2022,110,1380.285563766987
+NSW,Fruits,citrus,2023,757,15142.100164145695
+NSW,Fruits,custard apples,2017,18,41.437620669599
+NSW,Fruits,dragon fruit,2017,10,9.979913055904
+NSW,Fruits,grapes,2017,2551,47871.515774434934
+NSW,Fruits,guavas,2017,3,19.56231069565
+NSW,Fruits,lychees,2017,1,1.28533005714
+NSW,Fruits,mangoes,2020,75,170.204406321017
+NSW,Fruits,mangoes,2021,7,11.221947968006
+NSW,Fruits,mangoes,2022,4,17.87828040122
+NSW,Fruits,nectarines,2017,7,129.37183034425
+NSW,Fruits,olives,2019,2,5.30247998237
+NSW,Fruits,olives,2020,794,4922.487634778026
+NSW,Fruits,olives,2021,129,1249.0295045969128
+NSW,Fruits,olives,2022,6,55.60175871848
+NSW,Fruits,passionfruit,2017,47,113.424182534236
+NSW,Fruits,peaches,2017,2,104.8273420334
+NSW,Fruits,pears,2017,1,0.815446019173
+NSW,Fruits,plums,2017,1,1.93949997425
+NSW,Fruits,pomegranate,2017,9,43.857414424462
+NSW,Fruits,strawberries,2017,2,6.198071837421
+NSW,Nuts,almonds,2017,33,4345.153396696934
+NSW,Nuts,chestnuts,2017,5,56.55877947808
+NSW,Nuts,hazelnuts,2017,5,2374.31535363357
+NSW,Nuts,macadamias,2022,146,939.2914897203079
+NSW,Nuts,macadamias,2023,1274,15063.02212792595
+NSW,Nuts,pecans,2017,229,1646.4656987377227
+NSW,Nuts,pistachios,2017,10,407.84509572774436
+NSW,Nuts,walnuts,2017,12,1789.3719652685947
+NSW,Oilseeds,jojoba,2017,7,224.655114233544
+NSW,Other crops,coffee,2017,91,270.750400677256
+NSW,Other crops,cotton,2017,851,87137.48353265338
+NSW,Other crops,sugar cane,2017,1542,40591.50325987016
+NSW,Other crops,tea,2017,5,31.812030673004
+NSW,Vegetables and herbs,truffles,2019,1,1.86109995842
+NSW,Vegetables and herbs,truffles,2020,11,26.70706045627
+NSW,Vegetables and herbs,truffles,2021,21,66.159036755605
+NSW,Vegetables and herbs,truffles,2022,4,6.662950038912999
+NSW,Vegetables and herbs,truffles,2023,4,6.8771119117729995
+NSW,Vegetables and herbs,vegetables,2017,91,737.0603494064092
+NT,Animals,cattle meat,1967,3,24479.1955413856
+NT,Animals,cattle meat,1968,18,1097.6179037091
+NT,Animals,cattle meat,1969,21,1969.7806091307
+NT,Animals,cattle meat,1970,5,614.0085029598
+NT,Animals,cattle meat,1971,74,107990.18659446402
+NT,Animals,cattle meat,1972,2,1436.0650024410002
+NT,Animals,cattle meat,1973,39,3986.0843992232
+NT,Animals,cattle meat,1979,325,65067.28963483821
+NT,Animals,cattle meat,1980,4,725.3482952115
+NT,Animals,cattle meat,1983,15,13979.968500143801
+NT,Animals,cattle meat,1984,45,117142.866161597
+NT,Animals,cattle meat,1985,76,71545.75938593829
+NT,Animals,cattle meat,1986,12,5047.2343044253
+NT,Animals,cattle meat,1987,1,30.6972007751
+NT,Animals,cattle meat,1997,122,193615.35603645572
+NT,Animals,cattle meat,2002,2,974.0842208863
+NT,Animals,cattle meat,2008,5,461.3644924168
+NT,Animals,cattle meat,2009,2,129.4349975589
+NT,Animals,cattle meat,2010,5,153919.58129394008
+NT,Animals,cattle meat,2011,1,0.63381499052
+NT,Animals,cattle meat,2012,2,1.522253960374
+NT,Animals,cattle meat,2013,2,7.839236795899001
+NT,Animals,cattle meat,2014,180,732526.9303499776
+NT,Animals,cattle meat,2015,232,576700.5604729097
+NT,Animals,cattle meat,2016,5791,56335416.34108221
+NT,Animals,cattle meat,2017,32,87251.20125537548
+NT,Animals,cattle meat,2018,16,427.115388989045
+NT,Animals,cattle meat,2019,1,22062.4003906
+NT,Animals,cattle meat,2020,121,157150.48969969826
+NT,Animals,cattle meat,2021,52,4637.107494474332
+NT,Animals,cattle meat,2022,220,209487.98784044545
+NT,Animals,crocodiles,2015,7,95.604403972631
+NT,Animals,crocodiles,2016,1,8.68128967285
+NT,Animals,crustaceans,2016,1,478.153991699
+NT,Animals,finfish,2015,1,64.764503479
+NT,Animals,finfish,2016,1,24.0095996857
+NT,Animals,finfish,2018,1,62.5744018555
+NT,Animals,goats,2016,5,26.52201217412
+NT,Animals,goats,2018,7,50.558430150099994
+NT,Animals,horses,2010,1,20.4489994049
+NT,Animals,horses,2012,1,0.261994987726
+NT,Animals,horses,2015,6,47.716009736009994
+NT,Animals,horses,2016,14,243.930609539115
+NT,Animals,molluscs,2016,22,13161.709046183863
+NT,Animals,pigs,2016,1,0.405055999756
+NT,Animals,poultry,2015,1,0.179312005639
+NT,Animals,poultry,2017,1,1.37337005138
+NT,Animals,sheep,2016,1,15.7641000748
+NT,Animals,spirulina,2016,1,11.0755996704
+NT,Cereals,rice,2016,2,323.2550048831
+NT,Cereals,rice,2022,1,186.175994873
+NT,Cereals,sorghum,2009,2,260.041000366
+NT,Cereals,sorghum,2010,6,149.381895780855
+NT,Cereals,sorghum,2012,1,1.50778996944
+NT,Cereals,sorghum,2015,357,8351.62056366352
+NT,Cereals,sorghum,2016,225,15996.27951944536
+NT,Cereals,sorghum,2017,20,389.56082445418497
+NT,Cereals,sorghum,2018,5,313.06695032093
+NT,Cereals,sorghum,2020,36,12248.2694873815
+NT,Cereals,sorghum,2021,28,3403.622338054757
+NT,Cereals,sorghum,2022,78,21761.72830438225
+NT,Fruits,apples,2015,1,1.3828099966
+NT,Fruits,bananas,2023,4,50.573240280090005
+NT,Fruits,bilimbi,2015,1,0.505002975464
+NT,Fruits,caimito,2015,5,20.00388559699
+NT,Fruits,caimito,2016,1,0.289079010487
+NT,Fruits,carambolas,2016,1,1.1181499958
+NT,Fruits,citrus,2022,11,98.91508698465
+NT,Fruits,citrus,2023,5,80.88211846357
+NT,Fruits,curcuma,2015,1,4.08153009415
+NT,Fruits,dates,2016,7,26.978430852289
+NT,Fruits,dragon fruit,2015,3,0.8566979765889999
+NT,Fruits,dragon fruit,2016,4,1.7586330957726999
+NT,Fruits,durian,2015,1,20.6373996735
+NT,Fruits,figs,2016,1,2.4505200386
+NT,Fruits,grapefruit,2015,2,13.14229035378
+NT,Fruits,grapefruit,2016,3,42.7229995728
+NT,Fruits,grapes table,2012,10,193.72095918646
+NT,Fruits,grapes table,2016,6,65.99317979818
+NT,Fruits,grapes table,2017,1,0.361636012793
+NT,Fruits,guavas,2015,1,0.351666986942
+NT,Fruits,guavas,2016,1,0.610386013985
+NT,Fruits,jackfruit,2015,36,48.3298126608114
+NT,Fruits,jackfruit,2016,1,0.596569001675
+NT,Fruits,lemons,2015,3,37.91177940364
+NT,Fruits,lemons,2016,1,0.0716625005007
+NT,Fruits,limes,2015,12,30.294319719127
+NT,Fruits,limes,2016,8,10.98426026106
+NT,Fruits,longans,2015,1,0.202472001314
+NT,Fruits,mandarins,2016,1,0.150106996298
+NT,Fruits,mangoes,2019,52,651.127174258696
+NT,Fruits,mangoes,2020,36,558.28795826492
+NT,Fruits,mangoes,2021,201,2757.500122666614
+NT,Fruits,mangoes,2022,128,2648.861529409839
+NT,Fruits,melons,2015,33,580.830071240573
+NT,Fruits,melons,2016,69,949.68405343584
+NT,Fruits,melons,2017,1,23.3652000427
+NT,Fruits,melons,2022,5,166.23214435538
+NT,Fruits,oranges,2016,1,1.62700998783
+NT,Fruits,passionfruit,2015,2,3.34789088368
+NT,Fruits,pawpaws,2015,2,3.6776099205
+NT,Fruits,pawpaws,2016,7,6.967223048213
+NT,Fruits,pineapples,2015,3,41.8034090996
+NT,Fruits,plums,2016,3,1.179304003716
+NT,Fruits,rambutans,2015,31,37.287087768305
+NT,Fruits,rambutans,2016,5,5.172469049688
+NT,Fruits,sapodilla,2015,1,0.141133993864
+NT,Fruits,watermelons,2015,12,153.868005097027
+NT,Fruits,watermelons,2022,6,779.4710149762
+NT,Oilseeds,oil palms,2015,1,0.123795002699
+NT,Other crops,alkaloid poppies,2020,4,264.32719802860004
+NT,Other crops,cocoa,2015,2,0.61056099832
+NT,Other crops,cotton,2022,22,2998.2514839165
+NT,Other crops,sugar cane,2015,1,0.0585679002106
+NT,Pasture,lucerne,2015,1,42.9828987122
+NT,Pasture,lucerne,2016,2,132.04814863171998
+NT,Pasture,lucerne,2021,1,136.386001587
+NT,Vegetables and herbs,beans,2015,13,35.102825850251996
+NT,Vegetables and herbs,beans,2016,29,32.183790028096
+NT,Vegetables and herbs,bitter melons,2015,1,5.6201300621
+NT,Vegetables and herbs,cabbages,2016,3,5.2970999479300005
+NT,Vegetables and herbs,chillies,2015,8,13.100264698263
+NT,Vegetables and herbs,chillies,2016,4,2.983831018212
+NT,Vegetables and herbs,chinese cabbages,2016,1,2.17758989334
+NT,Vegetables and herbs,cucumbers,2015,9,6.903486073023
+NT,Vegetables and herbs,cucumbers,2016,14,11.740490004415
+NT,Vegetables and herbs,cucumbers,2017,1,2.835750103
+NT,Vegetables and herbs,eggplants,2015,3,2.9371730089200003
+NT,Vegetables and herbs,herbs,2015,1,1.45732998848
+NT,Vegetables and herbs,lemongrass,2015,1,0.0695696026087
+NT,Vegetables and herbs,lemongrass,2016,1,1.16858005524
+NT,Vegetables and herbs,okra,2015,15,16.488853961228
+NT,Vegetables and herbs,okra,2016,52,77.6380393206817
+NT,Vegetables and herbs,onions,2022,2,327.824996949
+NT,Vegetables and herbs,potatoes,2016,2,14.23619985581
+NT,Vegetables and herbs,pumpkins,2015,6,60.00993943212
+NT,Vegetables and herbs,sweet potatoes,2016,2,2.6124639511074
+NT,Vegetables and herbs,tomatoes,2015,1,0.398229986429
+NT,Vegetables and herbs,tomatoes,2016,1,0.290396004915
+NT,Vegetables and herbs,vegetables,2015,3,4.030653029684
+NT,Vegetables and herbs,vegetables,2016,7,34.168979488281195
+NT,Vegetables and herbs,zucchini,2015,2,12.54398831725
+NT,Vegetables and herbs,zucchini,2016,2,2.097256004811
+Qld,Animals,cattle dairy,2011,1,0.995338022709
+Qld,Animals,cattle dairy,2012,272,1307.061479092
+Qld,Animals,cattle dairy,2013,18,111.99462729691399
+Qld,Animals,cattle dairy,2015,23,106.203346967732
+Qld,Animals,cattle dairy,2017,90,530.17257475854
+Qld,Animals,cattle dairy,2021,108,429.348589360828
+Qld,Animals,chickens,2011,35,247.5791587828
+Qld,Animals,chickens,2012,161,957.521262467075
+Qld,Animals,chickens,2013,12,139.85106849675
+Qld,Animals,chickens,2015,20,84.37104058265
+Qld,Animals,chickens,2016,8,1354.0600789803398
+Qld,Animals,chickens,2017,7,67.69982135288001
+Qld,Animals,horses,2011,65,694.4476923126348
+Qld,Animals,horses,2012,258,5239.359747649775
+Qld,Animals,horses,2013,26,324.54026126854
+Qld,Animals,horses,2015,56,559.26632654676
+Qld,Animals,horses,2016,38,253.691476166241
+Qld,Animals,horses,2017,70,900.207074940459
+Qld,Animals,horses,2021,158,1694.737212121873
+Qld,Animals,pigs,2012,128,818.29413044444
+Qld,Animals,pigs,2013,25,165.92670331605984
+Qld,Animals,pigs,2015,4,12.01294004917
+Qld,Animals,pigs,2016,2,16.64157009125
+Qld,Animals,pigs,2017,75,347.35674047472
+Qld,Cereals,rice,2016,1,6.23662996292
+Qld,Flowers and bulbs,turf,2011,9,314.61471295345
+Qld,Flowers and bulbs,turf,2012,37,1419.87966537449
+Qld,Flowers and bulbs,turf,2013,3,80.5276021958
+Qld,Flowers and bulbs,turf,2015,4,88.05965042116
+Qld,Flowers and bulbs,turf,2016,16,349.16437459012
+Qld,Flowers and bulbs,turf,2017,12,312.96243858338
+Qld,Fruits,avocados,2021,31,318.807940781086
+Qld,Fruits,avocados,2022,492,6462.267420233526
+Qld,Fruits,avocados,2023,335,4019.527300834289
+Qld,Fruits,bananas,2021,10,49.98851060864
+Qld,Fruits,bananas,2022,768,11578.030415684267
+Qld,Fruits,bananas,2023,70,756.587369680053
+Qld,Fruits,citrus,2021,13,84.16358983513
+Qld,Fruits,citrus,2022,313,1800.779937624913
+Qld,Fruits,citrus,2023,339,5942.98655796025
+Qld,Fruits,grapes,2012,7,17.1897999048
+Qld,Fruits,grapes,2013,29,357.62381935114
+Qld,Fruits,grapes,2016,1,32.2341995239
+Qld,Fruits,grapes,2017,46,1884.076829493974
+Qld,Fruits,mangoes,2019,303,1880.876798987201
+Qld,Fruits,mangoes,2020,358,2198.767633080282
+Qld,Fruits,mangoes,2021,151,747.5862764716389
+Qld,Fruits,mangoes,2022,560,3275.836314916464
+Qld,Fruits,olives,2019,142,2137.392459630946
+Qld,Fruits,olives,2020,62,472.136530995229
+Qld,Fruits,olives,2021,66,291.728693366088
+Qld,Fruits,olives,2022,14,36.61726999283
+Qld,Fruits,pineapples,2021,69,1927.5837345126831
+Qld,Nuts,macadamias,2022,385,10408.812295496778
+Qld,Nuts,macadamias,2023,765,14261.014555217083
+Qld,Other crops,cotton,2012,200,80506.94297909539
+Qld,Other crops,cotton,2013,206,142205.7643728398
+Qld,Other crops,cotton,2015,2,1659.0130615199998
+Qld,Other crops,cotton,2016,7,3175.0710490359943
+Qld,Other crops,cotton,2017,75,36949.503665335105
+Qld,Other crops,sugar cane,2011,26,5879.1392173776
+Qld,Other crops,sugar cane,2012,48,13539.85151529448
+Qld,Other crops,sugar cane,2015,36,2316.08166599258
+Qld,Other crops,sugar cane,2021,2507,509742.5385697827
+Qld,Pulses,soybeans,2022,541,5602.977018192712
+Qld,Pulses,soybeans,2023,715,5003.084138095238
+Qld,Vegetables and herbs,truffles,2021,2,2.549076020716
+SA,Animals,alpacas,2016,83,657.917579919089
+SA,Animals,bees,2016,25,648.760632388122
+SA,Animals,cattle,2016,731,19298.42971934628
+SA,Animals,cattle dairy,2014,110,561.310070157012
+SA,Animals,cattle dairy,2015,200,434.638269841702
+SA,Animals,cattle dairy,2016,382,5692.332582771096
+SA,Animals,cattle dairy,2018,4,10.96153998374
+SA,Animals,cattle meat,2016,443,10421.950287940832
+SA,Animals,cattle stud,2016,14,145.60910081862
+SA,Animals,chickens,2014,1,3.77587008476
+SA,Animals,chickens,2015,50,428.12694695589
+SA,Animals,chickens,2016,55,266.744931906491
+SA,Animals,chickens,2018,33,265.272805392768
+SA,Animals,chickens eggs,2016,7,32.240509986839996
+SA,Animals,chickens meat,2016,7,45.51767957211
+SA,Animals,deer,2016,7,72.533814430291
+SA,Animals,geese,2016,1,0.394111990929
+SA,Animals,goats,2016,19,147.69674050813
+SA,Animals,goats dairy,2016,1,6.86377000809
+SA,Animals,horses,2014,10,304.07919836122
+SA,Animals,horses,2015,40,505.27008402351197
+SA,Animals,horses,2016,1532,15163.275978744648
+SA,Animals,pigs,2014,5,44.37028932575
+SA,Animals,pigs,2015,44,357.80240690709303
+SA,Animals,pigs,2016,26,144.010201185899
+SA,Animals,pigs,2018,74,616.982770621824
+SA,Animals,sheep,2016,999,37089.316107344304
+SA,Animals,sheep dairy,2016,1,5.97876977921
+SA,Animals,sheep meat,2016,69,899.497371316089
+SA,Animals,sheep stud,2016,5,89.889290213641
+SA,Animals,sheep wool,2016,57,2621.079279542781
+SA,Animals,turkeys,2016,1,1.14997005463
+SA,Cereals,barley,2016,383,18305.71889355565
+SA,Cereals,oats,2016,390,9744.427387595519
+SA,Cereals,rye cereal,2016,18,311.64848065388003
+SA,Cereals,triticale,2016,12,143.51900124544
+SA,Cereals,wheat,2016,629,33728.54187715133
+SA,Flowers and bulbs,lavender,2016,2,3.81793010235
+SA,Flowers and bulbs,orchids,2016,2,6.128200292579999
+SA,Flowers and bulbs,roses,2016,13,43.194362282746
+SA,Flowers and bulbs,turf,2014,2,11.820279598239999
+SA,Flowers and bulbs,turf,2015,18,248.64712774744
+SA,Flowers and bulbs,turf,2016,1,4.0995798111
+SA,Forest,christmas trees,2016,8,31.235406517999
+SA,Fruits,apples,2016,133,760.558373958089
+SA,Fruits,apricots,2016,7,34.769308432961
+SA,Fruits,avocados,2023,91,405.216673851072
+SA,Fruits,blackberries,2016,1,2.02095007896
+SA,Fruits,blueberries,2016,1,8.02385044098
+SA,Fruits,cherries,2016,58,293.656916618324
+SA,Fruits,citrus,2022,6,11.115224122997
+SA,Fruits,citrus,2023,494,6703.238646448055
+SA,Fruits,dates,2016,1,0.925149977207
+SA,Fruits,figs,2016,1,2.89141988754
+SA,Fruits,grapes,2014,348,17996.791889696757
+SA,Fruits,grapes,2015,1328,31875.29984091303
+SA,Fruits,grapes,2016,881,11429.770560715597
+SA,Fruits,grapes dried,2016,1,1.48315000534
+SA,Fruits,grapes wine,2016,1018,20539.885971888176
+SA,Fruits,mangoes,2020,2,4.73393797874
+SA,Fruits,mulberries,2016,1,1.49899995327
+SA,Fruits,olives,2019,47,522.124140202976
+SA,Fruits,olives,2020,493,2443.73553496567
+SA,Fruits,olives,2021,284,3126.102419674494
+SA,Fruits,olives,2022,14,53.37673914434
+SA,Fruits,peaches,2016,1,1.13248002529
+SA,Fruits,pears,2016,35,391.08164575729796
+SA,Fruits,plums,2016,1,2.05824995041
+SA,Fruits,pomegranate,2016,3,5.65043008328
+SA,Fruits,quinces,2016,2,2.900638043879
+SA,Fruits,raspberries,2016,1,0.396919995546
+SA,Fruits,strawberries,2016,17,183.725529074642
+SA,Nuts,almonds,2016,81,795.445141374949
+SA,Nuts,pecans,2016,1,4.21480989456
+SA,Nuts,pistachios,2016,1,3.3418700695
+SA,Nuts,walnuts,2016,1,3.43792009354
+SA,Oilseeds,canola,2016,53,2090.70864963484
+SA,Pasture,lucerne,2016,35,744.75162076942
+SA,Pulses,chickpeas,2016,20,635.20563459384
+SA,Pulses,field beans,2016,25,917.4527940752
+SA,Pulses,field peas,2016,35,1438.1015076634899
+SA,Pulses,lentils,2016,151,12879.22226631521
+SA,Pulses,lupins,2016,21,604.9464783667
+SA,Pulses,vetches,2016,19,380.64640235935
+SA,Vegetables and herbs,artichokes,2016,1,1.06745994091
+SA,Vegetables and herbs,beans,2016,73,2363.85503053701
+SA,Vegetables and herbs,cabbages,2016,1,3.96092009544
+SA,Vegetables and herbs,carrots,2016,5,56.27471995354
+SA,Vegetables and herbs,cauliflowers,2016,5,25.70796966553
+SA,Vegetables and herbs,chicory,2016,7,53.35779929161
+SA,Vegetables and herbs,cucumbers,2016,1,3.68060994148
+SA,Vegetables and herbs,eggplants,2016,1,8.35276985168
+SA,Vegetables and herbs,herbs,2016,1,1.68746995926
+SA,Vegetables and herbs,lettuces,2016,2,5.57174003124
+SA,Vegetables and herbs,mushrooms,2016,1,3.65143990517
+SA,Vegetables and herbs,onions,2016,2,35.26383185383
+SA,Vegetables and herbs,parsnips,2016,2,6.6185798645
+SA,Vegetables and herbs,peas,2016,76,3170.99402558838
+SA,Vegetables and herbs,potatoes,2016,39,582.37065947049
+SA,Vegetables and herbs,rhubarb,2016,1,1.29886996746
+SA,Vegetables and herbs,tomatoes,2016,6,116.193521439964
+SA,Vegetables and herbs,truffles,2021,1,1.59275996685
+SA,Vegetables and herbs,truffles,2022,1,1.7490799427
+SA,Vegetables and herbs,vegetables,2016,2,5.957599878310001
+Tas,Animals,abalone,2020,1,6.2920999527
+Tas,Animals,alpacas,2011,1,3.92968010902
+Tas,Animals,cattle,2010,2,40.46001148219
+Tas,Animals,cattle,2011,3,70.5663022995
+Tas,Animals,cattle,2013,1,16.6765003204
+Tas,Animals,cattle,2015,3,75.4052009582
+Tas,Animals,cattle,2016,4,105.84438085546999
+Tas,Animals,cattle,2017,10,1170.26143384026
+Tas,Animals,cattle,2018,12,578.4576597217
+Tas,Animals,cattle,2019,2,35.1807003022
+Tas,Animals,cattle,2022,5,343.86784791981
+Tas,Animals,cattle dairy,2008,33,1155.37687158596
+Tas,Animals,cattle dairy,2009,49,2313.97519803185
+Tas,Animals,cattle dairy,2010,302,13816.970135150645
+Tas,Animals,cattle dairy,2011,28,1724.450097263497
+Tas,Animals,cattle dairy,2012,223,8191.577304361721
+Tas,Animals,cattle dairy,2013,88,4329.815208136015
+Tas,Animals,cattle dairy,2014,1,444.966003418
+Tas,Animals,cattle dairy,2015,918,76627.76556801316
+Tas,Animals,cattle dairy,2016,108,4091.548281751631
+Tas,Animals,cattle dairy,2017,45,3434.880339980712
+Tas,Animals,cattle dairy,2018,337,17256.394577961706
+Tas,Animals,cattle dairy,2019,207,7586.508808583216
+Tas,Animals,cattle dairy,2020,5,293.60560941696
+Tas,Animals,cattle dairy,2021,3,306.54950332609997
+Tas,Animals,cattle dairy,2022,2,145.4857025147
+Tas,Animals,cattle meat,2010,5,405.37762069702
+Tas,Animals,cattle meat,2015,4,551.8768005373
+Tas,Animals,cattle meat,2016,1,30.9556007385
+Tas,Animals,cattle meat,2017,13,219.735862612859
+Tas,Animals,cattle meat,2018,11,4799.2720758963405
+Tas,Animals,cattle meat,2019,2,102.2325029374
+Tas,Animals,cattle meat,2020,1,152.113006592
+Tas,Animals,cattle stud,2010,6,89.43939727545599
+Tas,Animals,chickens,2010,10,87.86080932623
+Tas,Animals,chickens,2012,4,52.50705003737
+Tas,Animals,chickens,2014,4,9.8295699358
+Tas,Animals,chickens,2019,4,7.028815031055
+Tas,Animals,chickens eggs,2019,1,0.468291014433
+Tas,Animals,chickens eggs,2021,1,2.00382995605
+Tas,Animals,chickens meat,2017,3,4.991208016871
+Tas,Animals,chickens meat,2018,7,23.950367242105
+Tas,Animals,chickens meat,2019,2,3.43592000008
+Tas,Animals,deer,2018,1,32.0374984741
+Tas,Animals,finfish,2016,1,4.57610988617
+Tas,Animals,finfish,2017,2,15.86837005612
+Tas,Animals,finfish,2018,4,63.06498062615
+Tas,Animals,finfish,2019,3,11.88921010494
+Tas,Animals,goats dairy,2015,1,2.62567996979
+Tas,Animals,goats dairy,2018,1,0.0640328004956
+Tas,Animals,horses,2007,1,3.22211003304
+Tas,Animals,horses,2008,4,213.71697592771002
+Tas,Animals,horses,2009,1,10.1370000839
+Tas,Animals,horses,2010,17,266.13624215125003
+Tas,Animals,horses,2011,11,326.337676703903
+Tas,Animals,horses,2012,37,1122.96367061145
+Tas,Animals,horses,2013,2,21.65649938586
+Tas,Animals,horses,2014,14,442.44143438329
+Tas,Animals,horses,2015,2,5.4792599678
+Tas,Animals,horses,2016,4,21.2057697773
+Tas,Animals,horses,2017,1,38.5744018555
+Tas,Animals,horses,2018,2,31.6319999695
+Tas,Animals,horses,2019,2,2.12223005295
+Tas,Animals,molluscs,2018,1,4.80139017105
+Tas,Animals,pigs,2010,4,83.38479948049
+Tas,Animals,pigs,2012,6,59.21041059503
+Tas,Animals,pigs,2014,4,69.53376960743
+Tas,Animals,pigs,2016,3,3.491419970987
+Tas,Animals,pigs,2017,1,0.1513890028
+Tas,Animals,pigs,2018,1,1.02617001534
+Tas,Animals,pigs,2019,2,14.44427025315
+Tas,Animals,sheep,2010,10,843.44218099131
+Tas,Animals,sheep,2017,6,176.24694430843002
+Tas,Animals,sheep,2018,1,33.4945983887
+Tas,Animals,sheep,2019,2,263.8209991458
+Tas,Animals,sheep,2020,2,619.1820030211
+Tas,Animals,sheep dairy,2015,2,10.735189914700001
+Tas,Animals,sheep dairy,2017,1,0.619297027588
+Tas,Animals,sheep meat,2018,1,80.0675964355
+Tas,Flowers and bulbs,flowers and foliage,2017,2,6.056016787889001
+Tas,Flowers and bulbs,lavender,2016,2,31.96995019912
+Tas,Flowers and bulbs,lavender,2017,2,21.130090236679997
+Tas,Flowers and bulbs,lavender,2018,1,62.4523010254
+Tas,Flowers and bulbs,roses,2021,1,1.41665005684
+Tas,Flowers and bulbs,tulips,2018,2,74.883600235
+Tas,Flowers and bulbs,turf,2012,1,166.639007568
+Tas,Fruits,apples,2016,2,6.94261991978
+Tas,Fruits,apples,2017,6,54.355041891344
+Tas,Fruits,apples,2018,4,37.10784959797
+Tas,Fruits,apples,2020,1,1.55450999737
+Tas,Fruits,apples,2021,2,7.14461004734
+Tas,Fruits,avocados,2023,6,24.93912005424
+Tas,Fruits,blueberries,2017,2,3.1646510213659997
+Tas,Fruits,blueberries,2018,33,40.5852509923168
+Tas,Fruits,blueberries,2019,38,49.5908407820457
+Tas,Fruits,blueberries,2020,38,104.42318272970829
+Tas,Fruits,blueberries,2021,6,15.913934946053
+Tas,Fruits,cherries,2017,1,0.815190970898
+Tas,Fruits,cherries,2018,5,74.37358808522
+Tas,Fruits,cherries,2019,1,2.97501993179
+Tas,Fruits,cherries,2020,10,217.213902950263
+Tas,Fruits,cherries,2021,6,164.873217627877
+Tas,Fruits,grapes wine,2018,3,2.8280460238460003
+Tas,Fruits,grapes wine,2020,86,415.6354725678292
+Tas,Fruits,grapes wine,2021,425,2819.744456459641
+Tas,Fruits,olives,2021,51,194.308628499483
+Tas,Fruits,pears,2020,1,0.543457984924
+Tas,Fruits,raspberries,2016,1,13.571100235
+Tas,Fruits,raspberries,2018,2,67.211475372334
+Tas,Fruits,raspberries,2020,1,7.34856987
+Tas,Fruits,raspberries,2021,2,72.65974307062
+Tas,Fruits,strawberries,2021,2,28.63720083232
+Tas,Mines,bauxite,2020,1,13.2566995621
+Tas,Mines,tungsten,2018,1,23.0137004852
+Tas,Nuts,almonds,2020,1,3.8089299202
+Tas,Nuts,hazelnuts,2016,2,2.7071599960299997
+Tas,Nuts,walnuts,2007,1,9.47556018829
+Tas,Nuts,walnuts,2015,1,3.19579005241
+Tas,Nuts,walnuts,2019,1,27.1746006012
+Tas,Nuts,walnuts,2020,6,506.84441637937
+Tas,Other crops,azuki bean,2018,1,46.4025993347
+Tas,Other crops,hops,2020,2,28.01694941524
+Tas,Other crops,pyrethrum,2013,137,1291.54441750054
+Tas,Other crops,pyrethrum,2018,3,33.438710212749996
+Tas,Pasture,lucerne,2022,1,3.69072008133
+Tas,Vegetables and herbs,capsicums,2021,1,5.43584012985
+Tas,Vegetables and herbs,carrots,2010,3,18.203289985669997
+Tas,Vegetables and herbs,garlic,2017,1,4.02533006668
+Tas,Vegetables and herbs,garlic,2018,1,0.771336972713
+Tas,Vegetables and herbs,herbs,2017,2,0.809833019972
+Tas,Vegetables and herbs,herbs,2018,1,1.98651003838
+Tas,Vegetables and herbs,potatoes,2009,2,15.68311977384
+Tas,Vegetables and herbs,potatoes,2011,2,18.81815004351
+Tas,Vegetables and herbs,potatoes,2017,1,4.79146003723
+Tas,Vegetables and herbs,potatoes,2018,4,11.596239179369
+Tas,Vegetables and herbs,swedes,2018,1,25.0323009491
+Tas,Vegetables and herbs,tomatoes,2020,1,2.18998003006
+Tas,Vegetables and herbs,truffles,2020,1,0.90831297636
+Tas,Vegetables and herbs,truffles,2021,17,90.386050283877
+Tas,Vegetables and herbs,truffles,2022,3,9.301149725910001
+Tas,Vegetables and herbs,vegetable seeds,2017,1,3.92214989662
+Tas,Vegetables and herbs,vegetable seeds,2021,1,2.30298995972
+Tas,Vegetables and herbs,vegetables,2016,3,5.649968862525
+Tas,Vegetables and herbs,vegetables,2017,5,64.885120511015
+Tas,Vegetables and herbs,vegetables,2018,3,4.419935017826001
+Vic,Animals,cattle dairy,2016,31784,1034542.6096840126
+Vic,Animals,cattle dairy,2017,17026,489684.9034017904
+Vic,Animals,cattle meat,2015,9840,301047.4350482452
+Vic,Animals,cattle meat,2016,345,15802.359539340676
+Vic,Animals,cattle meat,2017,1375,54239.80723543078
+Vic,Animals,chickens,2015,2,24.46562099454
+Vic,Animals,chickens,2016,9,392.89706434300604
+Vic,Animals,chickens,2017,14,51.210833767837705
+Vic,Animals,chickens eggs,2015,70,1141.7111448085277
+Vic,Animals,chickens eggs,2016,2,1.900398969646
+Vic,Animals,chickens meat,2015,454,12184.792327670639
+Vic,Animals,chickens meat,2016,44,853.0264364220932
+Vic,Animals,chickens meat,2017,18,135.808677792546
+Vic,Animals,crustaceans,2016,3,8.272319078451
+Vic,Animals,crustaceans,2017,5,4.205633789080757
+Vic,Animals,finfish,2015,7,33.721623301522
+Vic,Animals,horses,2015,1240,27689.81681965147
+Vic,Animals,horses,2016,626,14978.25248819071
+Vic,Animals,horses,2017,544,2493.377162919292
+Vic,Animals,pigs,2015,252,7110.322352350966
+Vic,Animals,pigs,2016,185,8218.236143591914
+Vic,Animals,pigs,2017,145,1081.2397474458173
+Vic,Animals,sheep,2015,5149,183658.22035506106
+Vic,Animals,sheep,2016,280,20407.10517695805
+Vic,Animals,sheep,2017,637,35771.24624142168
+Vic,Animals,turkeys,2017,1,8.58323001862
+Vic,Cereals,maize,2017,97,1084.1511598775649
+Vic,Flowers and bulbs,flowers and foliage,2017,16,10.686545001550844
+Vic,Flowers and bulbs,turf,2016,1,29.8381996155
+Vic,Fruits,apples,2017,2032,2692.368053014102
+Vic,Fruits,apricots,2017,632,515.8646040063774
+Vic,Fruits,avocados,2022,5,12.78211796283
+Vic,Fruits,avocados,2023,98,833.868126750094
+Vic,Fruits,cherries,2017,198,413.19139058105213
+Vic,Fruits,citrus,2022,54,396.022236526149
+Vic,Fruits,citrus,2023,354,4872.640624286304
+Vic,Fruits,dates,2017,20,9.20733348482044
+Vic,Fruits,figs,2017,19,8.781971823686538
+Vic,Fruits,grapes,2016,8292,73983.31134260134
+Vic,Fruits,grapes,2017,275,956.7453947035432
+Vic,Fruits,grapes dried,2017,3275,3423.709365162735
+Vic,Fruits,grapes table,2017,6746,7954.383111511969
+Vic,Fruits,grapes wine,2017,5401,10951.506732232876
+Vic,Fruits,kiwifruit,2017,19,103.8060910183526
+Vic,Fruits,mangoes,2020,4,12.58996975421
+Vic,Fruits,mangoes,2021,2,5.42199003697
+Vic,Fruits,nashi pears,2017,54,114.78921917690644
+Vic,Fruits,nectarines,2017,783,748.8374247828316
+Vic,Fruits,olives,2019,196,4900.418479144791
+Vic,Fruits,olives,2020,373,5456.6290610430915
+Vic,Fruits,olives,2021,165,1853.4288462998081
+Vic,Fruits,olives,2022,2,15.46170973778
+Vic,Fruits,peaches,2017,1583,1981.593073908068
+Vic,Fruits,pears,2017,3348,3013.7074895125847
+Vic,Fruits,persimmons,2017,43,65.10347225651007
+Vic,Fruits,plumcots,2017,5,4.654612958427
+Vic,Fruits,plums,2017,764,876.0582754862163
+Vic,Fruits,pluots,2017,33,44.519188851139
+Vic,Fruits,pomegranate,2017,25,143.56162488348266
+Vic,Fruits,quinces,2017,5,13.2344824764627
+Vic,Nuts,almonds,2017,2721,19464.23267128203
+Vic,Nuts,pistachios,2017,99,266.7615858256429
+Vic,Nuts,walnuts,2017,53,81.55861923013434
+Vic,Oilseeds,canola,2017,19,201.16714633133228
+Vic,Pasture,lucerne,2017,385,1309.035380804553
+Vic,Vegetables and herbs,asparagus,2017,161,397.7517350397502
+Vic,Vegetables and herbs,carrots,2017,227,2568.7664692449634
+Vic,Vegetables and herbs,cucurbits,2017,306,656.5167040996879
+Vic,Vegetables and herbs,mushrooms,2017,1,2.87616991997
+Vic,Vegetables and herbs,potatoes,2017,33,946.9172352885162
+Vic,Vegetables and herbs,tomatoes,2017,1,16.2117004395
+Vic,Vegetables and herbs,truffles,2020,3,5.846860051149999
+Vic,Vegetables and herbs,truffles,2021,22,58.497112274205996
+Vic,Vegetables and herbs,truffles,2022,6,10.635927855973
+Vic,Vegetables and herbs,truffles,2023,1,0.821424007416
+Vic,Vegetables and herbs,vegetables,2017,692,1272.8443728119319
+WA,Animals,algae,2017,1,634.963989258
+WA,Animals,alpacas,2017,1,10.0627002716
+WA,Animals,camels,2016,1,4.39611005783
+WA,Animals,cattle dairy,2014,26,6.19779225206553
+WA,Animals,cattle dairy,2015,1558,71937.57082533231
+WA,Animals,cattle dairy,2016,310,206.8359849490356
+WA,Animals,cattle dairy,2017,48,77.2313620597116
+WA,Animals,chickens,2012,10,12.218657907527538
+WA,Animals,chickens,2013,9,0.54250991670464
+WA,Animals,chickens,2014,1,0.0936049968004
+WA,Animals,chickens,2016,23,145.580906182589
+WA,Animals,chickens,2017,96,426.7474712415094
+WA,Animals,chickens eggs,2016,2,3.0603566318731
+WA,Animals,chickens eggs,2017,6,5.929637998349
+WA,Animals,chickens meat,2017,6,29.24063587183
+WA,Animals,crocodiles,2016,2,5.8317000866
+WA,Animals,crustaceans,2016,156,459.9431340917814
+WA,Animals,crustaceans,2017,11,48.708351552428
+WA,Animals,crustaceans,2018,83,261.6057122200468
+WA,Animals,deer,2016,2,5.55770015717
+WA,Animals,emus,2016,1,3.80422997475
+WA,Animals,finfish,2017,2,0.739630678669
+WA,Animals,goats,2016,1,13.7246999741
+WA,Animals,horses,2014,14,51.89184483142028
+WA,Animals,horses,2016,60,1086.6396102905
+WA,Animals,horses,2017,192,3401.744517683826
+WA,Animals,molluscs,2016,1,8.43562030792
+WA,Animals,pigs,2012,9,8.20836084940773
+WA,Animals,pigs,2013,38,40.74294012384882
+WA,Animals,pigs,2016,67,617.8064229864998
+WA,Animals,pigs,2017,60,927.4453461502836
+WA,Animals,turkeys,2016,1,8.9765996933
+WA,Cereals,rice,2016,4,2062.380453605408
+WA,Cereals,wheat,2016,1,0.557618021965
+WA,Flowers and bulbs,flowers and bulbs,2016,116,668.4578278557777
+WA,Flowers and bulbs,flowers and bulbs,2017,133,196.481614453774
+WA,Flowers and bulbs,turf,2014,19,6.380174892729624
+WA,Flowers and bulbs,turf,2016,6,23.58820009232
+WA,Flowers and bulbs,turf,2017,70,396.75999191405
+WA,Forest,blue gum,2017,3,45.30141925809
+WA,Forest,blue gum,2018,2,0.14957019686700002
+WA,Forest,oil mallee,2016,57,3021.6920057541734
+WA,Forest,sandalwood,2016,212,6200.975978519292
+WA,Forest,sandalwood,2017,20,133.68045514821
+WA,Fruits,apples,2016,53,162.757932335094
+WA,Fruits,apples,2017,1,7.61708021164
+WA,Fruits,apricots,2016,4,1.892608001828
+WA,Fruits,apricots,2017,3,0.9520479887729
+WA,Fruits,avocados,2020,56,254.45415925979898
+WA,Fruits,avocados,2021,194,1468.2219960689729
+WA,Fruits,avocados,2022,270,2817.799509943197
+WA,Fruits,avocados,2023,19,321.93981277928003
+WA,Fruits,babacos,2016,1,0.259606987238
+WA,Fruits,bananas,2021,16,60.899650812154
+WA,Fruits,bananas,2022,40,117.01353675126501
+WA,Fruits,bananas,2023,20,88.467649817476
+WA,Fruits,blueberries,2016,1,0.0888374969363
+WA,Fruits,cherries,2016,9,28.239832043621
+WA,Fruits,cherries,2017,5,7.52679497004
+WA,Fruits,citrus,2020,18,50.578187286855
+WA,Fruits,citrus,2021,104,369.595263898329
+WA,Fruits,citrus,2022,93,722.43272370141
+WA,Fruits,citrus,2023,20,514.36098897483
+WA,Fruits,custard apples,2016,1,0.138905003667
+WA,Fruits,dragon fruit,2016,2,0.0872996002435
+WA,Fruits,figs,2016,3,0.1379292998463
+WA,Fruits,figs,2017,2,3.5298901125838
+WA,Fruits,grapes,2014,783,748.3418767483378
+WA,Fruits,grapes,2016,2945,1221.660985471696
+WA,Fruits,grapes,2017,46,23.1838456690358
+WA,Fruits,grapes dried,2016,1,0.0258981995285
+WA,Fruits,grapes table,2016,23,15.2555687129393
+WA,Fruits,grapes table,2017,204,245.9142953753875
+WA,Fruits,grapes wine,2016,2802,10521.49173324449
+WA,Fruits,grapes wine,2017,1472,4480.956602457311
+WA,Fruits,grapes wine,2018,4,3.6271240934708002
+WA,Fruits,jujube,2016,1,1.11066997051
+WA,Fruits,kiwifruit,2016,2,9.61135983467
+WA,Fruits,lychees,2016,1,0.272386997938
+WA,Fruits,mangoes,2019,1,2.82283997536
+WA,Fruits,mangoes,2020,58,660.706371367345
+WA,Fruits,mangoes,2021,28,137.015528619376
+WA,Fruits,mangoes,2022,47,190.044621646449
+WA,Fruits,melons,2016,5,38.00336956978
+WA,Fruits,moringa,2016,2,0.9141386076810001
+WA,Fruits,nectarines,2016,1,0.62674498558
+WA,Fruits,nectarines,2017,5,1.2688647136095001
+WA,Fruits,olives,2020,150,2001.237001120891
+WA,Fruits,olives,2021,290,2901.412392018996
+WA,Fruits,olives,2022,64,957.140795230957
+WA,Fruits,passionfruit,2016,6,2.9693431630725
+WA,Fruits,passionfruit,2017,5,5.550142213699
+WA,Fruits,pawpaws,2016,24,5.2762375380853
+WA,Fruits,pawpaws,2017,1,0.14703899622
+WA,Fruits,pears,2016,9,17.3825117201038
+WA,Fruits,persimmons,2016,3,1.9300972409568
+WA,Fruits,persimmons,2017,15,7.9876256659575
+WA,Fruits,plums,2016,6,4.916923969987
+WA,Fruits,raspberries,2017,1,0.362015008926
+WA,Fruits,strawberries,2016,5,19.395984172822
+WA,Fruits,strawberries,2017,110,240.7299033999744
+WA,Fruits,tamarillo,2016,7,6.232634976501
+WA,Fruits,tamarillo,2017,1,32.5367012024
+WA,Nuts,almonds,2016,34,779.54209613816
+WA,Nuts,almonds,2017,39,811.86466765412
+WA,Nuts,chestnuts,2016,2,7.6560599804
+WA,Nuts,hazelnuts,2016,5,50.902073621741
+WA,Nuts,macadamias,2020,11,33.993183434011
+WA,Nuts,macadamias,2021,10,25.962724804867
+WA,Nuts,macadamias,2022,15,39.744511902345
+WA,Nuts,macadamias,2023,2,6.16050982476
+WA,Nuts,pistachios,2016,9,25.708778023724
+WA,Nuts,walnuts,2016,3,0.573911011219
+WA,Nuts,walnuts,2018,3,10.21379971504
+WA,Nuts,water chestnuts,2018,1,10.546500206
+WA,Oilseeds,chia,2016,32,1212.02384948731
+WA,Oilseeds,jojoba,2016,1,0.084533803165
+WA,Oilseeds,safflower,2016,1,0.09745939821
+WA,Other crops,cotton,2016,3,8.63797020913
+WA,Other crops,cotton,2017,2,1.1862019896509999
+WA,Other crops,sugar cane,2016,16,428.69087886816
+WA,Other crops,tea,2017,1,4.16920995712
+WA,Pasture,legumes,2016,8,36.31824922562
+WA,Vegetables and herbs,asparagus,2016,12,7.2108271233703
+WA,Vegetables and herbs,asparagus,2017,5,6.6776204928796
+WA,Vegetables and herbs,broccoli,2017,2,6.43940997124
+WA,Vegetables and herbs,capsicums,2016,8,5.221899032591
+WA,Vegetables and herbs,carrots,2016,32,872.046588599814
+WA,Vegetables and herbs,cauliflowers,2016,2,3.3821750283289997
+WA,Vegetables and herbs,cauliflowers,2018,2,22.7407007217
+WA,Vegetables and herbs,chillies,2016,7,1.8435991108417
+WA,Vegetables and herbs,cucumbers,2017,1,1.60352003574
+WA,Vegetables and herbs,eggplants,2016,1,0.436996012926
+WA,Vegetables and herbs,garlic,2017,1,0.743764996529
+WA,Vegetables and herbs,leeks,2017,5,6.0814159437990005
+WA,Vegetables and herbs,lettuces,2016,3,5.9361897707
+WA,Vegetables and herbs,lettuces,2017,1,11.3028001785
+WA,Vegetables and herbs,mushrooms,2017,5,3.869051963084
+WA,Vegetables and herbs,onions,2016,3,53.09896993634
+WA,Vegetables and herbs,parsnips,2017,1,1.54207003117
+WA,Vegetables and herbs,peas,2017,1,3.24534988403
+WA,Vegetables and herbs,potatoes,2016,25,168.08659024602116
+WA,Vegetables and herbs,potatoes,2017,143,1046.9861146120372
+WA,Vegetables and herbs,potatoes,2018,18,151.21645033355
+WA,Vegetables and herbs,pumpkins,2016,1,0.438529998064
+WA,Vegetables and herbs,pumpkins,2017,2,2.80536997318
+WA,Vegetables and herbs,rhubarb,2017,1,2.66255998611
+WA,Vegetables and herbs,spring onions,2017,2,4.70516002179
+WA,Vegetables and herbs,sweet corn,2016,2,2.32969999313
+WA,Vegetables and herbs,sweet potatoes,2017,1,1.79918003082
+WA,Vegetables and herbs,tomatoes,2016,275,560.1437334434854
+WA,Vegetables and herbs,tomatoes,2017,21,18.3387970626232
+WA,Vegetables and herbs,truffles,2020,6,15.344575226316
+WA,Vegetables and herbs,truffles,2021,39,98.287059485914
+WA,Vegetables and herbs,truffles,2022,43,279.744065463619
+WA,Vegetables and herbs,vegetables and herbs,2016,995,6755.900753149914
+WA,Vegetables and herbs,vegetables and herbs,2017,707,2858.3381702018323
+WA,Vegetables and herbs,vegetables and herbs,2018,6,29.91163039207
+WA,Vegetables and herbs,zucchini,2016,2,2.20106005669
+WA,Vegetables and herbs,zucchini,2017,1,1.70361995697

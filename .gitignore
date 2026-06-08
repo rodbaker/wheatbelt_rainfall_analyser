@@ -6,10 +6,12 @@ __pycache__/
 # CropForecaster operational outputs (3-agent system)
 logs/*.jsonl
 data/obs/*.csv
-data/derived/*.csv  
+data/derived/*.csv
 data/exports/*.csv
+data/features/*.csv
 reports/daily/*.md
 reports/weekly/*.md
+reports/*_season_summary.md
 
 # Local configuration overrides
 config/*.local.yaml
@@ -68,8 +70,14 @@ docs/_build/
 *.zip
 *.gz
 data/meta/*.nc
+data/meta/crop_context_sa2.csv
+data/meta/sa2_coverage_report.csv
+data/weather.duckdb
 
 # Temporary files
 tmp/
 temp/
 *.tmp
+
+# Claude Code configuration
+.claude/

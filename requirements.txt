@@ -14,16 +14,16 @@ click>=8.0.0               # CLI interfaces
 python-dotenv>=0.5.1       # Environment variable management
 
 # Optional operational enhancements
-# geopandas>=0.13.0        # Statistical Division boundary processing (add when needed)
-# matplotlib>=3.7.0        # Optional visualization generation (add when needed)
-# duckdb>=0.8.0            # Fast CSV querying (add when performance needed)
+geopandas>=0.13.0          # SA2/SD boundary loading for rainfall percentile maps
+matplotlib>=3.7.0          # Percentile map rendering
+duckdb>=0.8.0              # Fast analytical storage for weather data
+xarray>=2023.0             # NetCDF climatology reading
+netCDF4>=1.6.0             # HDF5/NetCDF4 file backend for xarray
 
 # Development and quality tools
 flake8>=6.0.0              # Code quality checking
 coverage>=7.0.0            # Test coverage reporting
 
-# Documentation (existing sphinx setup)
-Sphinx>=7.0.0              # Documentation generation
-
-# Legacy/optional (review for removal)
-# awscli                   # Only needed if using S3 uploads - consider removing
+# Optional development tools (install manually if needed)
+# Sphinx>=7.0.0            # Documentation generation (no active docs build)
+# awscli                   # Only needed if using S3 uploads

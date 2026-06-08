@@ -1,201 +1,232 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working with code in this repository.
 
 ## Project Overview
 
-**CropForecaster** is a Python-based operational weather monitoring system that provides daily frost, heat stress, and harvest rainfall risk assessment for the Australian wheatbelt. The system ingests daily weather data from SILO API and generates event-based CSV logs for external system integration.
+**CropForecaster** is a Python-based operational weather monitoring system for daily frost, heat stress, and rainfall risk assessment across the Australian wheatbelt. Data comes from the SILO API (Bureau of Meteorology stations); output is event-based CSV logs and markdown daily digests.
 
-**Current Status**: MVP development targeting September 2025 launch
-**Milestones**: M1 (Sep 10) - Basic event detection | M2 (Sep 20) - Full automation | Launch (Sep 25-30)
-
-## Key Data Sources
-
-- **SILO API**: Daily min/max temperature and rainfall data via API calls
-- **Station coverage**: 2000+ weather stations across Australian wheatbelt
-- **Historical data**: 1990-ongoing for validation and trend analysis
-- **Geographic boundaries**: Wheatbelt region definitions for station filtering
-
-## Core System Architecture
-
-```
-src/
-├── data/           # SILO API ingestion and daily data processing
-├── features/       # Event detection logic (frost/heat/rainfall)
-├── models/         # Future: yield prediction models
-├── visualization/  # Optional: maps and risk visualization
-```
-
-**Critical modules for MVP**:
-- `src/data/silo_api.py`: Daily SILO API integration and data ingestion
-- `src/features/event_detection.py`: Frost/heat/rainfall threshold logic
-- `src/data/csv_logging.py`: Structured event logging system
-
-## Event Detection Thresholds
-
-### Frost Events
-- Light frost: 0°C to 2°C
-- Moderate frost: -2°C to 0°C  
-- Severe frost: < -2°C
-
-### Heat Events
-- Hot day: Tmax > 32°C
-- Very hot: Tmax > 35°C
-
-### Harvest Rainfall Risk (Oct-Dec)
-- Heavy rain: >10mm/day
-- Multi-day risk: >15mm/3-day total
-
-## Output Structure
-
-Daily CSV logs in `processed/` directory:
-- `frost_events.csv`: station_id, date, min_temp, risk_flag
-- `heat_events.csv`: station_id, date, max_temp, risk_flag  
-- `rain_events.csv`: station_id, date, rainfall, risk_flag
-
-Performance target: <10 seconds processing time for all stations daily
-
-## Development Commands
-
-```bash
-# Install project dependencies
-pip install -r requirements.txt
-
-# Install project as editable package
-pip install -e .
-
-# Run daily weather monitoring (MVP target)
-python src/data/daily_ingest.py
-python src/features/detect_events.py
-
-# Code quality
-flake8 src/
-
-# Test event detection logic
-python -m pytest tests/test_event_detection.py
-```
-
-## Three-Agent Architecture
-
-CropForecaster follows an **ingest → detect → communicate** flow with specialized agents:
-
-### **SILO Wrangler** (Data Ingest + QC)
-**Mission**: Pull daily weather from SILO, apply quality flags, write analysis-ready tables
-
-**Key Responsibilities**:
-- Fetch SILO point data (station/grid) for variables: rain, Tmax, Tmin, VP, MSLP
-- Respect rate limits; cache results; rolling window updates (3-12 months)
-- Persist to CSV files: `obs_daily.csv`, `stations.csv`, `grid_meta.csv`
-- Preserve provenance (source codes) for observed vs interpolated filtering
-- Optional: mirror gridded NetCDF files for fast local slicing
-
-**Inputs → Outputs**:
-- In: `config/silo_sources.yaml`, station lists, date windows, variable maps
-- Out: `data/obs/obs_daily.csv`, `data/meta/stations.csv`, `logs/ingest_runs.jsonl`
-
-**Guardrails**: Atomic writes, soft failure handling, never overwrite history
-
-### **Risk Engine** (Event Detection)
-**Mission**: Transform weather into crop risk events with auditable thresholds
-
-**Key Responsibilities**:
-- Frost detection: Tmin < 2°C/0°C events, consecutive nights, intensity buckets  
-- Heat stress: Tmax > 32°C/35°C counts during sensitive crop phases
-- Harvest rain: Rolling sums (≥15/25/50mm in 3/5/7 days) with downgrade risk tags
-- Statistical Division aggregation with crop mix weights and severity scoring
-- Generate `event_log.csv`, `sd_risk_rollup.csv`, optional `events.geojson`
-
-**Inputs → Outputs**:
-- In: `obs_daily.csv`, `config/crop_calendars.yaml`, SD boundary data
-- Out: `data/derived/event_log.csv`, `data/derived/sd_risk_rollup.csv`
-
-**Guardrails**: Explicit assumptions in YAML, confidence scoring for data gaps
-
-### **Insight Publisher** (Reports + Alerts)  
-**Mission**: Package detections into human-ready updates and reusable exports
-
-**Key Responsibilities**:
-- Daily Risk Digest: key events, top SDs at risk, sparkline tables (markdown)
-- Weekly Outlook: 7/14-day summaries, agronomic implications, PDF export
-- Power BI exports: `risk_events.csv`, `risk_events_latest.csv` (current day)
-- Changelog tracking, maintain `/reports/` index
-
-**Inputs → Outputs**:
-- In: `event_log`, `sd_risk_rollup`, prior reports
-- Out: `reports/daily/YYYY-MM-DD_risk_digest.md`, `reports/weekly/YYYY-WW_outlook.md`, `data/exports/*.csv`
-
-**Guardrails**: Stable file names for automation, no price analysis
-
-## Critical Success Factors
-
-1. **Daily reliability**: Zero missed daily runs during critical crop periods
-2. **API resilience**: Robust handling of SILO API delays or changes  
-3. **Accuracy**: Event detection validation against known frost/heat reports
-4. **Performance**: Sub-10 second processing for operational requirements
-5. **Data exports**: Clean CSV format for downstream system integration
-
-## Current Development Focus
-
-**This Week (M1 Sprint)**: 
-- SILO API daily ingestion working
-- Basic frost/heat detection on sample stations
-- CSV logging functionality tested
-
-**Next Phase**: Full wheatbelt station coverage with automated daily workflow
-
-The system prioritizes operational reliability over research flexibility, with all development focused on the September launch window for peak heat risk season.
+**Current Status**: M1 complete. Production-ready for M2 automation deployment.
 
 ---
 
-## Session Log
+## Actual Project Structure
 
-### 2025-09-07: BOM Wheatbelt Stations Integration
+```
+src/
+├── agents/
+│   ├── silo_wrangler/          # Agent 1: SILO API ingestion + DuckDB storage
+│   │   ├── run_ingest.py       # CLI entry point
+│   │   ├── api_client.py       # SILO API calls
+│   │   ├── data_processor.py   # Cleaning, normalisation
+│   │   └── quality_checker.py  # SILO quality code validation
+│   ├── risk_engine/            # Agent 2: Event detection
+│   │   ├── run_risk_engine.py  # CLI entry point (DuckDB-backed)
+│   │   ├── csv_risk_engine.py  # CLI entry point (CSV-backed, M1 simplified)
+│   │   └── event_detector.py   # Core threshold logic
+│   └── insight_publisher/      # Agent 3: Reports + exports
+│       ├── run_publisher.py    # CLI entry point
+│       ├── report_generator.py # Markdown daily digest
+│       └── export_generator.py # Power BI CSV exports
+├── common/                     # Shared utilities
+│   ├── constants.py            # SILO quality codes, EVENT_* string constants
+│   ├── config_loader.py        # YAML config loading
+│   ├── date_utils.py           # Crop stage + phenology helpers
+│   ├── file_utils.py           # atomic_csv_write / atomic_csv_append
+│   ├── logging_utils.py        # Structured logging setup
+│   └── stations_loader.py      # BOM wheatbelt station list (1,376 stations)
+└── data/
+    ├── duckdb_storage.py       # DuckDB read/write, query_to_dataframe()
+    └── silo_ingest.py          # Low-level ingestion utilities
 
-**Files Changed:**
-- `src/common/stations_loader.py` - New comprehensive BOM dataset loader with geographic filtering
-- `src/agents/silo_wrangler/run_ingest.py` - Added CLI options for BOM dataset integration
-- `config/silo_sources.yaml` - Updated with BOM dataset configuration and usage examples
-- `pyproject.toml` - Fixed TOML syntax error and added missing dependencies
+config/
+├── crop_calendars.yaml         # Stage dates, thresholds (frost/heat/rainfall)
+├── assumptions.yaml            # Methodology notes, timing_critical stages
+└── silo_sources.yaml           # Station tiers and API config
 
-**Summary:**
-Successfully integrated comprehensive BOM wheatbelt stations dataset (1,376 stations) into SILO Wrangler. System now supports:
-- Three operational modes: config tiers, BOM dataset, direct CLI override
-- Geographic filtering: state-based, cropping area thresholds, random sampling
-- Quality-based automatic station exclusion with override capability
-- Complete M1→M2 scalability from 9 to 1,000+ stations
+data/
+├── weather.duckdb              # Primary weather store
+├── obs/obs_daily.csv           # CSV fallback (M1 CSV engine input)
+├── meta/wheatbelt_stations.csv # Station metadata
+└── derived/                    # Event outputs (event_log.csv, *_events.csv)
 
-**Testing Completed:**
-✅ Tiered station classification (active/unverified/inactive)  
-✅ BOM dataset random sampling (5 stations)  
-✅ State filtering (Western Australia only)  
-✅ Cropping area filtering (>400,000ha regions)  
-✅ Quality assessment and automatic exclusion  
+reports/
+├── daily/                      # YYYY-MM-DD_risk_digest.md
+└── weekly/                     # YYYY-WW_outlook.md
 
-**Next Steps:**
-1. **Risk Engine Implementation** - Core M1 milestone requirement
-   - Frost detection thresholds (Tmin < 2°C/0°C)
-   - Heat stress detection (Tmax > 32°C/35°C)  
-   - Event logging system (`data/derived/event_log.csv`)
-   - Crop calendar integration for seasonal context
+scripts/
+├── cron_schedule.sh            # Daily automation — calls all three agents in sequence
+└── build_station_regions.py    # One-off: build data/meta/station_regions.csv
+```
 
-2. **Insight Publisher** - Complete M1 deliverables
-   - Daily risk digest generation
-   - Export CSV files for downstream systems
+---
 
-**Blockers:** None - SILO Wrangler foundation complete and production-ready
+## Event Types
 
-**M1 Status:** SILO Wrangler ✅ Complete | Risk Engine 🔄 Ready to Begin | Insight Publisher ⏳ Pending
+| event_type | Role | Active months | Severity values |
+|---|---|---|---|
+| `frost` | Damaging | Jul–Oct | light, moderate, severe |
+| `heat` | Damaging | Oct–Dec | stress, severe |
+| `rainfall` | Damaging (harvest) | Nov–Jan | moderate, high, severe |
+| `seeding_rain` | Beneficial | Apr–Jun | adequate, inadequate |
+| `development_rain` | Beneficial | Jul–Oct | dry_spell, moisture_stress |
 
-## Essential Documentation
+All events use a consistent schema built by `WeatherEventDetector._build_event_record()`:
+`station_id, date, event_type, severity, value, threshold, crop_stage, confidence, data_quality, detected_at` plus any type-specific extra fields.
 
-**API Integration References**:
-- `docs/Logpaddock_SILO_API_Reference.pdf` - Official SILO API documentation
-- `docs/silo_api_usage_guide.md` - CropForecaster-specific API examples and best practices
+---
 
-**Project Planning**:
-- `prd.md` - Product requirements and event detection thresholds
-- `task_manager.md` - Current sprint tasks and development priorities
+## Event Detection Thresholds
 
-**Development Guidance**:
-- `README.md` - Setup instructions and project overview
-- `CLAUDE.md` - This file (system architecture and agent guidance)
+Defined in `config/crop_calendars.yaml` under `thresholds:`.
+
+### Frost
+- Light: Tmin ≤ 2°C | Moderate: Tmin ≤ 0°C | Severe: Tmin ≤ -2°C
+- Stage-specific overrides (e.g. flowering: 1°C threshold)
+
+### Heat
+- Stress: Tmax ≥ 32°C | Severe: Tmax ≥ 35°C
+- Only active during `heat_critical` stages
+
+### Harvest Rainfall
+- Moderate: ≥10mm/day | High: ≥15mm over 3 days | Severe: ≥25mm
+
+### Seeding Rainfall (Apr–Jun, beneficial)
+- Germination trigger: ≥10mm/day | Adequate break: ≥25mm/7d | Dry: <5mm/7d
+
+### Crop Development Rainfall (Jul–Oct, beneficial)
+- Dry spell: <5mm/7d | Moisture stress: <10mm/14d
+
+---
+
+## SILO Data Quality Codes
+
+Defined in `src/common/constants.py` — always import from there:
+
+```python
+from src.common.constants import SILO_QUALITY_CODES, SILO_QUALITY_DEFAULT
+# 0=observed(1.0), 15=interpolated(0.8), 25=lower density(0.7),
+# 35=synthetic(0.3), 75=lower quality(0.6), 999=missing(0.0)
+```
+
+---
+
+## CLI Entry Points
+
+```bash
+# 1. Ingest SILO data for a date
+python src/agents/silo_wrangler/run_ingest.py --date 2026-03-25
+
+# 2a. Run risk engine (DuckDB-backed, full feature set)
+python src/agents/risk_engine/run_risk_engine.py --date 2026-03-25
+python src/agents/risk_engine/run_risk_engine.py --date-range 2026-03-01 2026-03-25
+
+# 2b. Run risk engine (CSV-backed, M1 simplified, frost/heat only)
+python src/agents/risk_engine/csv_risk_engine.py --date 2026-03-25
+
+# 3. Generate daily report
+python src/agents/insight_publisher/run_publisher.py --date 2026-03-25
+
+# Code quality
+flake8 src/
+python -m pytest tests/
+```
+
+---
+
+## Key Design Decisions
+
+- **Atomic writes everywhere**: Use `atomic_csv_write()` / `atomic_csv_append()` from `src/common/file_utils.py` for all CSV output. Never call `.to_csv()` directly on output paths.
+- **All event dicts via `_build_event_record()`**: Ensures consistent schema across all event types. Extra fields (accumulation_window, rainfall_role, etc.) passed as `**kwargs`.
+- **Seeding/development detection is self-gating**: Methods check `target_month` internally — no external flag needed in `run_risk_engine.py`.
+- **DuckDB column aliases**: `run_risk_engine.py` SQL query aliases `min_temp as min_temperature` etc. to match what `event_detector.py` expects.
+- **CSV engine uses renamed columns**: `csv_risk_engine.py` renames to `min_temp`/`max_temp` (post-rename from obs_daily.csv).
+
+---
+
+## Output Files
+
+```
+data/derived/
+├── event_log.csv               # All events, all types, all dates
+├── frost_events.csv
+├── heat_events.csv
+├── rainfall_events.csv
+├── seeding_rain_events.csv
+└── development_rain_events.csv
+```
+
+---
+
+## Three-Agent Architecture
+
+### SILO Wrangler
+Pulls SILO API data → DuckDB + `data/obs/obs_daily.csv`. Respects rate limits, atomic writes, preserves quality codes.
+
+**Daily coverage (default).** The daily ingest pulls the **SA2-broadacre station universe** —
+every BOM station inside an ABS SA2 with total broadacre `area_ha >= 5000`
+(`config/silo_sources.yaml` → `coverage.mode: sa2_broadacre`, `min_broadacre_area_ha`). That
+is ~1,293 stations across 159 SA2s, up from the legacy 16 hand-picked `active`-tier stations.
+Zero-station included SA2s are gap-filled with a targeted SILO Data Drill point; the result is
+summarised in `data/meta/sa2_coverage_report.csv` with `gap_status` ∈ {`internal_bom`,
+`data_drill_gapfill`, `unresolved_gap`}.
+
+Speed comes from `api.concurrency` (default 10); `concurrency: 1` = legacy sequential
+execution mechanics. To restore the legacy small daily run use `--coverage-mode active_tier`
+(or set `coverage.mode: active_tier`).
+
+**Known unresolved gaps (2 SA2s).** At the 5,000 ha default, two SA2s report `unresolved_gap`:
+**Esperance (51274)** and **Capel (51007)**. These are *urban town* SA2s with no internal BOM
+station; the surrounding cropland is already covered by their agricultural neighbours (e.g.
+"Esperance Surrounds" (51275) has 29 stations and is `internal_bom`). They are unresolvable
+here because `SA2_ABS_Regions.geojson` uses 2016 SA2 codes while `crop_context_sa2.csv` uses
+2021 codes, and no safe 1:1 polygon exists for the renamed town SA2. A conservative
+name-fallback (`build_sa2_polygon_index`) resolves genuine vintage renames where an unclaimed
+polygon exists, but correctly refuses to borrow a neighbour's polygon. The proper long-term
+fix is an official ABS SA2 2016↔2021 correspondence file (a deferred follow-up). Because the
+real cropping is covered by the neighbouring SA2s, this is low operational concern — and it is
+surfaced loudly (WARNING) rather than silently dropped.
+
+### Risk Engine
+Reads DuckDB → `WeatherEventDetector` → `data/derived/event_log.csv`. Phenology-aware: flowering window active → 3x frost risk multiplier. Stage detection via `get_current_crop_stage()` with month-based fallback.
+
+### Insight Publisher
+Reads `event_log.csv` → markdown daily digest + Power BI CSV exports. Report includes Seasonal Moisture Status section for seeding/development rainfall.
+
+---
+
+## M1 Status: Complete
+
+- ✅ SILO Wrangler: DuckDB-backed ingestion, 1,376 stations
+- ✅ Risk Engine: Frost + heat + harvest rainfall + seeding/development rainfall detection
+- ✅ Insight Publisher: Daily digest with phenology context and seasonal moisture tracker
+- ✅ Quality code constants centralised in `src/common/constants.py`
+- ✅ Atomic CSV writes throughout
+
+---
+
+## Downstream Integration
+
+This project is one of several data sources feeding the **WA Grain Trade Monitor brief assemblers**:
+
+- Interactive: `/monitor-brief` slash command in `/home/roddyb/projects/claude-notebooklm-research/`
+- Headless / source-pack: `/home/roddyb/projects/reporter/` (`wheatbelt_risk_glob` in its `config.json`)
+
+The assemblers read this project's output to populate the **crop conditions** section of a weekly draft for an agricultural bank analyst audience (farm advisors, ag lending).
+
+### What the assembler reads
+
+| File | Purpose |
+|---|---|
+| `data/derived/event_log.csv` | Recent risk events (past 7 days) — primary source |
+| `reports/weekly/YYYY-WW_outlook.md` | Weekly summary — used directly in draft if available |
+
+### Fields the assembler depends on
+
+From `event_log.csv`: `date`, `event_type`, `severity`, `station_name`, `region_name`, `value`
+
+**Do not rename these columns or change the `data/derived/` or `reports/weekly/` paths without also updating the assembler.**
+
+### M2 goal
+
+Ensure `reports/weekly/YYYY-WW_outlook.md` is generated automatically each week (via cron or manual trigger). The assembler will use this file directly as the crop conditions narrative — reducing the need to query NotebookLM for weather context.

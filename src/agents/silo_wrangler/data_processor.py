@@ -52,6 +52,9 @@ class WeatherDataProcessor:
         processed_df = pd.DataFrame()
         
         # Add metadata columns (properly sized)
+        # Normalise station_id: BOM numbers are 6-digit zero-padded; Data Drill IDs (DD_lat_lon) are left as-is
+        if not station_id.startswith('DD_'):
+            station_id = station_id.zfill(6)
         processed_df['station_id'] = [station_id] * num_rows
         processed_df['date'] = pd.to_datetime(raw_df['YYYY-MM-DD']).dt.strftime('%Y-%m-%d')
         processed_df['timestamp_processed'] = [datetime.now().isoformat()] * num_rows
@@ -85,11 +88,16 @@ class WeatherDataProcessor:
         """
         column_mapping = {
             'R': ('daily_rain', 'daily_rain_source'),
-            'X': ('max_temp', 'max_temp_source'), 
+            'X': ('max_temp', 'max_temp_source'),
             'N': ('min_temp', 'min_temp_source'),
             'V': ('vp', 'vp_source'),
-            'D': ('solar_radiation', 'solar_radiation_source'),
-            'E': ('evaporation', 'evaporation_source')
+            'J': ('solar_radiation', 'solar_radiation_source'),  # J = solar radiation (MJ/m²)
+            'D': ('vp_deficit', 'vp_deficit_source'),            # D = vapour pressure deficit (not solar)
+            'E': ('evaporation', 'evaporation_source'),
+            'H': ('rh_at_max_temp', 'rh_at_max_temp_source'),
+            'G': ('rh_at_min_temp', 'rh_at_min_temp_source'),
+            'F': ('et_fao56', 'et_fao56_source'),
+            'M': ('msl_pressure', 'msl_pressure_source'),
         }
         return column_mapping.get(variable_code, (f'Unknown_{variable_code}', f'Unknown_{variable_code}_Quality'))
         

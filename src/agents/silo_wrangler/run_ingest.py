@@ -13,21 +13,32 @@ import click
 import logging
 import json
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, Any
 from datetime import datetime
+from dotenv import load_dotenv
+load_dotenv()
 
 from src.common.config_loader import load_config
 from src.common.logging_utils import setup_logging
-from src.common.stations_loader import load_wheatbelt_stations_for_config
-from .api_client import SILOAPIClient
-from .data_processor import WeatherDataProcessor
-from .quality_checker import DataQualityChecker
+from src.common.stations_loader import load_wheatbelt_stations_for_config, generate_data_drill_grid, WheatbeltStationsLoader
+import pandas as _pd
+from src.common.sa2_coverage import (
+    load_broadacre_sa2_areas, select_target_sa2s, derive_station_universe,
+    build_sa2_polygon_index, resolve_gap_points, build_coverage_report,
+)
+from src.common.file_utils import atomic_csv_write
+from src.data.duckdb_storage import DuckDBStorage
+from src.agents.silo_wrangler.api_client import SILOAPIClient
+from src.agents.silo_wrangler.data_processor import WeatherDataProcessor
+from src.agents.silo_wrangler.quality_checker import DataQualityChecker
+from src.agents.silo_wrangler.concurrent_ingest import StationResult, ingest_concurrently
 
 logger = logging.getLogger(__name__)
 
 
 @click.command()
 @click.option('--config', '-c', default='config/silo_sources.yaml', help='Path to SILO configuration file')
+@click.option('--date', 'target_date', default=None, help='Fetch data for a specific date (YYYY-MM-DD). Overrides --days and rolling-window mode.')
 @click.option('--stations', '-s', help='Comma-separated station IDs to process (overrides config)')
 @click.option('--days', '-d', type=int, help='Number of days to retrieve (overrides config)')
 @click.option('--tiers', default='active', help='Station tiers to include: active,unverified,inactive,all (default: active)')
@@ -37,11 +48,17 @@ logger = logging.getLogger(__name__)
 @click.option('--sample-size', type=int, help='Random sample size from BOM dataset for testing')
 @click.option('--sample-seed', type=int, help='Random seed for reproducible sampling')
 @click.option('--min-cropping-area', type=int, help='Minimum cropping area (hectares) for station filtering')
-@click.option('--dry-run', is_flag=True, help='Run without writing output files')
+@click.option('--dry-run', is_flag=True, help='Run without writing output files (skips Data Drill API calls)')
+@click.option('--hybrid', is_flag=True, help='Gap-fill with SILO Data Drill after PPD station ingestion')
+@click.option('--hybrid-states', help='Comma-separated state names to run Data Drill for (e.g., "Western Australia"). Defaults to all wheatbelt_bounds regions.')
+@click.option('--dd-max-points', type=int, default=None, help='Limit Data Drill grid points (useful for testing)')
+@click.option('--coverage-mode', default=None,
+              help='Override coverage.mode: sa2_broadacre | active_tier')
 @click.option('--verbose', '-v', is_flag=True, help='Enable verbose logging')
-def run_daily_ingest(config: str, stations: str, days: int, tiers: str, include_poor: bool, 
-                    use_bom_dataset: bool, states: str, sample_size: int, sample_seed: int, 
-                    min_cropping_area: int, dry_run: bool, verbose: bool):
+def run_daily_ingest(config: str, target_date: str, stations: str, days: int, tiers: str, include_poor: bool,
+                    use_bom_dataset: bool, states: str, sample_size: int, sample_seed: int,
+                    min_cropping_area: int, dry_run: bool, hybrid: bool, hybrid_states: str,
+                    dd_max_points: int, coverage_mode: str, verbose: bool):
     """
     Run daily SILO data ingestion for configured stations
     
@@ -53,6 +70,8 @@ def run_daily_ingest(config: str, stations: str, days: int, tiers: str, include_
     setup_logging(log_level)
     
     logger.info("Starting SILO Wrangler daily ingestion")
+    if target_date:
+        logger.info(f"Target date override: {target_date}")
     
     try:
         # Load configuration
@@ -81,29 +100,49 @@ def run_daily_ingest(config: str, stations: str, days: int, tiers: str, include_
             if min_cropping_area:
                 filter_params['min_cropping_area'] = min_cropping_area
             
+            # Warning when no state filter is applied
+            if not states and sample_size:
+                logger.warning(f"No --states filter specified with BOM dataset sampling. "
+                             f"Will sample {sample_size} stations from ALL states (WA, SA, NSW, QLD, VIC, TAS). "
+                             f"To filter by state, use: --states 'Western Australia'")
+            
             station_list = load_wheatbelt_stations_for_config(filter_params)
             silo_config['stations'] = station_list
+            
+            # Show actual states represented in the final selection
+            from src.common.stations_loader import WheatbeltStationsLoader
+            loader = WheatbeltStationsLoader()
+            actual_states = set()
+            for station_id in station_list.keys():
+                station_info = loader.get_station_info(station_id)
+                if station_info:
+                    actual_states.add(station_info.state_name)
             
             filter_desc = []
             if 'states' in filter_params:
                 filter_desc.append(f"states: {filter_params['states']}")
+            else:
+                filter_desc.append("states: ALL (WA, SA, NSW, QLD, VIC, TAS)")
             if 'sample_size' in filter_params:
                 filter_desc.append(f"sample: {filter_params['sample_size']}")
             if 'min_cropping_area' in filter_params:
                 filter_desc.append(f"min_area: {filter_params['min_cropping_area']}ha")
             
             filter_str = ", ".join(filter_desc) if filter_desc else "no filters"
+            actual_states_str = ", ".join(sorted(actual_states))
             logger.info(f"Using BOM wheatbelt dataset: {len(station_list)} stations loaded ({filter_str})")
+            logger.info(f"Final selection includes stations from: {actual_states_str}")
         else:
-            # Load stations by tier from config
-            station_list = load_stations_by_tier(silo_config, tiers)
+            station_list = load_coverage_stations(silo_config, coverage_mode, tiers)
             silo_config['stations'] = station_list
-            logger.info(f"Using {tiers} tier stations: {len(station_list)} stations loaded")
+            mode = coverage_mode or silo_config.get('coverage', {}).get('mode', 'active_tier')
+            logger.info(f"Coverage mode '{mode}': {len(station_list)} stations loaded")
             
         # Initialize agents
         api_client = SILOAPIClient(silo_config)
         data_processor = WeatherDataProcessor(silo_config)
         quality_checker = DataQualityChecker(silo_config)
+        storage = DuckDBStorage({'database_path': 'data/weather.duckdb'})
         
         # Prepare run metadata
         run_metadata = {
@@ -115,128 +154,225 @@ def run_daily_ingest(config: str, stations: str, days: int, tiers: str, include_
             'variables': list(silo_config['variables'].keys())
         }
         
-        # Process each station
-        successful_stations = []
-        failed_stations = []
-        total_records = 0
-        
-        for station_id, station_name in silo_config['stations'].items():
-            logger.info(f"Processing station {station_id} ({station_name})")
-            
-            try:
-                # Determine date range based on collection mode
-                if days:
-                    # CLI override
-                    raw_data = api_client.get_rolling_window_data(station_id, days)
-                elif silo_config['collection']['mode'] == 'rolling_window':
-                    rolling_days = silo_config['collection']['rolling_days']
-                    raw_data = api_client.get_rolling_window_data(station_id, rolling_days)
-                else:
-                    # Default to yesterday for daily operations
-                    raw_data = api_client.get_yesterday_data(station_id)
-                
-                if raw_data is None or raw_data.empty:
-                    logger.warning(f"No data retrieved for station {station_id}")
-                    failed_stations.append({
-                        'station_id': station_id,
-                        'error': 'no_data_retrieved',
-                        'timestamp': datetime.now().isoformat()
-                    })
-                    continue
-                    
-                # Process the raw data
-                processed_data = data_processor.process_station_data(raw_data, station_id)
-                
-                if processed_data.empty:
-                    logger.warning(f"No processable data for station {station_id}")
-                    failed_stations.append({
-                        'station_id': station_id, 
-                        'error': 'processing_failed',
-                        'timestamp': datetime.now().isoformat()
-                    })
-                    continue
-                
-                # Quality assessment
-                quality_assessment = quality_checker.assess_data_quality(processed_data, station_id)
-                logger.info(f"Station {station_id}: {quality_assessment['overall_quality']} quality, "
-                           f"confidence={quality_assessment['confidence_score']:.2f}")
-                
-                # Check for automatic exclusion of poor quality stations
-                auto_exclude = silo_config.get('quality', {}).get('auto_exclude_poor_stations', False)
-                min_confidence = silo_config.get('quality', {}).get('min_confidence_threshold', 0.3)
-                
-                if auto_exclude and not include_poor and quality_assessment['confidence_score'] < min_confidence:
-                    logger.warning(f"Station {station_id} excluded due to low confidence score "
-                                 f"({quality_assessment['confidence_score']:.2f} < {min_confidence}). "
-                                 f"Use --include-poor to override.")
-                    failed_stations.append({
-                        'station_id': station_id,
-                        'error': f'auto_excluded_low_confidence_{quality_assessment["confidence_score"]:.2f}',
-                        'timestamp': datetime.now().isoformat()
-                    })
-                    continue
-                
-                # Apply quality filtering
-                filtered_data = quality_checker.filter_by_quality(processed_data)
-                
-                # Write to output files (unless dry run)
-                if not dry_run:
-                    success = data_processor.append_to_daily_observations(filtered_data)
-                    if success:
-                        successful_stations.append({
-                            'station_id': station_id,
-                            'station_name': station_name,
-                            'records_processed': len(filtered_data),
-                            'quality_assessment': quality_assessment,
-                            'timestamp': datetime.now().isoformat()
-                        })
-                        total_records += len(filtered_data)
-                        logger.info(f"Successfully processed {len(filtered_data)} records for station {station_id}")
-                    else:
-                        failed_stations.append({
-                            'station_id': station_id,
-                            'error': 'output_write_failed',
-                            'timestamp': datetime.now().isoformat()
-                        })
-                else:
-                    # Dry run - just log what would be done
-                    successful_stations.append({
-                        'station_id': station_id,
-                        'station_name': station_name, 
-                        'records_processed': len(filtered_data),
-                        'quality_assessment': quality_assessment,
-                        'timestamp': datetime.now().isoformat(),
-                        'dry_run': True
-                    })
-                    total_records += len(filtered_data)
-                    logger.info(f"[DRY RUN] Would process {len(filtered_data)} records for station {station_id}")
-                    
-            except Exception as e:
-                logger.error(f"Error processing station {station_id}: {e}", exc_info=True)
-                failed_stations.append({
-                    'station_id': station_id,
-                    'error': str(e),
-                    'timestamp': datetime.now().isoformat()
+        # Process each station (bounded concurrency; writes serialized on main thread)
+        concurrency = silo_config.get('api', {}).get('concurrency', 1)
+
+        def _worker(station_id, station_name):
+            # Determine date range based on collection mode
+            if target_date:
+                _d = target_date.replace('-', '')
+                raw_data = api_client.get_daily_data(station_id, _d, _d)
+            elif days:
+                raw_data = api_client.get_rolling_window_data(station_id, days)
+            elif silo_config['collection']['mode'] == 'rolling_window':
+                raw_data = api_client.get_rolling_window_data(
+                    station_id, silo_config['collection']['rolling_days'])
+            else:
+                raw_data = api_client.get_yesterday_data(station_id)
+
+            if raw_data is None or raw_data.empty:
+                return StationResult(station_id, "no_data")
+
+            processed = data_processor.process_station_data(raw_data, station_id)
+            if processed.empty:
+                return StationResult(station_id, "error", detail="processing_failed")
+
+            assessment = quality_checker.assess_data_quality(processed, station_id)
+            auto_exclude = silo_config.get('quality', {}).get('auto_exclude_poor_stations', False)
+            min_conf = silo_config.get('quality', {}).get('min_confidence_threshold', 0.3)
+            if auto_exclude and not include_poor and assessment['confidence_score'] < min_conf:
+                return StationResult(
+                    station_id, "error",
+                    detail=f"auto_excluded_low_confidence_{assessment['confidence_score']:.2f}")
+
+            filtered = quality_checker.filter_by_quality(processed)
+            if filtered.empty:
+                return StationResult(station_id, "no_data", detail="empty_after_quality_filter")
+            return StationResult(station_id, "success", records=filtered)
+
+        def _writer(result):
+            if dry_run:
+                return True
+            ok = data_processor.append_to_daily_observations(result.records)
+            if ok:
+                duckdb_df = result.records.rename(columns={
+                    'min_temperature': 'min_temp',
+                    'max_temperature': 'max_temp',
+                    'min_temperature_quality': 'min_temp_quality',
+                    'max_temperature_quality': 'max_temp_quality',
+                    'timestamp_processed': 'ingested_at',
                 })
-                
+                duckdb_cols = ['station_id', 'date', 'min_temp', 'max_temp', 'rainfall',
+                               'min_temp_quality', 'max_temp_quality', 'rainfall_quality', 'ingested_at']
+                storage.upsert_observations(duckdb_df[[c for c in duckdb_cols if c in duckdb_df.columns]])
+            return ok
+
+        summary = ingest_concurrently(
+            list(silo_config['stations'].items()), _worker, _writer, concurrency=concurrency)
+        total_records = summary['records_processed']
+
+        # --- SA2-broadacre per-SA2 Data Drill gap-fill (config-driven, not --hybrid) ---
+        coverage_mode_eff = coverage_mode or silo_config.get('coverage', {}).get('mode', 'active_tier')
+        dd_covered_sa2s = set()
+        # Only emit the coverage plan/report when stations were loaded via the
+        # coverage path. With --stations / --use-bom-dataset the ingested set is
+        # not the broadacre universe, so a coverage report would misrepresent it.
+        if coverage_mode_eff == 'sa2_broadacre' and not stations and not use_bom_dataset:
+            gap_points, write_report, zero_station_sa2s = emit_coverage_plan(silo_config)
+            if dry_run:
+                # Dry-run ingests nothing and writes NO report. data_drill_gapfill means
+                # "successfully ingested", which a dry run cannot establish. Log a preview.
+                resolvable = set(gap_points)
+                logger.info(
+                    "[DRY RUN] sa2_broadacre plan: zero_station_sa2s=%d "
+                    "resolvable_via_data_drill=%d unresolvable=%d (no report written)",
+                    len(zero_station_sa2s), len(resolvable),
+                    len(zero_station_sa2s - resolvable))
+            else:
+                for sa2_5, (lat, lon) in gap_points.items():
+                    try:
+                        raw = api_client.get_data_drill_data(
+                            lat, lon, *_gap_date_range(target_date, days, silo_config))
+                        if raw is None or raw.empty:
+                            continue
+                        proc = data_processor.process_station_data(raw, f"DD_{lat:.2f}_{lon:.2f}")
+                        if proc.empty:
+                            continue
+                        filt = quality_checker.filter_by_quality(proc)
+                        if filt.empty:
+                            continue
+                        # SAME write path as station successes: CSV append + DuckDB upsert.
+                        if _writer(StationResult(f"DD_{lat:.2f}_{lon:.2f}", "success", records=filt)):
+                            dd_covered_sa2s.add(sa2_5)
+                            total_records += len(filt)
+                    except Exception as exc:
+                        logger.error("Gap-fill Data Drill failed for SA2 %s (%s,%s): %s",
+                                     sa2_5, lat, lon, exc)
+                report_df = write_report(dd_covered_sa2s)
+                run_metadata['coverage_summary'] = {
+                    'included_sa2s': int(len(report_df)),
+                    'internal_bom': int((report_df['gap_status'] == 'internal_bom').sum()),
+                    'data_drill_gapfill': int((report_df['gap_status'] == 'data_drill_gapfill').sum()),
+                    'unresolved_gap': int((report_df['gap_status'] == 'unresolved_gap').sum()),
+                }
+
+        # --- DATA DRILL GAP-FILL (--hybrid mode) ---
+        if hybrid and dry_run:
+            logger.info("Hybrid mode: [DRY RUN] skipping Data Drill API calls — use without --dry-run to ingest")
+        elif hybrid:
+            dd_config = silo_config.get('data_drill', {})
+            bounds_list = dd_config.get('wheatbelt_bounds', [])
+            if hybrid_states:
+                hs = [s.strip() for s in hybrid_states.split(',')]
+                bounds_list = [b for b in bounds_list if b.get('name') in hs]
+                logger.info(f"Data Drill: restricted to {[b['name'] for b in bounds_list]} via --hybrid-states")
+            resolution = dd_config.get('grid_resolution_deg', 0.5)
+            proximity = dd_config.get('proximity_threshold_deg', 0.4)
+
+            # Use all 1,376 wheatbelt stations (not just this run's stations) for
+            # proximity suppression — avoids querying Data Drill near real stations
+            # even if we didn't ingest them today.
+            from src.common.stations_loader import WheatbeltStationsLoader
+            bom_loader = WheatbeltStationsLoader()
+            all_station_coords = bom_loader.get_all_station_coords()
+
+            geojson_path = dd_config.get('wheatbelt_geojson')
+            gap_points = generate_data_drill_grid(
+                bounds_list=bounds_list,
+                resolution=resolution,
+                existing_coords=all_station_coords,
+                proximity_threshold=proximity,
+                geojson_path=geojson_path,
+            )
+            if dd_max_points and len(gap_points) > dd_max_points:
+                logger.info(f"Data Drill: limiting to {dd_max_points} of {len(gap_points)} gap points (--dd-max-points)")
+                gap_points = gap_points[:dd_max_points]
+            logger.info(f"Data Drill: {len(gap_points)} gap points to ingest")
+
+            # Determine date range (reuse same logic as PPD stations)
+            from datetime import datetime as _dt
+            if target_date:
+                _d = target_date.replace('-', '')
+                _start = _d
+                _end = _d
+            elif days:
+                _end = _dt.now().strftime('%Y%m%d')
+                _start = (_dt.now() - __import__('datetime').timedelta(days=days)).strftime('%Y%m%d')
+            elif silo_config['collection']['mode'] == 'rolling_window':
+                _rolling = silo_config['collection']['rolling_days']
+                _end = _dt.now().strftime('%Y%m%d')
+                _start = (_dt.now() - __import__('datetime').timedelta(days=_rolling)).strftime('%Y%m%d')
+            else:
+                _yesterday = (_dt.now() - __import__('datetime').timedelta(days=1)).strftime('%Y%m%d')
+                _start = _yesterday
+                _end = _yesterday
+
+            dd_success = 0
+            dd_failed = 0
+            for lat, lon in gap_points:
+                synthetic_id = f"DD_{lat:.2f}_{lon:.2f}"
+                try:
+                    raw_data = api_client.get_data_drill_data(lat, lon, _start, _end)
+                    if raw_data is None or raw_data.empty:
+                        logger.warning(f"No Data Drill data for ({lat}, {lon})")
+                        dd_failed += 1
+                        continue
+
+                    processed_data = data_processor.process_station_data(raw_data, synthetic_id)
+                    if processed_data.empty:
+                        dd_failed += 1
+                        continue
+
+                    # Skip auto-exclusion for Data Drill: 100% interpolated is expected
+                    filtered_data = quality_checker.filter_by_quality(processed_data)
+
+                    if not dry_run:
+                        success = data_processor.append_to_daily_observations(filtered_data)
+                        if success:
+                            duckdb_df = filtered_data.rename(columns={
+                                'min_temperature': 'min_temp',
+                                'max_temperature': 'max_temp',
+                                'min_temperature_quality': 'min_temp_quality',
+                                'max_temperature_quality': 'max_temp_quality',
+                                'timestamp_processed': 'ingested_at',
+                            })
+                            duckdb_cols = ['station_id', 'date', 'min_temp', 'max_temp', 'rainfall',
+                                           'min_temp_quality', 'max_temp_quality', 'rainfall_quality', 'ingested_at']
+                            storage.upsert_observations(duckdb_df[[c for c in duckdb_cols if c in duckdb_df.columns]])
+                            dd_success += 1
+                            total_records += len(filtered_data)
+                        else:
+                            dd_failed += 1
+                    else:
+                        dd_success += 1
+                        total_records += len(filtered_data)
+                        logger.info(f"[DRY RUN] Would write {len(filtered_data)} Data Drill records for {synthetic_id}")
+
+                except Exception as e:
+                    logger.error(f"Data Drill error for ({lat}, {lon}): {e}", exc_info=True)
+                    dd_failed += 1
+
+            logger.info(f"Data Drill gap-fill: {dd_success} points succeeded, {dd_failed} failed")
+            run_metadata['data_drill'] = {'points_success': dd_success, 'points_failed': dd_failed}
+
         # Complete run metadata
         run_metadata.update({
             'end_time': datetime.now().isoformat(),
-            'successful_stations': successful_stations,
-            'failed_stations': failed_stations,
+            'summary': summary,
+            'coverage_mode': coverage_mode_eff,
+            'data_drill_gapfill_sa2s': sorted(dd_covered_sa2s),
             'total_records_processed': total_records,
-            'success_rate': len(successful_stations) / len(silo_config['stations']) if silo_config['stations'] else 0.0
         })
-        
+
         # Log run results
         if not dry_run:
             log_run_results(run_metadata, silo_config['output']['run_log'])
-        
+
         # Summary
-        logger.info(f"SILO Wrangler ingestion completed:")
-        logger.info(f"  Successful stations: {len(successful_stations)}")
-        logger.info(f"  Failed stations: {len(failed_stations)}")
-        logger.info(f"  Total records: {total_records}")
+        logger.info("SILO Wrangler ingestion completed:")
+        logger.info("  requested=%d succeeded=%d failed=%d skipped_no_data=%d elapsed=%ss",
+                    summary['requested'], summary['succeeded'], summary['failed'],
+                    summary['skipped_no_data'], summary['elapsed_s'])
         
         if dry_run:
             logger.info("  [DRY RUN] No files were written")
@@ -280,6 +416,98 @@ def load_stations_by_tier(silo_config: Dict[str, Any], tiers: str) -> Dict[str, 
     return station_list
 
 
+def load_coverage_stations(silo_config, coverage_mode=None, tiers="active"):
+    """Return {station_id: station_name} for the configured coverage mode.
+
+    coverage_mode: 'sa2_broadacre' | 'active_tier'. Defaults to
+    silo_config['coverage']['mode'] (or 'active_tier' if absent).
+    """
+    cov = silo_config.get("coverage", {})
+    mode = coverage_mode or cov.get("mode", "active_tier")
+
+    if mode == "active_tier":
+        return load_stations_by_tier(silo_config, tiers)
+
+    if mode == "sa2_broadacre":
+        sb = cov.get("sa2_broadacre")
+        if sb is None:
+            raise ValueError(
+                "coverage.sa2_broadacre block is required when coverage mode is 'sa2_broadacre'")
+        stations_file = silo_config.get("bom_dataset", {}).get("file_path")
+        if not stations_file:
+            raise ValueError(
+                "bom_dataset.file_path is required for sa2_broadacre coverage")
+        areas = load_broadacre_sa2_areas(sb["crop_context_file"], sb.get("area_column", "area_ha"))
+        target = select_target_sa2s(areas, sb.get("min_broadacre_area_ha", 5000))
+        loader = WheatbeltStationsLoader(stations_file)
+        universe = derive_station_universe(target, loader._stations_df)
+        logger.info("sa2_broadacre coverage: %d SA2s -> %d stations",
+                    len(target), len(universe))
+        return dict(zip(universe["station_id"], universe["name"]))
+
+    raise ValueError(f"Unknown coverage mode: {mode}")
+
+
+def emit_coverage_plan(silo_config):
+    """For sa2_broadacre mode: return (gap_points, write_report_fn, zero_station_sa2s).
+
+    gap_points maps sa2_5 -> (lat, lon) for resolvable zero-station included SA2s.
+    write_report_fn(dd_covered_sa2s) writes the coverage report CSV.
+    zero_station_sa2s is the full set of included SA2s with no internal station
+    (a superset of gap_points keys; the difference are SA2s with no polygon).
+    """
+    sb = silo_config['coverage']['sa2_broadacre']
+    # NOTE: re-derives areas/target/universe (also computed in load_coverage_stations).
+    # Cheap at ~4-6 gap points; kept self-contained so the coverage report can be
+    # produced independently of the station-loading call path.
+    areas = load_broadacre_sa2_areas(sb['crop_context_file'], sb.get('area_column', 'area_ha'))
+    target = select_target_sa2s(areas, sb.get('min_broadacre_area_ha', 5000))
+    loader = WheatbeltStationsLoader(silo_config['bom_dataset']['file_path'])
+    universe = derive_station_universe(target, loader._stations_df)
+
+    covered = set(universe['sa2_5'])
+    zero_station = target - covered
+
+    gap_points = {}
+    if sb.get('enable_data_drill_gaps', True) and zero_station:
+        crop_df = _pd.read_csv(sb['crop_context_file'], dtype=str)
+        geojson = silo_config.get('data_drill', {}).get('wheatbelt_geojson')
+        idx = build_sa2_polygon_index(crop_df, geojson)
+        gap_points = resolve_gap_points(zero_station, idx)
+
+    def write_report(dd_covered_sa2s):
+        report = build_coverage_report(target, areas, universe, dd_covered_sa2s=dd_covered_sa2s)
+        atomic_csv_write(report, sb['coverage_report'], backup=False)
+        unresolved = report[report['gap_status'] == 'unresolved_gap']
+        for _, r in unresolved.iterrows():
+            logger.warning("UNRESOLVED COVERAGE GAP: SA2 %s (%s) has no station and no Data Drill point",
+                           r['sa2_code'], r['sa2_name'])
+        logger.info("Coverage report -> %s | internal_bom=%d data_drill_gapfill=%d unresolved_gap=%d",
+                    sb['coverage_report'],
+                    int((report['gap_status'] == 'internal_bom').sum()),
+                    int((report['gap_status'] == 'data_drill_gapfill').sum()),
+                    int((report['gap_status'] == 'unresolved_gap').sum()))
+        return report
+
+    return gap_points, write_report, zero_station
+
+
+def _gap_date_range(target_date, days, silo_config):
+    """Return (start, finish) YYYYMMDD for Data Drill gap-fill, mirroring the
+    station fetch date logic."""
+    from datetime import datetime as _dt, timedelta as _td
+    if target_date:
+        d = target_date.replace('-', '')
+        return d, d
+    if days:
+        return ((_dt.now() - _td(days=days)).strftime('%Y%m%d'), _dt.now().strftime('%Y%m%d'))
+    if silo_config['collection']['mode'] == 'rolling_window':
+        r = silo_config['collection']['rolling_days']
+        return ((_dt.now() - _td(days=r)).strftime('%Y%m%d'), _dt.now().strftime('%Y%m%d'))
+    y = (_dt.now() - _td(days=1)).strftime('%Y%m%d')
+    return y, y
+
+
 def log_run_results(run_metadata: Dict[str, Any], log_file_path: str):
     """
     Log run results to JSONL file for tracking and monitoring
@@ -294,7 +522,7 @@ def log_run_results(run_metadata: Dict[str, Any], log_file_path: str):
         
         # Append run metadata as JSON line
         with open(log_path, 'a') as f:
-            f.write(json.dumps(run_metadata) + '\\n')
+            f.write(json.dumps(run_metadata) + '\n')
             
         logger.info(f"Run metadata logged to {log_path}")
         
