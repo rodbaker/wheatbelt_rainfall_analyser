@@ -28,6 +28,7 @@ from src.data.duckdb_storage import DuckDBStorage
 from src.agents.silo_wrangler.api_client import SILOAPIClient
 from src.agents.silo_wrangler.data_processor import WeatherDataProcessor
 from src.agents.silo_wrangler.quality_checker import DataQualityChecker
+from src.agents.silo_wrangler.concurrent_ingest import StationResult, ingest_concurrently
 
 logger = logging.getLogger(__name__)
 
@@ -150,125 +151,60 @@ def run_daily_ingest(config: str, target_date: str, stations: str, days: int, ti
             'variables': list(silo_config['variables'].keys())
         }
         
-        # Process each station
-        successful_stations = []
-        failed_stations = []
-        total_records = 0
-        
-        for station_id, station_name in silo_config['stations'].items():
-            logger.info(f"Processing station {station_id} ({station_name})")
-            
-            try:
-                # Determine date range based on collection mode
-                if target_date:
-                    # Explicit date override — fetch exactly one day
-                    _d = target_date.replace('-', '')
-                    raw_data = api_client.get_daily_data(station_id, _d, _d)
-                elif days:
-                    # CLI override
-                    raw_data = api_client.get_rolling_window_data(station_id, days)
-                elif silo_config['collection']['mode'] == 'rolling_window':
-                    rolling_days = silo_config['collection']['rolling_days']
-                    raw_data = api_client.get_rolling_window_data(station_id, rolling_days)
-                else:
-                    # Default to yesterday for daily operations
-                    raw_data = api_client.get_yesterday_data(station_id)
-                
-                if raw_data is None or raw_data.empty:
-                    logger.warning(f"No data retrieved for station {station_id}")
-                    failed_stations.append({
-                        'station_id': station_id,
-                        'error': 'no_data_retrieved',
-                        'timestamp': datetime.now().isoformat()
-                    })
-                    continue
-                    
-                # Process the raw data
-                processed_data = data_processor.process_station_data(raw_data, station_id)
-                
-                if processed_data.empty:
-                    logger.warning(f"No processable data for station {station_id}")
-                    failed_stations.append({
-                        'station_id': station_id, 
-                        'error': 'processing_failed',
-                        'timestamp': datetime.now().isoformat()
-                    })
-                    continue
-                
-                # Quality assessment
-                quality_assessment = quality_checker.assess_data_quality(processed_data, station_id)
-                logger.info(f"Station {station_id}: {quality_assessment['overall_quality']} quality, "
-                           f"confidence={quality_assessment['confidence_score']:.2f}")
-                
-                # Check for automatic exclusion of poor quality stations
-                auto_exclude = silo_config.get('quality', {}).get('auto_exclude_poor_stations', False)
-                min_confidence = silo_config.get('quality', {}).get('min_confidence_threshold', 0.3)
-                
-                if auto_exclude and not include_poor and quality_assessment['confidence_score'] < min_confidence:
-                    logger.warning(f"Station {station_id} excluded due to low confidence score "
-                                 f"({quality_assessment['confidence_score']:.2f} < {min_confidence}). "
-                                 f"Use --include-poor to override.")
-                    failed_stations.append({
-                        'station_id': station_id,
-                        'error': f'auto_excluded_low_confidence_{quality_assessment["confidence_score"]:.2f}',
-                        'timestamp': datetime.now().isoformat()
-                    })
-                    continue
-                
-                # Apply quality filtering
-                filtered_data = quality_checker.filter_by_quality(processed_data)
-                
-                # Write to output files (unless dry run)
-                if not dry_run:
-                    success = data_processor.append_to_daily_observations(filtered_data)
-                    if success:
-                        # Also write to DuckDB — rename CSV columns to match DuckDB schema
-                        duckdb_df = filtered_data.rename(columns={
-                            'min_temperature': 'min_temp',
-                            'max_temperature': 'max_temp',
-                            'min_temperature_quality': 'min_temp_quality',
-                            'max_temperature_quality': 'max_temp_quality',
-                            'timestamp_processed': 'ingested_at',
-                        })
-                        duckdb_cols = ['station_id', 'date', 'min_temp', 'max_temp', 'rainfall',
-                                       'min_temp_quality', 'max_temp_quality', 'rainfall_quality', 'ingested_at']
-                        storage.upsert_observations(duckdb_df[[c for c in duckdb_cols if c in duckdb_df.columns]])
-                    if success:
-                        successful_stations.append({
-                            'station_id': station_id,
-                            'station_name': station_name,
-                            'records_processed': len(filtered_data),
-                            'quality_assessment': quality_assessment,
-                            'timestamp': datetime.now().isoformat()
-                        })
-                        total_records += len(filtered_data)
-                        logger.info(f"Successfully processed {len(filtered_data)} records for station {station_id}")
-                    else:
-                        failed_stations.append({
-                            'station_id': station_id,
-                            'error': 'output_write_failed',
-                            'timestamp': datetime.now().isoformat()
-                        })
-                else:
-                    # Dry run - just log what would be done
-                    successful_stations.append({
-                        'station_id': station_id,
-                        'station_name': station_name, 
-                        'records_processed': len(filtered_data),
-                        'quality_assessment': quality_assessment,
-                        'timestamp': datetime.now().isoformat(),
-                        'dry_run': True
-                    })
-                    total_records += len(filtered_data)
-                    logger.info(f"[DRY RUN] Would process {len(filtered_data)} records for station {station_id}")
-                    
-            except Exception as e:
-                logger.error(f"Error processing station {station_id}: {e}", exc_info=True)
-                failed_stations.append({
-                    'station_id': station_id,
-                    'error': str(e),
-                    'timestamp': datetime.now().isoformat()
+        # Process each station (bounded concurrency; writes serialized on main thread)
+        concurrency = silo_config.get('api', {}).get('concurrency', 1)
+
+        def _worker(station_id, station_name):
+            # Determine date range based on collection mode
+            if target_date:
+                _d = target_date.replace('-', '')
+                raw_data = api_client.get_daily_data(station_id, _d, _d)
+            elif days:
+                raw_data = api_client.get_rolling_window_data(station_id, days)
+            elif silo_config['collection']['mode'] == 'rolling_window':
+                raw_data = api_client.get_rolling_window_data(
+                    station_id, silo_config['collection']['rolling_days'])
+            else:
+                raw_data = api_client.get_yesterday_data(station_id)
+
+            if raw_data is None or raw_data.empty:
+                return StationResult(station_id, "no_data")
+
+            processed = data_processor.process_station_data(raw_data, station_id)
+            if processed.empty:
+                return StationResult(station_id, "error", detail="processing_failed")
+
+            assessment = quality_checker.assess_data_quality(processed, station_id)
+            auto_exclude = silo_config.get('quality', {}).get('auto_exclude_poor_stations', False)
+            min_conf = silo_config.get('quality', {}).get('min_confidence_threshold', 0.3)
+            if auto_exclude and not include_poor and assessment['confidence_score'] < min_conf:
+                return StationResult(
+                    station_id, "error",
+                    detail=f"auto_excluded_low_confidence_{assessment['confidence_score']:.2f}")
+
+            filtered = quality_checker.filter_by_quality(processed)
+            return StationResult(station_id, "success", records=filtered)
+
+        def _writer(result):
+            if dry_run:
+                return True
+            ok = data_processor.append_to_daily_observations(result.records)
+            if ok:
+                duckdb_df = result.records.rename(columns={
+                    'min_temperature': 'min_temp',
+                    'max_temperature': 'max_temp',
+                    'min_temperature_quality': 'min_temp_quality',
+                    'max_temperature_quality': 'max_temp_quality',
+                    'timestamp_processed': 'ingested_at',
                 })
+                duckdb_cols = ['station_id', 'date', 'min_temp', 'max_temp', 'rainfall',
+                               'min_temp_quality', 'max_temp_quality', 'rainfall_quality', 'ingested_at']
+                storage.upsert_observations(duckdb_df[[c for c in duckdb_cols if c in duckdb_df.columns]])
+            return ok
+
+        summary = ingest_concurrently(
+            list(silo_config['stations'].items()), _worker, _writer, concurrency=concurrency)
+        total_records = summary['records_processed']
                 
         # --- DATA DRILL GAP-FILL (--hybrid mode) ---
         if hybrid and dry_run:
@@ -372,21 +308,19 @@ def run_daily_ingest(config: str, target_date: str, stations: str, days: int, ti
         # Complete run metadata
         run_metadata.update({
             'end_time': datetime.now().isoformat(),
-            'successful_stations': successful_stations,
-            'failed_stations': failed_stations,
+            'summary': summary,
             'total_records_processed': total_records,
-            'success_rate': len(successful_stations) / len(silo_config['stations']) if silo_config['stations'] else 0.0
         })
-        
+
         # Log run results
         if not dry_run:
             log_run_results(run_metadata, silo_config['output']['run_log'])
-        
+
         # Summary
-        logger.info(f"SILO Wrangler ingestion completed:")
-        logger.info(f"  Successful stations: {len(successful_stations)}")
-        logger.info(f"  Failed stations: {len(failed_stations)}")
-        logger.info(f"  Total records: {total_records}")
+        logger.info("SILO Wrangler ingestion completed:")
+        logger.info("  requested=%d succeeded=%d failed=%d skipped_no_data=%d elapsed=%ss",
+                    summary['requested'], summary['succeeded'], summary['failed'],
+                    summary['skipped_no_data'], summary['elapsed_s'])
         
         if dry_run:
             logger.info("  [DRY RUN] No files were written")
