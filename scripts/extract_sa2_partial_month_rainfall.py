@@ -33,6 +33,7 @@ Usage:
 """
 
 import argparse
+import calendar
 import sys
 from pathlib import Path
 
@@ -81,8 +82,11 @@ def _select_month_slice(ds: xr.Dataset, year: int, month: int) -> xr.DataArray:
     da = ds[SOURCE_VARIABLE]
     start = f"{year}-{month:02d}-01"
     # End of month inclusive — xarray slice is inclusive on both ends for
-    # cftime/datetime64 indexes; rely on month equality below as a guard.
-    end = f"{year}-{month:02d}-31"
+    # cftime/datetime64 indexes. Use the real last day-of-month rather than a
+    # hardcoded 31 (which is an invalid date for 30-day months and February and
+    # raises on slice); the month-equality check below remains as a guard.
+    last_dom = calendar.monthrange(year, month)[1]
+    end = f"{year}-{month:02d}-{last_dom:02d}"
     sliced = da.sel(time=slice(start, end))
     if len(sliced.time) == 0:
         raise ValueError(

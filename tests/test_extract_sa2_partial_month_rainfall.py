@@ -127,6 +127,52 @@ class TestExtractPartialMonth:
         assert df.iloc[0]["rainfall_mm"] == pytest.approx(3.0, abs=0.01)
         assert through_day == 2
 
+    def test_june_30day_month_does_not_raise(self, tmp_path):
+        # Regression for the day-31 blocker: June has no 31st, so a hardcoded
+        # "{year}-06-31" slice bound raised. June 1..2 have data → through=2.
+        times = [f"2026-06-{d:02d}" for d in range(1, 3)]
+        ds = _make_daily_ds(times, [-30.0], [116.0], [[[4.0]], [[6.0]]])
+        nc_path = tmp_path / "2026.daily_rain.nc"
+        ds.to_netcdf(nc_path)
+
+        sa2_rows = [
+            {"sa2_code": "X", "sa2_name": "X", "state_name": "WA",
+             "lat": -30.0, "lon": 116.0, "universe_source": "test"},
+        ]
+        df, through_day = mod.extract_partial_month(nc_path, 2026, 6, sa2_rows)
+        assert through_day == 2
+        assert df.iloc[0]["rainfall_mm"] == pytest.approx(10.0, abs=0.01)
+
+    def test_february_leap_year_includes_day_29(self, tmp_path):
+        # 2024 is a leap year: Feb has 29 days. Slice bound must be 2024-02-29.
+        times = [f"2024-02-{d:02d}" for d in range(1, 30)]  # 1..29
+        ds = _make_daily_ds(times, [-30.0], [116.0], [[[1.0]]] * 29)
+        nc_path = tmp_path / "2024.daily_rain.nc"
+        ds.to_netcdf(nc_path)
+
+        sa2_rows = [
+            {"sa2_code": "X", "sa2_name": "X", "state_name": "WA",
+             "lat": -30.0, "lon": 116.0, "universe_source": "test"},
+        ]
+        df, through_day = mod.extract_partial_month(nc_path, 2024, 2, sa2_rows)
+        assert through_day == 29
+        assert df.iloc[0]["rainfall_mm"] == pytest.approx(29.0, abs=0.01)
+
+    def test_february_non_leap_year_28_days(self, tmp_path):
+        # 2026 is not a leap year: Feb has 28 days. Must not raise on 2026-02-31.
+        times = [f"2026-02-{d:02d}" for d in range(1, 29)]  # 1..28
+        ds = _make_daily_ds(times, [-30.0], [116.0], [[[2.0]]] * 28)
+        nc_path = tmp_path / "2026.daily_rain.nc"
+        ds.to_netcdf(nc_path)
+
+        sa2_rows = [
+            {"sa2_code": "X", "sa2_name": "X", "state_name": "WA",
+             "lat": -30.0, "lon": 116.0, "universe_source": "test"},
+        ]
+        df, through_day = mod.extract_partial_month(nc_path, 2026, 2, sa2_rows)
+        assert through_day == 28
+        assert df.iloc[0]["rainfall_mm"] == pytest.approx(56.0, abs=0.01)
+
 
 class TestDecilePassthrough:
     """Ensure the decile builder hands partial-month rows through unchanged."""
