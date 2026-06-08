@@ -75,12 +75,22 @@ genuinely tiny bottom ~15%.
 - **Station density:** **all** stations whose SA2 passes the threshold are ingested — no
   ranking or capping model. The goal is complete coverage, not a minimal set.
 - **Default threshold:** `min_broadacre_area_ha = 5000`, configurable.
-  - `0` → every SA2 with any broadacre cropping.
+  - `0` → every SA2 present in the crop file (row-presence inclusion; all 188 — see null-area note below).
   - `5000` → default "meaningful broadacre presence".
   - `10000`+ → narrower / core-region settings.
-- **Gap handling:** included SA2s with zero internal BOM stations are covered by the
-  existing `--hybrid` Data Drill path. Each included SA2 is classified in the coverage
-  report (see §4.4).
+- **Null-area semantics (resolves test/impl ambiguity):** `total_area_ha` is the
+  **NaN-skipping sum** of `area_ha` across an SA2's crop rows — an SA2 whose every crop row
+  has a missing `area_ha` therefore gets `total_area_ha = 0.0` (not dropped). Two such SA2s
+  exist in the current file: **11172 Albury - East** and **21007 Smythes Creek** (both VIC).
+  Inclusion is `total_area_ha >= min_broadacre_area_ha`, so `0` includes these two (row
+  presence) and any `>= 1` threshold — including the 5,000 default — excludes them. This
+  makes "threshold 0 → all 188" exactly consistent with the function contract in §4.1; a
+  strictly-positive test (which would yield 186) is **not** used.
+- **Gap handling (per-SA2 guarantee):** for *every* included SA2 with zero internal BOM
+  stations, the implementation must **either** generate/identify at least one Data Drill
+  point that falls **inside that SA2's polygon**, **or** classify it `unresolved_gap`.
+  This is a per-SA2 obligation, not a regional-grid side effect — see §4.3.1. Each included
+  SA2 is then classified in the coverage report (see §4.4).
 - **Fallback:** the legacy `active`-tier path is fully preserved and selectable.
 
 ---
@@ -91,8 +101,8 @@ genuinely tiny bottom ~15%.
 
 | Function | Responsibility |
 |---|---|
-| `load_broadacre_sa2_areas(crop_path, area_col="area_ha") -> DataFrame` | Aggregate area per `station_sa2_5dig16` → `[sa2_5, sa2_name, state, total_area_ha]` |
-| `select_target_sa2s(areas_df, threshold_ha=5000) -> set[str]` | `total_area_ha >= threshold` → set of 5-digit SA2 codes |
+| `load_broadacre_sa2_areas(crop_path, area_col="area_ha") -> DataFrame` | Aggregate area per `station_sa2_5dig16` → `[sa2_5, sa2_name, state, total_area_ha]`. `total_area_ha` = **NaN-skipping sum** (all-null-area SA2 → `0.0`, retained) |
+| `select_target_sa2s(areas_df, threshold_ha=5000) -> set[str]` | `total_area_ha >= threshold_ha` → set of 5-digit SA2 codes. `threshold_ha=0` therefore returns all 188 (incl. the two `0.0`-area SA2s); `>=1` drops them |
 | `derive_station_universe(target_sa2s, stations_df) -> DataFrame` | Stations whose `SA2_5DIG16` ∈ target set (zfill-safe) → `[station_id, name, sa2_5, latitude, longitude, ...]` |
 | `build_coverage_report(target_sa2s, areas_df, station_universe, dd_covered_sa2s) -> DataFrame` | One row per included SA2 (see §4.4) |
 
@@ -111,7 +121,10 @@ coverage:
 api:
   # ... existing keys ...
   concurrency: 10               # parallel station requests.
-                                # concurrency: 1 = legacy sequential behaviour (the pre-change fallback).
+                                # concurrency: 1 = legacy sequential execution mechanics
+                                #   (one request at a time). NOTE: scope is still set by
+                                #   coverage.mode — legacy 16-station DAILY behaviour is
+                                #   coverage.mode: active_tier, not concurrency: 1.
 ```
 
 The existing `stations:` tiers (`active` / `unverified` / `inactive`) are untouched and are
@@ -128,9 +141,31 @@ Replace the sequential `for station` loop with a `ThreadPoolExecutor(max_workers
   main thread. This preserves atomic writes and prevents CSV/DuckDB corruption.
 - **Preserved untouched:** per-station `try/except` isolation, and the existing retry +
   exponential backoff inside `api_client`.
-- **`concurrency: 1`** reproduces the legacy sequential path exactly (the documented fallback).
-- Zero-station included SA2s feed the **existing `--hybrid` Data Drill** grid automatically
-  when `enable_data_drill_gaps` is true.
+- **`concurrency: 1`** reproduces the legacy sequential **execution mechanics** (one request
+  at a time, same retry/backoff). It does **not** restore legacy *daily scope* — under
+  `coverage.mode: sa2_broadacre` it still runs the full ~1,293-station universe, just
+  serially. Legacy *daily behaviour* (the 16-station set) is `coverage.mode: active_tier`.
+- Zero-station included SA2s are gap-filled via the existing Data Drill machinery, subject
+  to the per-SA2 guarantee in §4.3.1.
+
+#### 4.3.1 Per-SA2 Data Drill gap guarantee
+
+The current `--hybrid` path generates a **broad regional grid** and suppresses points within
+`proximity_threshold_deg` of *any* of the 1,376 BOM stations. That gives good regional
+coverage but **does not guarantee a point inside each specific zero-station target SA2** —
+a small SA2 wedged between stations could end up with no internal grid point yet not be
+flagged. This work must close that gap explicitly:
+
+For each included SA2 with zero internal BOM stations:
+1. Test whether any generated Data Drill point falls inside the SA2's polygon
+   (`shapely` containment against `SA2_ABS_Regions.geojson`).
+2. If none does, **inject a targeted Data Drill point at the SA2's polygon
+   representative point** (centroid clamped to inside the polygon) and ingest it.
+3. If a point is present/injected and successfully ingested → `data_drill_gapfill`.
+   If injection or ingestion fails (e.g. Data Drill returns no data, or
+   `enable_data_drill_gaps: false`) → `unresolved_gap`, logged at WARNING.
+
+No included SA2 may silently end with neither an internal station nor a Data Drill point.
 
 ### 4.4 Coverage report (`data/meta/sa2_coverage_report.csv`, atomic write)
 
@@ -149,13 +184,14 @@ One row per included SA2, reviewable:
 **`gap_status` controlled vocabulary:**
 
 - `internal_bom` — SA2 has ≥1 internal BOM station ingested.
-- `data_drill_gapfill` — SA2 has 0 internal stations but is covered by a Data Drill grid
-  point falling inside its polygon (tested with `shapely` against `SA2_ABS_Regions.geojson`).
-- `unresolved_gap` — SA2 has 0 internal stations and no Data Drill coverage. Must be
-  surfaced loudly (logged at WARNING; counted in the run summary). Never silent.
+- `data_drill_gapfill` — SA2 has 0 internal stations but a Data Drill point inside its
+  polygon (grid point or §4.3.1-injected representative point) was successfully ingested.
+- `unresolved_gap` — SA2 has 0 internal stations and no successfully-ingested Data Drill
+  point inside its polygon (gaps disabled, or Data Drill returned no data). Must be surfaced
+  loudly (logged at WARNING; counted in the run summary). Never silent.
 
 Only the handful of zero-station SA2s (~6 at the default threshold) require the polygon
-containment test, so the cost is negligible.
+containment test and possible point injection, so the cost is negligible.
 
 ### 4.5 Run summary (end of run)
 
@@ -192,11 +228,18 @@ default 5,000 ha threshold), plus Data Drill gap points for the ~6 zero-station 
 `tests/test_sa2_coverage.py`:
 
 - **Threshold selection:** SA2 at 4,999 ha excluded; at 5,000 ha included; default == 5,000.
+- **Null-area semantics:** an all-null-`area_ha` SA2 (e.g. 11172 Albury - East) has
+  `total_area_ha == 0.0`; `threshold_ha=0` returns all 188 SA2s (incl. both null-area ones);
+  any `threshold_ha >= 1` excludes them. Guards the test/impl agreement from review finding #2.
 - **Station universe derivation:** in-set station included, out-of-set excluded, zfill
   robustness (e.g. `8137` vs `008137`).
 - **Coverage report:** zero-station SA2 → `gap_status` is `data_drill_gapfill` or
   `unresolved_gap` (not `internal_bom`); populated `station_ids` for internal SA2s;
   `internal_bom` assigned when ≥1 station present.
+- **Per-SA2 gap guarantee (§4.3.1):** a zero-station target SA2 with no covering grid point
+  triggers an injected representative point → `data_drill_gapfill` on success; with gaps
+  disabled (or no Data Drill data) → `unresolved_gap`. No zero-station SA2 is left
+  unclassified.
 - **Cron-coverage guard:** the shipped default config (`sa2_broadacre`, 5,000 ha) derives
   ≫16 stations — prevents a silent regression back to the tiny active-tier set.
 
