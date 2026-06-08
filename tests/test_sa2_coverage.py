@@ -255,3 +255,107 @@ def test_load_coverage_stations_missing_bom_dataset_raises():
         "crop_context_file": "data/meta/crop_context_sa2.csv"}}}
     with pytest.raises(ValueError):
         load_coverage_stations(cfg, coverage_mode="sa2_broadacre")
+
+
+def _crop_and_geojson_for_name_fallback(tmp_path):
+    import json
+    # Crop SA2 whose 9-digit code is NOT in the geojson (vintage mismatch),
+    # plus an ambiguous one and an unmatchable one.
+    crop = pd.DataFrame([
+        {"sa2_code": "511011274", "station_sa2_5dig16": "51274", "sa2_name": "Esperance",
+         "state": "Western Australia", "crop": "wheat", "area_ha": "9000"},
+        {"sa2_code": "599990001", "station_sa2_5dig16": "59001", "sa2_name": "Twintown",
+         "state": "Western Australia", "crop": "wheat", "area_ha": "8000"},
+        {"sa2_code": "599990002", "station_sa2_5dig16": "59002", "sa2_name": "Nowhere",
+         "state": "Western Australia", "crop": "wheat", "area_ha": "8000"},
+    ])
+    crop_path = tmp_path / "crop.csv"
+    crop.to_csv(crop_path, index=False)
+
+    def square(cx, cy):
+        return {"type": "Polygon", "coordinates": [[
+            [cx, cy], [cx + 1, cy], [cx + 1, cy + 1], [cx, cy + 1], [cx, cy]]]}
+    # GeoJSON uses DIFFERENT 9-digit SA2_MAIN16 codes (2016) that do NOT match the
+    # crop 9-digit codes, so only the NAME fallback can resolve these.
+    gj = {"type": "FeatureCollection", "features": [
+        {"type": "Feature",
+         "properties": {"SA2_MAIN16": 511011999, "SA2_NAME16": "Esperance Region"},
+         "geometry": square(121.0, -33.0)},
+        # Two features that both match crop name "Twintown" -> ambiguous
+        {"type": "Feature",
+         "properties": {"SA2_MAIN16": 599990991, "SA2_NAME16": "Twintown Region"},
+         "geometry": square(122.0, -33.0)},
+        {"type": "Feature",
+         "properties": {"SA2_MAIN16": 599990992, "SA2_NAME16": "Twintown Surrounds"},
+         "geometry": square(123.0, -33.0)},
+    ]}
+    geo_path = tmp_path / "regions.geojson"
+    geo_path.write_text(json.dumps(gj))
+    return crop_path, geo_path
+
+
+def test_name_fallback_resolves_esperance_to_esperance_region(tmp_path):
+    crop_path, geo_path = _crop_and_geojson_for_name_fallback(tmp_path)
+    crop = pd.read_csv(crop_path, dtype=str)
+    idx = build_sa2_polygon_index(crop, geo_path)
+    # "Esperance" -> unique "Esperance Region" via name fallback
+    assert "51274" in idx
+    pts = resolve_gap_points({"51274"}, idx)
+    lat, lon = pts["51274"]
+    assert 121.0 <= lon <= 122.0 and -33.0 <= lat <= -32.0   # inside the Esperance Region square
+
+
+def test_name_fallback_skips_ambiguous_names(tmp_path):
+    crop_path, geo_path = _crop_and_geojson_for_name_fallback(tmp_path)
+    crop = pd.read_csv(crop_path, dtype=str)
+    idx = build_sa2_polygon_index(crop, geo_path)
+    # "Twintown" matches TWO geojson features -> ambiguous -> NOT resolved
+    assert "59001" not in idx
+
+
+def test_name_fallback_skips_unmatchable_names(tmp_path):
+    crop_path, geo_path = _crop_and_geojson_for_name_fallback(tmp_path)
+    crop = pd.read_csv(crop_path, dtype=str)
+    idx = build_sa2_polygon_index(crop, geo_path)
+    # "Nowhere" has no geojson name match -> not resolved
+    assert "59002" not in idx
+
+
+def test_name_fallback_does_not_reuse_claimed_feature(tmp_path):
+    import json
+    # Two crop SA2s share the name "Twinpeak"; only ONE geojson feature matches.
+    # The sorted-first SA2 claims it; the other must remain unresolved (no reuse).
+    crop = pd.DataFrame([
+        {"sa2_code": "599990001", "station_sa2_5dig16": "59001", "sa2_name": "Twinpeak",
+         "state": "Western Australia", "crop": "wheat", "area_ha": "8000"},
+        {"sa2_code": "599990002", "station_sa2_5dig16": "59002", "sa2_name": "Twinpeak",
+         "state": "Western Australia", "crop": "wheat", "area_ha": "8000"},
+    ])
+    crop_path = tmp_path / "crop.csv"; crop.to_csv(crop_path, index=False)
+    gj = {"type": "FeatureCollection", "features": [
+        {"type": "Feature",
+         "properties": {"SA2_MAIN16": 599990999, "SA2_NAME16": "Twinpeak Region"},
+         "geometry": {"type": "Polygon", "coordinates": [[[1, 1], [2, 1], [2, 2], [1, 2], [1, 1]]]}}]}
+    geo_path = tmp_path / "g.geojson"; geo_path.write_text(json.dumps(gj))
+    crop = pd.read_csv(crop_path, dtype=str)
+    idx = build_sa2_polygon_index(crop, geo_path)
+    # exactly one of the two resolves (the sorted-first, 59001); the feature is not reused
+    assert ("59001" in idx) ^ ("59002" in idx)
+    assert "59001" in idx        # deterministic: sorted order claims 59001 first
+
+
+def test_code_match_still_primary(tmp_path):
+    # When the 9-digit code DOES match, the code path is used (name irrelevant).
+    import json
+    crop = pd.DataFrame([
+        {"sa2_code": "201021007", "station_sa2_5dig16": "21007", "sa2_name": "Whatever",
+         "state": "Victoria", "crop": "wheat", "area_ha": "9000"},
+    ])
+    crop_path = tmp_path / "c.csv"; crop.to_csv(crop_path, index=False)
+    gj = {"type": "FeatureCollection", "features": [
+        {"type": "Feature", "properties": {"SA2_MAIN16": 201021007, "SA2_NAME16": "Different Name"},
+         "geometry": {"type": "Polygon", "coordinates": [[[1,1],[2,1],[2,2],[1,2],[1,1]]]}}]}
+    geo_path = tmp_path / "g.geojson"; geo_path.write_text(json.dumps(gj))
+    crop = pd.read_csv(crop_path, dtype=str)
+    idx = build_sa2_polygon_index(crop, geo_path)
+    assert "21007" in idx   # resolved by code despite mismatched name

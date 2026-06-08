@@ -141,37 +141,81 @@ def build_coverage_report(
     return pd.DataFrame(rows, columns=COVERAGE_COLUMNS)
 
 
+def _name_match(crop_name: str, geo_name: str) -> bool:
+    """Conservative name match: equal (case-insensitive) or the GeoJSON name is the
+    crop name followed by a space (e.g. 'Esperance' -> 'Esperance Region'). No
+    substring/fuzzy matching."""
+    c = (crop_name or "").strip().casefold()
+    g = (geo_name or "").strip().casefold()
+    return bool(c) and (g == c or g.startswith(c + " "))
+
+
 def build_sa2_polygon_index(crop_df: pd.DataFrame, geojson_path) -> Dict[str, "object"]:  # values are shapely BaseGeometry
     """Map 5-digit SA2 code -> shapely polygon.
 
-    Deterministic by code: the 5-digit code is mapped to its 9-digit SA2_MAIN16
-    via the crop table, and the GeoJSON is indexed by SA2_MAIN16.
+    Primary match is by code: the crop 5-digit code is mapped to its 9-digit
+    SA2_MAIN16 via the crop table, and the GeoJSON is indexed by SA2_MAIN16.
+
+    Conservative name fallback: for crop SA2s the code match missed (the crop
+    file uses 2021 codes; the GeoJSON uses 2016 codes, so some SA2s never match
+    by code), a crop SA2 is resolved by name ONLY if its sa2_name matches exactly
+    ONE not-yet-claimed GeoJSON feature (equal, or GeoJSON name starts with the
+    crop name + a space, e.g. 'Esperance' -> 'Esperance Region'). Ambiguous (>=2)
+    matches are logged and left unresolved; 0 matches stay unresolved.
     """
     import json
 
     from shapely.geometry import shape
 
-    codes = crop_df[[CROP_SA2_9DIG_KEY, CROP_SA2_KEY]].copy()
+    codes = crop_df[[CROP_SA2_9DIG_KEY, CROP_SA2_KEY, "sa2_name"]].copy()
     codes["nine"] = _norm_sa2(codes[CROP_SA2_9DIG_KEY])
     codes["five"] = _norm_sa2(codes[CROP_SA2_KEY])
     nine_to_five = dict(zip(codes["nine"], codes["five"]))
+    five_to_name = {f: n for f, n in zip(codes["five"], codes["sa2_name"]) if f}
 
     with open(geojson_path) as f:
         gj = json.load(f)
 
     index: Dict[str, object] = {}
+    unclaimed = []   # GeoJSON features with no code match: (name, polygon)
     for feat in gj.get("features", []):
+        if not feat.get("geometry"):
+            continue
         props = feat.get("properties", {})
         nine = _norm_sa2(pd.Series([props.get("SA2_MAIN16")])).iloc[0]
         five = nine_to_five.get(nine)
-        if five and feat.get("geometry"):
-            candidate = shape(feat["geometry"])
+        poly = shape(feat["geometry"])
+        if five:
             existing = index.get(five)
             # Some SA2s appear twice in the ABS GeoJSON (a degenerate ~0-area
             # artefact + the real polygon). Keep the larger so the result does
             # not depend on feature ordering.
-            if existing is None or candidate.area > existing.area:
-                index[five] = candidate
+            if existing is None or poly.area > existing.area:
+                index[five] = poly
+        else:
+            unclaimed.append((str(props.get("SA2_NAME16") or ""), poly))
+
+    # --- conservative, uniqueness-checked name fallback ---
+    for five in sorted(five_to_name):
+        if five in index:
+            continue
+        crop_name = str(five_to_name[five])
+        matches = [(nm, poly) for nm, poly in unclaimed if _name_match(crop_name, nm)]
+        if len(matches) == 1:
+            nm, poly = matches[0]
+            index[five] = poly
+            # Claim this feature so it can't also resolve another crop name.
+            # poly is shape()-constructed per feature, so object identity uniquely
+            # identifies the just-claimed (name, polygon) entry to remove.
+            unclaimed = [(n, p) for n, p in unclaimed if not (n == nm and p is poly)]
+            logger.info("SA2 %s resolved by name fallback: crop '%s' -> GeoJSON '%s'",
+                        five, crop_name.strip(), nm)
+        elif len(matches) > 1:
+            logger.warning(
+                "SA2 %s name '%s' is ambiguous across %d GeoJSON features; left unresolved",
+                five, crop_name.strip(), len(matches))
+        # 0 matches: silently leave unresolved (caller marks unresolved_gap)
+
     logger.info("Built SA2 polygon index for %d SA2s", len(index))
     return index
 
