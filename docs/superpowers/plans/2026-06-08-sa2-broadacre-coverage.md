@@ -23,7 +23,7 @@
 **Modify:**
 - `config/silo_sources.yaml` — `coverage:` block + `api.concurrency`.
 - `src/agents/silo_wrangler/run_ingest.py` — coverage-mode station loading, concurrent loop, gap injection, run summary, logfile newline fix.
-- `scripts/cron_schedule.sh` — daily call → `--coverage-mode sa2_broadacre --hybrid`.
+- `scripts/cron_schedule.sh` — daily call → `--coverage-mode sa2_broadacre` (per-SA2 gap-fill is driven by `coverage.sa2_broadacre.enable_data_drill_gaps`, **not** `--hybrid`).
 - `CLAUDE.md` — document default daily coverage.
 
 **Conventions to follow:** tests are plain functions importing `from src.…`; run with `python -m pytest`. Station IDs are zero-padded to 6 (`str.zfill(6)`). All output CSVs go through `atomic_csv_write` / `append_to_daily_observations`.
@@ -545,7 +545,7 @@ def test_failure_isolation_and_summary():
             raise RuntimeError("boom")          # exception must be isolated
         if sid == "003":
             return StationResult(sid, "no_data")
-        return StationResult(sid, "success", records=pd.DataFrame({"x": [1]}))
+        return StationResult(sid, "success", records=pd.DataFrame({"x": [1, 2]}))  # 2 rows each
 
     written = []
 
@@ -559,6 +559,7 @@ def test_failure_isolation_and_summary():
     assert summary["succeeded"] == 2
     assert summary["failed"] == 1                # 002 raised
     assert summary["skipped_no_data"] == 1       # 003
+    assert summary["records_processed"] == 4     # 2 successful writes x 2 rows
     assert sorted(written) == ["001", "004"]     # only successes written
     assert "elapsed_s" in summary
     assert sorted(summary["failed_ids"]) == ["002"]
@@ -642,6 +643,7 @@ def ingest_concurrently(
     """
     requested = len(items)
     succeeded = skipped = failed = 0
+    records_processed = 0
     failed_ids: List[str] = []
     skipped_ids: List[str] = []
     start = time.time()
@@ -662,6 +664,7 @@ def ingest_concurrently(
             if result.status == "success" and result.records is not None:
                 if writer(result):               # serialized on main thread
                     succeeded += 1
+                    records_processed += len(result.records)
                 else:
                     failed += 1
                     failed_ids.append(result.station_id)
@@ -678,6 +681,7 @@ def ingest_concurrently(
         "succeeded": succeeded,
         "failed": failed,
         "skipped_no_data": skipped,
+        "records_processed": records_processed,
         "elapsed_s": elapsed,
         "failed_ids": failed_ids,
         "skipped_ids": skipped_ids,
@@ -966,10 +970,12 @@ Replace the block from `successful_stations = []` through the end of the `for st
 
         summary = ingest_concurrently(
             list(silo_config['stations'].items()), _worker, _writer, concurrency=concurrency)
-        total_records = summary['succeeded']   # record count tracked via summary
+        total_records = summary['records_processed']   # rows written, not station count
 ```
 
-Note: the old `successful_stations` / `failed_stations` lists and their per-iteration appends are removed; downstream `run_metadata` now uses `summary` (Task 9 updates that). Keep the Data Drill (`--hybrid`) block that follows; it is handled in Task 9.
+Note: the old `successful_stations` / `failed_stations` lists and their per-iteration appends are removed; downstream `run_metadata` now uses `summary` (Task 9 updates that).
+
+**`--hybrid` decision (single model):** the pre-existing `--hybrid` broad-grid block (current `run_ingest.py:268-365`) is left in place **but is gated by its existing `if hybrid:` flag and is NOT enabled for daily SA2 coverage.** Daily per-SA2 gap-fill is driven solely by `coverage.sa2_broadacre.enable_data_drill_gaps` (Task 9) — a targeted, per-zero-station-SA2 path, independent of `--hybrid`. A user may still pass `--hybrid` explicitly for the broad regional grid, but the cron job does not.
 
 - [ ] **Step 3: Run the existing CLI smoke + coverage tests**
 
@@ -1008,10 +1014,12 @@ import pandas as _pd
 
 
 def emit_coverage_plan(silo_config):
-    """For sa2_broadacre mode: return (gap_points_dict, write_report_fn).
+    """For sa2_broadacre mode: return (gap_points, write_report_fn, zero_station_sa2s).
 
-    gap_points_dict maps sa2_5 -> (lat, lon) for zero-station included SA2s.
+    gap_points maps sa2_5 -> (lat, lon) for resolvable zero-station included SA2s.
     write_report_fn(dd_covered_sa2s) writes the coverage report CSV.
+    zero_station_sa2s is the full set of included SA2s with no internal station
+    (a superset of gap_points keys; the difference are SA2s with no polygon).
     """
     sb = silo_config['coverage']['sa2_broadacre']
     areas = load_broadacre_sa2_areas(sb['crop_context_file'], sb.get('area_column', 'area_ha'))
@@ -1043,7 +1051,7 @@ def emit_coverage_plan(silo_config):
                     int((report['gap_status'] == 'unresolved_gap').sum()))
         return report
 
-    return gap_points, write_report
+    return gap_points, write_report, zero_station
 ```
 
 In the click command, after `silo_config['stations']` is set and `summary` computed, when mode is `sa2_broadacre`, ingest the resolved gap points through the existing Data Drill path and record which SA2s succeeded:
@@ -1052,27 +1060,40 @@ In the click command, after `silo_config['stations']` is set and `summary` compu
         coverage_mode_eff = coverage_mode or silo_config.get('coverage', {}).get('mode', 'active_tier')
         dd_covered_sa2s = set()
         if coverage_mode_eff == 'sa2_broadacre':
-            gap_points, write_report = emit_coverage_plan(silo_config)
-            for sa2_5, (lat, lon) in gap_points.items():
-                if dry_run:
-                    dd_covered_sa2s.add(sa2_5)     # would-cover in dry runs
-                    continue
-                try:
-                    raw = api_client.get_data_drill_data(
-                        lat, lon, *_gap_date_range(target_date, days, silo_config))
-                    if raw is None or raw.empty:
-                        continue
-                    proc = data_processor.process_station_data(raw, f"DD_{lat:.2f}_{lon:.2f}")
-                    if proc.empty:
-                        continue
-                    filt = quality_checker.filter_by_quality(proc)
-                    if data_processor.append_to_daily_observations(filt):
-                        dd_covered_sa2s.add(sa2_5)
-                except Exception as exc:
-                    logger.error("Gap-fill Data Drill failed for SA2 %s (%s,%s): %s",
-                                 sa2_5, lat, lon, exc)
-            write_report(dd_covered_sa2s)
+            gap_points, write_report, zero_station_sa2s = emit_coverage_plan(silo_config)
+            if dry_run:
+                # Dry-run: ingest nothing and write NO canonical report. data_drill_gapfill
+                # means "successfully ingested", which a dry run cannot establish, and
+                # --dry-run is documented as writing no output files. Log a preview only.
+                resolvable = set(gap_points)
+                logger.info(
+                    "[DRY RUN] sa2_broadacre plan: zero_station_sa2s=%d "
+                    "resolvable_via_data_drill=%d unresolvable=%d (no report written)",
+                    len(zero_station_sa2s), len(resolvable),
+                    len(zero_station_sa2s - resolvable))
+            else:
+                for sa2_5, (lat, lon) in gap_points.items():
+                    try:
+                        raw = api_client.get_data_drill_data(
+                            lat, lon, *_gap_date_range(target_date, days, silo_config))
+                        if raw is None or raw.empty:
+                            continue
+                        proc = data_processor.process_station_data(raw, f"DD_{lat:.2f}_{lon:.2f}")
+                        if proc.empty:
+                            continue
+                        filt = quality_checker.filter_by_quality(proc)
+                        # SAME write path as station successes: CSV append + DuckDB upsert.
+                        if _writer(StationResult(f"DD_{lat:.2f}_{lon:.2f}", "success", records=filt)):
+                            dd_covered_sa2s.add(sa2_5)
+                    except Exception as exc:
+                        logger.error("Gap-fill Data Drill failed for SA2 %s (%s,%s): %s",
+                                     sa2_5, lat, lon, exc)
+                write_report(dd_covered_sa2s)
 ```
+
+The gap-fill reuses the Task 8 `_writer` closure, so Data Drill points are written to
+**both** `obs_daily.csv` and DuckDB exactly like station successes (no divergent write
+path). `_writer` and `StationResult` are already in scope from Task 8.
 
 Add the small date-range helper (factor the existing inline date logic):
 
@@ -1122,12 +1143,15 @@ Run: `python -m pytest tests/test_cli_smoke.py tests/test_sa2_coverage.py tests/
 Expected: PASS
 
 Run: `python src/agents/silo_wrangler/run_ingest.py --coverage-mode sa2_broadacre --date 2026-06-01 --dry-run -v 2>&1 | tail -25`
-Expected: logs show coverage report counts (`internal_bom=… data_drill_gapfill=… unresolved_gap=…`) and the run summary line; `data/meta/sa2_coverage_report.csv` is written.
+Expected: a `[DRY RUN] sa2_broadacre plan: zero_station_sa2s=… resolvable_via_data_drill=… unresolvable=… (no report written)` line and the run summary line. **No** `data/meta/sa2_coverage_report.csv` is written (dry-run writes no output). Confirm absence: `test ! -f data/meta/sa2_coverage_report.csv && echo "no report (correct)"` (if the file pre-existed from a prior live run, note its mtime is unchanged).
 
-- [ ] **Step 4: Inspect the coverage report**
+- [ ] **Step 4: Inspect the coverage report (live run — network-heavy, ~5–8 min)**
 
-Run: `head -3 data/meta/sa2_coverage_report.csv && echo "rows: $(wc -l < data/meta/sa2_coverage_report.csv)" && cut -d, -f7 data/meta/sa2_coverage_report.csv | sort | uniq -c`
-Expected: ~160 rows; `gap_status` counts with most `internal_bom`, a few `data_drill_gapfill`, ideally zero `unresolved_gap`.
+The coverage report is only written by a real (non-dry-run) ingest, because `data_drill_gapfill` means *successfully ingested*. Run one live date to produce it:
+
+Run: `python src/agents/silo_wrangler/run_ingest.py --coverage-mode sa2_broadacre --date 2026-06-01 -v 2>&1 | tail -30`
+Then: `head -3 data/meta/sa2_coverage_report.csv && echo "rows: $(wc -l < data/meta/sa2_coverage_report.csv)" && cut -d, -f7 data/meta/sa2_coverage_report.csv | sort | uniq -c`
+Expected: ~160 rows; `gap_status` counts with most `internal_bom`, a few `data_drill_gapfill`, ideally zero `unresolved_gap`. The run-summary log line shows `requested≈1293 succeeded=… elapsed=…s`. (This hits the live SILO API for the full universe — expect several minutes.)
 
 - [ ] **Step 5: Commit**
 
