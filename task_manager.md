@@ -1,7 +1,7 @@
 
 # Task Manager
 **PRD:** ./prd.md  
-**Updated:** 2026-05-20 (T-20260520-003 + -004 implemented: run_yield_analogue.py, tests, docs)  
+**Updated:** 2026-06-08 (WRA contract stabilisation: decile convention unified + decimal decile fix + stale-script cleanup + Vintage Pinning v1)  
 
 ---
 
@@ -884,7 +884,79 @@ Claude prints: `OK TO CLOSE: Save is complete. Please close this chat to reset c
   - Lead headline with WA + NSW stories; full state sections with SA2 anomaly callouts; NSW north/south split included.
 - **Validation:** All scripts run clean on master. No code or tests changed in main pipeline; this is analyst-side exploratory work using existing features as inputs.
 - **Blockers:** None
-- **Commit:** pending (analyst working files; Rod may or may not want these committed since they're pre-publication scratch)
+- **Commit:** pending (analyst working files; Rod may or may not want these committed since they’re pre-publication scratch)
+
+### 2026-05-26 — analyst-workflow (VIC May MTD refresh + SD seeding conditions + ABC Rural radio brief)
+- **Task:** Update month-to-date rainfall for May, build VIC SA2/SD-level seeding conditions report, prepare radio interview brief.
+- **What changed:**
+  - **SILO NC refresh:** Deleted stale `2026.daily_rain.nc` (through May 19); downloaded fresh from SILO S3 (through May 25, 166 MB).
+  - **MTD update:** Re-ran `extract_sa2_partial_month_rainfall.py --year 2026 --month 5`. Updated `data/features/sa2_2026_05_mtd.csv` from day 19 → day 25 (192 SA2s, 51 VIC).
+  - **History file splice:** Replaced day-19 May 2026 rows in `sa2_monthly_rainfall_history_national.csv` with day-25 rows (49,344 rows total unchanged; 192 rows replaced).
+  - **SD breakdown rebuild:** Re-ran `build_sd_sa2_breakdown.py` — refreshed `sd_sa2_breakdown_2026W21.csv` and `sa2_breakdown_2026W21.csv` with May-25 MTD for all 29 national SDs.
+  - **New script — VIC SA2 seeding conditions:** `scripts/vic_sa2_seeding_conditions_2026.py` — combines Apr 2026 monthly + May MTD for 51 VIC grain SA2s; classifies May seeding break (adequate/marginal/marginal-low/insufficient) and Apr+May season (strong/adequate/below average/poor); computes percentile rank and decile vs 2005–2025 climatology; SD (SA4) rollup; outputs `data/features/vic_sa2_seeding_2026.csv` and `reports/weekly/vic_sa2_seeding_conditions_2026_W21.md`.
+  - **New script — VIC SD May deciles:** `scripts/_vic_sd_may_deciles.py` — area-weighted May-only decile for each of the 7 crop-report SDs (Mallee/Wimmera/Loddon/Goulburn/Central Highlands/Western District/Barwon) using wheat-area concordance from ABS. Historical full-month scaled to 25/31 for apples-to-apples comparison.
+- **Key analytical findings:**
+  - **May 2026 was a standout month across all VIC grain SDs.** Two events drove the bulk of falls: ~May 3 (14.7mm Wimmera) and May 16–17 (~18mm Wimmera). Last 6 days (May 20–25) essentially dry (0–2mm).
+  - **Mallee: D10** — 39mm against a scaled historical median of 15.5mm (253% of median). Structurally dry district; this is a genuine outlier month.
+  - **Wimmera and Loddon: D9** — 43mm and 42.5mm respectively, 152–189% of scaled median.
+  - **Goulburn and Ovens-Murray: D8**; Central Highlands and Western District: **D7**; Barwon: **D6** (near median).
+  - **Seeding break:** 48 of 51 VIC grain SA2s classified Adequate (≥25mm May MTD). Only 3 Marginal (Winchelsea 21mm, Glenelg Vic 24mm, Avoca 20mm). Zero Insufficient.
+  - **April was very dry** (Swan Hill 0.6mm, Mildura 2.1mm) — May has done all the heavy lifting for the autumn break.
+  - **8-day outlook (May 26 – June 2):** 15–50mm forecast across VIC grain belt; Mallee at lower end 15–25mm. If verified, would consolidate one of stronger autumn breaks in several years.
+  - **On-ground context (grower advisor, May 19):** Many programs well underway or near completion; exceptional start, stark contrast to 2025; strong early crop vigour; favourable soil temperatures.
+- **Files touched:**
+  - `data/meta/daily_rain/2026.daily_rain.nc` (replaced — refreshed from SILO S3)
+  - `data/features/sa2_2026_05_mtd.csv` (updated day 19 → day 25)
+  - `data/features/sa2_monthly_rainfall_history_national.csv` (May 2026 rows spliced to day 25)
+  - `data/features/sd_sa2_breakdown_2026W21.csv` (rebuilt with May-25 MTD)
+  - `data/features/sa2_breakdown_2026W21.csv` (rebuilt)
+  - `data/features/vic_sa2_seeding_2026.csv` (new)
+  - `scripts/vic_sa2_seeding_conditions_2026.py` (new)
+  - `scripts/_vic_sd_may_deciles.py` (new)
+  - `reports/weekly/vic_sa2_seeding_conditions_2026_W21.md` (new)
+- **Output delivered:**
+  - ABC Rural radio brief (3-paragraph script: May conditions + SD deciles + 8-day outlook + grower advisor colour). ~45 sec read. Key stat: Mallee/Wimmera D9–D10; 48/51 SA2s adequate seeding break; exceptional contrast to 2025.
+- **Blockers:** None
+- **Commit:** pending
+
+---
+
+### 2026-05-28 — analyst-workflow (Sky News ad-hoc media brief, W21 W22 transition)
+- **Task:** On-demand briefing for a colleague's Sky News interview — recent rainfall + 8-day outlook + winter crop + commodity price implications, ~250 words broadcast-ready.
+- **What happened:**
+  - Pulled SA2-level past-week and May MTD reads from `sd_past_week_rainfall_2026W21.csv`, `sd_sa2_breakdown_2026W21.csv`, `sa2_breakdown_2026W21.csv`, `sa2_2026_05_mtd.csv`, `state_moisture_trajectory_2026.csv`.
+  - Read BOM 8-day PNG (`reports/weekly/assets/bom_8_day_rainfall_outlook_2026-05-28_to_2026-06-04.png`) visually.
+  - User corrected several map reads (NSW cropping geography vs pastoral; Qld 50–100mm band breadth; WA wheatbelt 15–50mm widespread); folded ground-truth from grower advisors for SA, Vic, WA (Geraldton + Kwinana port zone language).
+  - Same-day update: Goondiwindi 59.4mm and Moree 63mm on 28 May materially reframed the northern NSW / southern Qld section mid-brief.
+  - Final deliverable: 370-word state-by-state + price commentary brief.
+- **Key analytical finding — wheat-area weighting matters:**
+  - SD-aggregate MTD for NSW North Western was 70.5mm (273% of median) but wheat-area-weighted across the top 2 production SA2s was only **20.0mm**. Moree Surrounds (501k wheat ha, single largest wheat SA2 in northern NSW) sat at **10.2mm MTD** before the 28 May event. **Spatial averages systematically mask production-core risk in SDs with wide SA2 spread (e.g. NSW North Western past-week SA2 range 1.3–66.1mm).**
+- **What this means for the project (user direction):**
+  - This kind of ad-hoc "today, what's happening, what does it mean commercially" brief is a **first-class use case**, not an edge case. The project needs to handle:
+    - Any-day refreshes (not just weekly/monthly cadence)
+    - Same-day rainfall observations (Goondiwindi/Moree 28 May fold-in)
+    - Production-core (not SD-aggregate) reads as the default
+    - Tight broadcast-ready outputs (~250 words) alongside the full analytical artefacts
+    - Combined rainfall + forecast + commodity price framing
+  - Captured as project memory at `~/.claude/projects/-home-roddyb-projects-wheatbelt-rainfall-analyser/memory/project_ad_hoc_media_briefing.md` so future sessions inherit the expectation.
+- **Files touched:** None to project code/data. Brief delivered in-session.
+- **Blockers:** None
+- **Commit:** pending (task_manager log + memory note only)
+- **Follow-up flagged:** Brief is for **Monday 2 June 2026** Sky News interview. By air time, **4 of 8 forecast days have already happened**. Need a Monday morning refresh that pulls actual 28 May – 1 June observations across production cores (Moree, Goondiwindi, Downs, Geraldton zone, Kwinana zone), compares forecast vs actual, and re-frames from "forecast pending" to "verification report." Memory updated with timing-shelf-life lesson (see [[project-ad-hoc-media-briefing]] point 8).
+- **Data nuance flagged:** Moree 63mm / Goondiwindi 59.4mm timestamped 28 May are still **same-day provisional reads** and not yet locked in at the 9am AEST cutoff. Wait for Friday 29 May morning's confirmed totals before anchoring narrative on those falls. Memory updated with same-day-observation-provisionality lesson (see [[project-ad-hoc-media-briefing]] point 9).
+
+### 2026-06-08 — rainfall-analytics (WRA contract stabilisation — Codex-led briefs)
+- **Task:** Execute a sequence of Codex-approved contract-stabilisation briefs (review + remediation), one brief at a time. Not feature work.
+- **What changed:**
+  - **Decile convention unified to canonical.** Added `decile_rank()` to `src/rainfall/analytics.py` (rank-based `ceil((#below+1)/n*10)`, clamped 1–10), reproducing the canonical producer `scripts/build_sa2_rainfall_deciles.py` exactly; retired the divergent percentile-floor `decile_from_percentile`. Repointed `build_sd_sa2_breakdown.py` and `build_sd_monthly_rainfall_review.py`.
+  - **Decimal decile fixed.** Added `decile_score()` (continuous `(#below+1)/n*10`, clamp 1.0–10.0, 1 dp); routed all `decile_decimal`/`ytd_decile_decimal` fields + the YTD flag in `build_sd_monthly_rainfall_review.py` off the old `pr/10` floor basis.
+  - **Stale-script cleanup (Brief 1).** Deleted orphaned `scripts/_vic_sd_may_deciles.py`; fixed its successor docstring so it no longer points to a live one-off.
+  - **Vintage Pinning v1.** New `src/rainfall/vintage.py` (frozen/live model, method registry, `find_vintage_reports()`, parse + schema + internal-consistency + live-input checks) and `tests/test_vintage_consistency.py`. Added reader-visible ```vintage blocks (both `status: frozen`) to `reports/weekly/2026-W21_outlook_v2.md` (through_day 19) and `reports/monthly/2026-05_rainfall_monitor_sd.md` (through_day 31, `decile_method: ratio_div10_v0`). Guard catches prose↔metadata drift on frozen reports and input/method drift on live reports.
+- **Files touched:** `src/rainfall/analytics.py`, `src/rainfall/vintage.py` (new), `scripts/build_sd_sa2_breakdown.py`, `scripts/build_sd_monthly_rainfall_review.py`, `scripts/_vic_sd_may_deciles.py` (deleted), `tests/test_rainfall_analytics.py`, `tests/test_vintage_consistency.py` (new), `reports/weekly/2026-W21_outlook_v2.md`, `reports/monthly/2026-05_rainfall_monitor_sd.md`.
+- **Tests:** `pytest tests/test_rainfall_analytics.py tests/test_sa2_state_drill_2026.py tests/test_rainfall_percentiles.py tests/test_vintage_consistency.py` → 40 passed; `py_compile` clean. All changes TDD (red→green).
+- **Next steps:** Vintage Pinning v2 candidates (deferred): sidecar JSON for generated CSVs; a real `live` report to exercise the live path in production. See [[vintage-pinning]], [[decile-convention]] memory notes.
+- **Blockers:** None. All briefs Codex-reviewed and signed off.
+- **Commit:** pending (no reports/data regenerated; canonical decile producer untouched).
 
 ---
 

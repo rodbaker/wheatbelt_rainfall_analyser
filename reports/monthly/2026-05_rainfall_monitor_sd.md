@@ -1,5 +1,14 @@
 # Monthly Rainfall Monitor — May 2026
 
+```vintage
+status: frozen
+report_date: 2026-06-01
+coverage_month: 2026-05
+through_day: 31
+baseline_years: [2005, 2025]
+decile_method: ratio_div10_v0
+```
+
 **Wheatbelt rainfall by state and ABS Statistical Division (SD)**
 
 _Generated 2026-06-01. Coverage: May 1–31 2026 (completed month, 31 of 31 days). Source: SILO daily_rain 0.05° grid, summed over the full month at SA2 centroids, rolled up to ABS 2011 Statistical Divisions, **wheat-area weighted** (2020–21 ABS wheat area × SA2→SD allocation). Baseline: full-May climatology 2005–2025 (21 years); decile on a 0–10 scale (percentile rank ÷ 10). 28 grain SDs above a 10,000 ha wheat-area floor._
@@ -46,7 +55,7 @@ The year-to-date picture is the more sobering one: cumulative Jan–May rainfall
 
 ### Victoria Crop Conditions
 
-Victoria built strongly on an already favourable season, with state-weighted rainfall finishing at decile 8.6. Rain was front- and mid-loaded — an opening event over the 3rd–4th and a heavier fall around the 17th–18th delivered most of the month's 50 mm before conditions eased late. The northern dryland zone, where it matters most, performed best: the Mallee reached decile 9.0 (251% of its low median) and Loddon decile 8.1. Southern districts sat closer to average, with the Central Highlands the softest at decile 4.8 — unremarkable in otherwise reliable country. With profiles already rebuilt through autumn, May's rain consolidates an excellent establishment outlook across the state.
+Victoria built strongly on an already favourable season, with state-weighted rainfall finishing at decile 8.6. Rain was front- and mid-loaded — an opening event over the 3rd–4th and a heavier fall around the 17th–18th delivered most of the month's 50 mm before conditions eased late. The northern dryland zone, where it matters most, performed best: the Mallee reached decile 9.0 (251% of its low median) and Loddon decile 8.1. Southern districts sat closer to average, the Central Highlands softest at decile 4.8 — but these are reliably wetter areas where an average May is no concern. With profiles already rebuilt through autumn, May's rain consolidates an excellent establishment outlook across the state.
 
 Victoria carries the strongest year-to-date position of the wheatbelt: cumulative Jan–May rainfall is at 153% of the long-term profile (decile 8.1), reflecting the run of wet months that began with the March break. This is a state heading into winter with full profiles and a clear moisture buffer.
 

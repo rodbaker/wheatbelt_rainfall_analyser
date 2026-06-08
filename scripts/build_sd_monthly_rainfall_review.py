@@ -2,10 +2,10 @@
 """Build a COMPLETED-month area-weighted rainfall review per ABS Statistical
 Division (SD_CODE11) across the five wheatbelt states.
 
-Generalises the one-off scripts/_vic_sd_may_deciles.py (VIC-only, hardcoded
-May 2026) to any --year --month and ALL SD codes present in the SA2->SD
-concordance. Each SD's dominant state is derived by summing member-SA2 wheat
-weights per STE_NAME21.
+Replaces a retired VIC-only one-off (hardcoded May 2026), generalising it to
+any --year --month and ALL SD codes present in the SA2->SD concordance. Each
+SD's dominant state is derived by summing member-SA2 wheat weights per
+STE_NAME21.
 
 Month totals for the target year come from the SILO DAILY grid summed over
 the whole month (data/features/sa2_{year}_{month:02d}_mtd.csv, produced by
@@ -46,6 +46,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from src.common.file_utils import atomic_csv_write
+from src.rainfall.analytics import decile_rank, decile_score, percentile_rank
+
 ROOT = Path(__file__).resolve().parents[1]
 ABS = Path(
     "/home/roddyb/projects/ABS Census Data/Modernised_Census_2022_2025/"
@@ -85,14 +88,7 @@ def weighted_mean(vals_weights):
 
 
 def pct_rank(arr, val):
-    a = np.array([x for x in arr if not np.isnan(x)])
-    return float((a < val).sum() / len(a) * 100) if len(a) else float("nan")
-
-
-def decile_from_pct(p):
-    if np.isnan(p):
-        return None
-    return max(1, min(10, int(p / 10) + 1))
+    return percentile_rank(arr, val)
 
 
 def sa2_ytd_for_year(ytd_lookup, sa2, yr, month, target_rain, target_year):
@@ -292,7 +288,7 @@ def main():
         med = statistics.median(hist_yr_wm)
         pct = target_wm / med * 100 if med > 0 else float("nan")
         pr = pct_rank(hist_yr_wm, target_wm)
-        dec = decile_from_pct(pr)
+        dec = decile_rank(hist_yr_wm, target_wm)
         anomaly = target_wm - med
 
         sd_rows.append(
@@ -307,6 +303,7 @@ def main():
                 "pct_of_median": pct,
                 "percentile_rank": pr,
                 "decile": dec,
+                "decile_decimal": decile_score(hist_yr_wm, target_wm),
                 "anomaly_mm": anomaly,
                 "n_hist_years": len(hist_yr_wm),
             }
@@ -345,7 +342,7 @@ def main():
             med = statistics.median(hist_vals)
             pct = v / med * 100 if med > 0 else float("nan")
             pr = pct_rank(hist_vals, v)
-            dec_dec = round(pr / 10.0, 1)
+            dec_dec = decile_score(hist_vals, v)
         else:
             med = pct = pr = dec_dec = float("nan")
         sa2_rows.append(
@@ -372,7 +369,8 @@ def main():
         "pct_of_median", "percentile_rank",
     ]:
         sa2_out[col] = sa2_out[col].round(1)
-    sa2_out.to_csv(out_sa2, index=False)
+    if not atomic_csv_write(sa2_out, out_sa2):
+        raise SystemExit(f"Failed to write {out_sa2}")
 
     sd_df = pd.DataFrame(sd_rows)
     sd_df = sd_df.sort_values(
@@ -410,7 +408,7 @@ def main():
         if sd_code in sd_state_of:
             members_by_state[sd_state_of[sd_code]].extend(members)
 
-    state_decile, state_pr = {}, {}
+    state_decile, state_pr, state_score = {}, {}, {}
     for abbr, members in members_by_state.items():
         target_vw = [
             (target_rain[m["sa2_code"]], m["weight"])
@@ -431,11 +429,13 @@ def main():
         if rain_wm is not None and yr_series:
             pr = pct_rank(yr_series, rain_wm)
             state_pr[abbr] = pr
-            state_decile[abbr] = decile_from_pct(pr)
+            state_decile[abbr] = decile_rank(yr_series, rain_wm)
+            state_score[abbr] = decile_score(yr_series, rain_wm)
 
     for sr in state_rows:
         sr["percentile_rank"] = state_pr.get(sr["state"], float("nan"))
         sr["decile"] = state_decile.get(sr["state"])
+        sr["decile_decimal"] = state_score.get(sr["state"], float("nan"))
 
     # ---- per-STATE YTD accumulation (Jan..month) vs the long-term profile.
     # State-weighted cumulative rainfall for the target year, ranked against
@@ -470,6 +470,8 @@ def main():
                 "ytd_median_mm": med,
                 "ytd_pct_of_median": (cur_wm / med * 100) if med > 0 else float("nan"),
                 "ytd_percentile_rank": pct_rank(yr_series, cur_wm),
+                "ytd_decile_decimal": decile_score(yr_series, cur_wm),
+                "ytd_decile": decile_rank(yr_series, cur_wm),
             }
 
     for sr in state_rows:
@@ -479,7 +481,7 @@ def main():
             sr["ytd_median_mm"] = y["ytd_median_mm"]
             sr["ytd_pct_of_median"] = y["ytd_pct_of_median"]
             sr["ytd_percentile_rank"] = y["ytd_percentile_rank"]
-            sr["ytd_decile_decimal"] = round(y["ytd_percentile_rank"] / 10.0, 1)
+            sr["ytd_decile_decimal"] = y["ytd_decile_decimal"]
 
     state_df = pd.DataFrame(state_rows)
     state_df["__ord"] = state_df["state"].map(
@@ -489,11 +491,9 @@ def main():
         state_df.sort_values("__ord").drop(columns="__ord").reset_index(drop=True)
     )
 
-    # ---- decimal decile (house convention: percentile rank / 10, one dp).
-    # The integer `decile` (1-10 bucket) is retained for the dry/mid/wet flag
-    # and for sorting driest/wettest.
-    sd_df["decile_decimal"] = (sd_df["percentile_rank"] / 10.0).round(1)
-    state_df["decile_decimal"] = (state_df["percentile_rank"] / 10.0).round(1)
+    # ---- decimal decile is computed on the canonical rank basis at source
+    # (decile_score), alongside the integer `decile` (decile_rank) used for the
+    # dry/mid/wet flag and for sorting driest/wettest.
 
     # ---- write CSVs
     round_cols = [
@@ -511,12 +511,14 @@ def main():
     sd_out = sd_df.copy()
     for col in [c for c in round_cols if c in sd_out.columns]:
         sd_out[col] = sd_out[col].round(1)
-    sd_out.to_csv(out_sd, index=False)
+    if not atomic_csv_write(sd_out, out_sd):
+        raise SystemExit(f"Failed to write {out_sd}")
 
     state_out = state_df.copy()
     for col in [c for c in round_cols if c in state_out.columns]:
         state_out[col] = state_out[col].round(1)
-    state_out.to_csv(out_state, index=False)
+    if not atomic_csv_write(state_out, out_state):
+        raise SystemExit(f"Failed to write {out_state}")
 
     # ---- print markdown
     def flag(d):
@@ -573,7 +575,7 @@ def main():
             if pd.isna(r.get("ytd_mm")):
                 continue
             yd = r["ytd_decile_decimal"]
-            yflag = flag(int(r["ytd_percentile_rank"] // 10) + 1)
+            yflag = flag(state_ytd[r["state"]]["ytd_decile"])
             print(
                 f"| {r['state']} | {r['ytd_mm']:.0f} | {r['ytd_median_mm']:.0f} "
                 f"| {r['ytd_pct_of_median']:.0f}% | {yd:.1f} {yflag} |"

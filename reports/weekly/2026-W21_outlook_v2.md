@@ -1,5 +1,13 @@
 # Australian Grain Belt Rainfall Outlook — Week 21, 2026
 
+```vintage
+status: frozen
+report_date: 2026-05-20
+coverage_month: 2026-05
+through_day: 19
+baseline_years: [2005, 2025]
+```
+
 *Compiled 2026-05-20 · audience: grain traders, brokers, farm advisors, ag bankers*
 *Data through 2026-05-19 · BOM Jun–Aug 2026 outlook overlay*
 
