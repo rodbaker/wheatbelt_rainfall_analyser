@@ -13,7 +13,7 @@ import click
 import logging
 import json
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, Any
 from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
