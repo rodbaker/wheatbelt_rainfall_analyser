@@ -8,6 +8,21 @@ api:
   rate_limit_seconds: 0.2     # 5 req/sec — reduced from 0.6 after confirming SILO docs specify no limit
   timeout_seconds: 30
   max_retries: 3
+  concurrency: 10               # parallel station requests.
+                                # concurrency: 1 = legacy sequential execution mechanics
+                                #   (one request at a time). NOTE: daily SCOPE is set by
+                                #   coverage.mode below — legacy 16-station daily behaviour
+                                #   is coverage.mode: active_tier, not concurrency: 1.
+
+# Coverage selection: how the daily station universe is chosen.
+coverage:
+  mode: "sa2_broadacre"        # sa2_broadacre | active_tier  (active_tier = legacy fallback)
+  sa2_broadacre:
+    crop_context_file: "data/meta/crop_context_sa2.csv"
+    area_column: "area_ha"
+    min_broadacre_area_ha: 5000   # 0 = any cropping; 5000 = meaningful (default); 10000+ = core regions
+    enable_data_drill_gaps: true
+    coverage_report: "data/meta/sa2_coverage_report.csv"
 
 # Variables to collect (comment parameter)
 variables:

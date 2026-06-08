@@ -1,5 +1,8 @@
+from pathlib import Path
+
 import pandas as pd
 
+from src.common.config_loader import load_config
 from src.common.sa2_coverage import (
     COVERAGE_COLUMNS,
     build_coverage_report,
@@ -202,3 +205,25 @@ def test_resolve_gap_points_existing_point_outside_falls_back(tmp_path):
     lat, lon = points["21007"]
     assert 117.0 <= lon <= 118.0 and -32.0 <= lat <= -31.0   # representative_point, not the outside one
     assert (lat, lon) != (-10.0, 100.0)
+
+
+_ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_shipped_config_defaults_to_sa2_broadacre():
+    cfg = load_config(str(_ROOT / "config" / "silo_sources.yaml"))
+    cov = cfg["coverage"]
+    assert cov["mode"] == "sa2_broadacre"
+    assert cov["sa2_broadacre"]["min_broadacre_area_ha"] == 5000
+    assert cov["sa2_broadacre"]["area_column"] == "area_ha"
+    assert cov["sa2_broadacre"]["enable_data_drill_gaps"] is True
+    assert cfg["api"]["concurrency"] >= 1
+
+
+def test_default_config_derives_many_stations():
+    # Guard against silent regression to the 16-station active tier.
+    cfg = load_config(str(_ROOT / "config" / "silo_sources.yaml"))
+    cov = cfg["coverage"]["sa2_broadacre"]
+    areas = load_broadacre_sa2_areas(_ROOT / cov["crop_context_file"], cov["area_column"])
+    target = select_target_sa2s(areas, cov["min_broadacre_area_ha"])
+    assert len(target) > 100        # ~159 SA2s at 5000 ha; far more than the 16 active tier
