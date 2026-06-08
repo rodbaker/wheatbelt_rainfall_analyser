@@ -89,7 +89,7 @@ def ingest_concurrently(
         "failed_ids": failed_ids,
         "skipped_ids": skipped_ids,
     }
-    logger.info(
+    logger.debug(
         "Concurrent ingest: requested=%d succeeded=%d failed=%d skipped_no_data=%d elapsed=%ss",
         requested, succeeded, failed, skipped, elapsed,
     )

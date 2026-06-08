@@ -21,9 +21,12 @@ load_dotenv()
 from src.common.config_loader import load_config
 from src.common.logging_utils import setup_logging
 from src.common.stations_loader import load_wheatbelt_stations_for_config, generate_data_drill_grid, WheatbeltStationsLoader
+import pandas as _pd
 from src.common.sa2_coverage import (
     load_broadacre_sa2_areas, select_target_sa2s, derive_station_universe,
+    build_sa2_polygon_index, resolve_gap_points, build_coverage_report,
 )
+from src.common.file_utils import atomic_csv_write
 from src.data.duckdb_storage import DuckDBStorage
 from src.agents.silo_wrangler.api_client import SILOAPIClient
 from src.agents.silo_wrangler.data_processor import WeatherDataProcessor
@@ -183,6 +186,8 @@ def run_daily_ingest(config: str, target_date: str, stations: str, days: int, ti
                     detail=f"auto_excluded_low_confidence_{assessment['confidence_score']:.2f}")
 
             filtered = quality_checker.filter_by_quality(processed)
+            if filtered.empty:
+                return StationResult(station_id, "no_data", detail="empty_after_quality_filter")
             return StationResult(station_id, "success", records=filtered)
 
         def _writer(result):
@@ -205,7 +210,43 @@ def run_daily_ingest(config: str, target_date: str, stations: str, days: int, ti
         summary = ingest_concurrently(
             list(silo_config['stations'].items()), _worker, _writer, concurrency=concurrency)
         total_records = summary['records_processed']
-                
+
+        # --- SA2-broadacre per-SA2 Data Drill gap-fill (config-driven, not --hybrid) ---
+        coverage_mode_eff = coverage_mode or silo_config.get('coverage', {}).get('mode', 'active_tier')
+        dd_covered_sa2s = set()
+        if coverage_mode_eff == 'sa2_broadacre':
+            gap_points, write_report, zero_station_sa2s = emit_coverage_plan(silo_config)
+            if dry_run:
+                # Dry-run ingests nothing and writes NO report. data_drill_gapfill means
+                # "successfully ingested", which a dry run cannot establish. Log a preview.
+                resolvable = set(gap_points)
+                logger.info(
+                    "[DRY RUN] sa2_broadacre plan: zero_station_sa2s=%d "
+                    "resolvable_via_data_drill=%d unresolvable=%d (no report written)",
+                    len(zero_station_sa2s), len(resolvable),
+                    len(zero_station_sa2s - resolvable))
+            else:
+                for sa2_5, (lat, lon) in gap_points.items():
+                    try:
+                        raw = api_client.get_data_drill_data(
+                            lat, lon, *_gap_date_range(target_date, days, silo_config))
+                        if raw is None or raw.empty:
+                            continue
+                        proc = data_processor.process_station_data(raw, f"DD_{lat:.2f}_{lon:.2f}")
+                        if proc.empty:
+                            continue
+                        filt = quality_checker.filter_by_quality(proc)
+                        if filt.empty:
+                            continue
+                        # SAME write path as station successes: CSV append + DuckDB upsert.
+                        if _writer(StationResult(f"DD_{lat:.2f}_{lon:.2f}", "success", records=filt)):
+                            dd_covered_sa2s.add(sa2_5)
+                            total_records += len(filt)
+                    except Exception as exc:
+                        logger.error("Gap-fill Data Drill failed for SA2 %s (%s,%s): %s",
+                                     sa2_5, lat, lon, exc)
+                write_report(dd_covered_sa2s)
+
         # --- DATA DRILL GAP-FILL (--hybrid mode) ---
         if hybrid and dry_run:
             logger.info("Hybrid mode: [DRY RUN] skipping Data Drill API calls — use without --dry-run to ingest")
@@ -309,6 +350,8 @@ def run_daily_ingest(config: str, target_date: str, stations: str, days: int, ti
         run_metadata.update({
             'end_time': datetime.now().isoformat(),
             'summary': summary,
+            'coverage_mode': coverage_mode_eff,
+            'data_drill_gapfill_sa2s': sorted(dd_covered_sa2s),
             'total_records_processed': total_records,
         })
 
@@ -396,6 +439,66 @@ def load_coverage_stations(silo_config, coverage_mode=None, tiers="active"):
     raise ValueError(f"Unknown coverage mode: {mode}")
 
 
+def emit_coverage_plan(silo_config):
+    """For sa2_broadacre mode: return (gap_points, write_report_fn, zero_station_sa2s).
+
+    gap_points maps sa2_5 -> (lat, lon) for resolvable zero-station included SA2s.
+    write_report_fn(dd_covered_sa2s) writes the coverage report CSV.
+    zero_station_sa2s is the full set of included SA2s with no internal station
+    (a superset of gap_points keys; the difference are SA2s with no polygon).
+    """
+    sb = silo_config['coverage']['sa2_broadacre']
+    # NOTE: re-derives areas/target/universe (also computed in load_coverage_stations).
+    # Cheap at ~4-6 gap points; kept self-contained so the coverage report can be
+    # produced independently of the station-loading call path.
+    areas = load_broadacre_sa2_areas(sb['crop_context_file'], sb.get('area_column', 'area_ha'))
+    target = select_target_sa2s(areas, sb.get('min_broadacre_area_ha', 5000))
+    loader = WheatbeltStationsLoader(silo_config['bom_dataset']['file_path'])
+    universe = derive_station_universe(target, loader._stations_df)
+
+    covered = set(universe['sa2_5'])
+    zero_station = target - covered
+
+    gap_points = {}
+    if sb.get('enable_data_drill_gaps', True) and zero_station:
+        crop_df = _pd.read_csv(sb['crop_context_file'], dtype=str)
+        geojson = silo_config.get('data_drill', {}).get('wheatbelt_geojson')
+        idx = build_sa2_polygon_index(crop_df, geojson)
+        gap_points = resolve_gap_points(zero_station, idx)
+
+    def write_report(dd_covered_sa2s):
+        report = build_coverage_report(target, areas, universe, dd_covered_sa2s=dd_covered_sa2s)
+        atomic_csv_write(report, sb['coverage_report'], backup=False)
+        unresolved = report[report['gap_status'] == 'unresolved_gap']
+        for _, r in unresolved.iterrows():
+            logger.warning("UNRESOLVED COVERAGE GAP: SA2 %s (%s) has no station and no Data Drill point",
+                           r['sa2_code'], r['sa2_name'])
+        logger.info("Coverage report -> %s | internal_bom=%d data_drill_gapfill=%d unresolved_gap=%d",
+                    sb['coverage_report'],
+                    int((report['gap_status'] == 'internal_bom').sum()),
+                    int((report['gap_status'] == 'data_drill_gapfill').sum()),
+                    int((report['gap_status'] == 'unresolved_gap').sum()))
+        return report
+
+    return gap_points, write_report, zero_station
+
+
+def _gap_date_range(target_date, days, silo_config):
+    """Return (start, finish) YYYYMMDD for Data Drill gap-fill, mirroring the
+    station fetch date logic."""
+    from datetime import datetime as _dt, timedelta as _td
+    if target_date:
+        d = target_date.replace('-', '')
+        return d, d
+    if days:
+        return ((_dt.now() - _td(days=days)).strftime('%Y%m%d'), _dt.now().strftime('%Y%m%d'))
+    if silo_config['collection']['mode'] == 'rolling_window':
+        r = silo_config['collection']['rolling_days']
+        return ((_dt.now() - _td(days=r)).strftime('%Y%m%d'), _dt.now().strftime('%Y%m%d'))
+    y = (_dt.now() - _td(days=1)).strftime('%Y%m%d')
+    return y, y
+
+
 def log_run_results(run_metadata: Dict[str, Any], log_file_path: str):
     """
     Log run results to JSONL file for tracking and monitoring
@@ -410,7 +513,7 @@ def log_run_results(run_metadata: Dict[str, Any], log_file_path: str):
         
         # Append run metadata as JSON line
         with open(log_path, 'a') as f:
-            f.write(json.dumps(run_metadata) + '\\n')
+            f.write(json.dumps(run_metadata) + '\n')
             
         logger.info(f"Run metadata logged to {log_path}")
         
