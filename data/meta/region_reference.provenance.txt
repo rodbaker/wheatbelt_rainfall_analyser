@@ -1,0 +1,19 @@
+region_reference.csv — vendored provenance
+============================================
+
+Vendored copy of crop-forecast's region-code source of truth (BEN Agri SD
+region_code authority). Consumed by src/sowing/region_ref.py as the sd_region
+validation gate (Phase 2, contract swp-1).
+
+source_repo:     crop-forecast
+source_commit:   4d4770a6a3074e3540405158b0b2782a4f10da7e  (master; "Merge Phase 1: June house area forecast rails")
+source_module:   src/crop_forecast/region_reference.py
+generated_by:    env -u VIRTUAL_ENV poetry run python -m crop_forecast.cli region-reference config/feeder.yaml --out <here>
+generated_on:    2026-06-09
+rows:            41 data rows (per 5-state config) + header
+wa_sd_count:     7 (WA_SOUTH_EASTERN, WA_LOWER_GREAT_SOUTHERN, WA_UPPER_GREAT_SOUTHERN,
+                    WA_MIDLANDS, WA_CENTRAL, WA_SOUTH_WEST, WA_PERTH)
+sha256:          cb075cd93f34ce6db358e73b34c120212af20178d41c87b6c8fe15619155deea
+
+Refresh: re-run generated_by against the current crop-forecast master when its
+config/feeder.yaml `regions:` block changes; update source_commit + sha256 here.

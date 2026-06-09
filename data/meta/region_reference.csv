@@ -1,0 +1,42 @@
+region_code,state,region_name,region_level
+QLD_DARLING_DOWNS,QLD,Darling Downs,sd
+QLD_SOUTH_WEST,QLD,South West,sd
+QLD_MORETON,QLD,Moreton,sd
+QLD_WIDE_BAY_BURNETT,QLD,Wide Bay-Burnett,sd
+QLD_FITZROY,QLD,Fitzroy,sd
+QLD_MACKAY,QLD,Mackay,sd
+QLD,QLD,Queensland,state_total
+NSW_NORTHERN,NSW,Northern,sd
+NSW_NORTH_WESTERN,NSW,North Western,sd
+NSW_CENTRAL_WEST,NSW,Central West,sd
+NSW_SOUTH_EASTERN,NSW,South Eastern,sd
+NSW_MURRUMBIDGEE,NSW,Murrumbidgee,sd
+NSW_MURRAY,NSW,Murray,sd
+NSW_HUNTER,NSW,Hunter,sd
+NSW,NSW,New South Wales,state_total
+VIC_OVENS_MURRAY,VIC,Ovens-Murray,sd
+VIC_GOULBURN,VIC,Goulburn,sd
+VIC_LODDON,VIC,Loddon,sd
+VIC_MALLEE,VIC,Mallee,sd
+VIC_CENTRAL_HIGHLANDS,VIC,Central Highlands,sd
+VIC_WIMMERA,VIC,Wimmera,sd
+VIC_BARWON,VIC,Barwon,sd
+VIC_WESTERN_DISTRICT,VIC,Western District,sd
+VIC_EAST_GIPPSLAND,VIC,East Gippsland,sd
+VIC,VIC,Victoria,state_total
+SA_SOUTH_EAST,SA,South East,sd
+SA_MURRAY_LANDS,SA,Murray Lands,sd
+SA_OUTER_ADELAIDE,SA,Outer Adelaide,sd
+SA_YORKE_AND_LOWER_NORTH,SA,Yorke and Lower North,sd
+SA_NORTHERN,SA,Northern,sd
+SA_EYRE,SA,Eyre,sd
+SA,SA,South Australia,state_total
+WA_SOUTH_EASTERN,WA,South Eastern,sd
+WA_LOWER_GREAT_SOUTHERN,WA,Lower Great Southern,sd
+WA_UPPER_GREAT_SOUTHERN,WA,Upper Great Southern,sd
+WA_MIDLANDS,WA,Midlands,sd
+WA_CENTRAL,WA,Central,sd
+WA_SOUTH_WEST,WA,South West,sd
+WA_PERTH,WA,Perth,sd
+WA,WA,Western Australia,state_total
+AUS,AUS,Australia,national
