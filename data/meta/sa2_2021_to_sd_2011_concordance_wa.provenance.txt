@@ -1,0 +1,37 @@
+sa2_2021_to_sd_2011_concordance_wa.csv — vendored provenance
+============================================================
+
+WA-only subset of an area-weighted SA2(2021) -> SD(2011) overlay concordance,
+vendored for repeatable Task 2.1 execution. The build path reads THIS vendored
+copy, never the cross-repo source (R5). Used by src/sowing/crosswalk.py to roll
+SA2 break features up to BEN Agri SD via allocation_ratio.
+
+source_file:     /home/roddyb/projects/ABS Census Data/Modernised_Census_2022_2025/
+                 comparison_2020_21_to_2022_23/acf_historical/concordances/
+                 sa2_2021_to_sd_2011_area_overlay.csv
+source_sha256:   d7386f88e73b162cfff174eb84c07a553d1eb84445a5062b2e9f7afba02028b6
+source_rows:     3019 data rows (national, all 61 SDs)
+source_generated:2026-05-12 16:14 (per file mtime)
+allocation_method: area_weighted (overlay in EPSG:3577); allocation_ratio sums to 1.0 per SA2
+source_sa2_file: ABS SA2_2021_AUST (GDA2020)
+source_sd_file:  ABS SD_2011 (SD11aAust)
+
+vendored_filter: STE_CODE21 == 5 (SA2 located in Western Australia)
+vendored_rows:   320 data rows
+vendored_cols:   SA2_CODE21, SA2_NAME21, STE_CODE21, SD_CODE11, SD_NAME11,
+                 SD_STATE_CODE, allocation_ratio, is_split_sa2, n_sd_overlaps
+                 (derivation intermediates sa2_area_m2/overlap_area_m2/raw_overlap_ratio/
+                 coverage_ratio and constant metadata columns dropped; allocation_ratio
+                 is the normalized weight to use)
+vendored_sha256: d78a9a28cadcd824e5ac95639387489c4c2943006e75c4809cb71079600cd167
+generated_on:    2026-06-09
+
+SDs present in the WA subset (SD_CODE11 / SD_STATE_CODE):
+  grain (allowlisted -> region_code): 505 510 515 520 525 530 535  (state 5)
+  non-grain WA (excluded, rationale):  540 Pilbara, 545 Kimberley   (state 5)
+  interstate edge (dropped, rationale):430 Eyre(SA) 435 Northern(SA) 710 NT-Bal(NT)
+
+Refresh: re-run the STE_CODE21==5 filter against the current source concordance
+when ABS revises SA2/SD boundaries; update source_sha256 + vendored_sha256 here.
+Join-key note: SA2_CODE21 is the 9-digit 2021 code; the rollup must reconcile it
+with the rainfall features' SA2 key (see crosswalk.py / R6 vintage note).
