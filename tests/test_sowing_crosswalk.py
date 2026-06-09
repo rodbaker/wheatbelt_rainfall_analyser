@@ -6,6 +6,8 @@ and interstate edge overlaps are dropped with rationale; anything unexpected
 fails loud. No silent pass-through. Written BEFORE any rollup code.
 """
 
+import csv
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -19,6 +21,7 @@ from src.sowing.crosswalk import (
     WA_SD_STATE_CODE,
     SdExcluded,
     UnknownSdError,
+    load_sa2_breaks,
     resolve_sd_region,
     rollup_breaks_to_sd,
 )
@@ -192,6 +195,137 @@ class TestRollupBreaksToSd(unittest.TestCase):
         self.assertEqual(set(out), {("WA_MIDLANDS", 2025), ("WA_MIDLANDS", 2026)})
         self.assertAlmostEqual(out[("WA_MIDLANDS", 2025)].break_doy, 150.0)
         self.assertAlmostEqual(out[("WA_MIDLANDS", 2026)].break_doy, 160.0)
+
+
+def _write_csv(path, fieldnames, rows):
+    with open(path, "w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=fieldnames)
+        w.writeheader()
+        w.writerows(rows)
+
+
+class TestLoadSa2Breaks(unittest.TestCase):
+    """R6-approved loader: features<->concordance on 9-digit, features<->broadacre
+    on 5-digit; fail loud on unmatched SA2; warn + weight 0 on missing broadacre."""
+
+    def _fixtures(self, d, *, feature_rows, conc_rows, broad_rows):
+        feat = Path(d) / "features.csv"
+        conc = Path(d) / "conc.csv"
+        broad = Path(d) / "broad.csv"
+        _write_csv(feat,
+                   ["season_year", "state_name", "sa2_code", "sa2_code_9dig",
+                    "autumn_break_date", "autumn_break_status"], feature_rows)
+        _write_csv(conc,
+                   ["SA2_CODE21", "SD_CODE11", "SD_NAME11", "SD_STATE_CODE",
+                    "allocation_ratio"], conc_rows)
+        _write_csv(broad, ["sa2_code", "broadacre_area_ha"], broad_rows)
+        return feat, conc, broad
+
+    def test_joins_compute_doy_and_weights(self):
+        with tempfile.TemporaryDirectory() as d:
+            feat, conc, broad = self._fixtures(
+                d,
+                feature_rows=[dict(season_year="2026", state_name="Western Australia",
+                                   sa2_code="51240", sa2_code_9dig="509021240",
+                                   autumn_break_date="2026-06-09",
+                                   autumn_break_status="on_time")],
+                conc_rows=[dict(SA2_CODE21="509021240", SD_CODE11="525",
+                                SD_NAME11="Midlands", SD_STATE_CODE="5",
+                                allocation_ratio="1.0")],
+                broad_rows=[dict(sa2_code="51240", broadacre_area_ha="500.0")],
+            )
+            (rec,) = load_sa2_breaks(feat, conc, broad)
+            self.assertEqual(rec.sd_code11, "525")
+            self.assertEqual(rec.sd_state_code, "5")
+            self.assertEqual(rec.allocation_ratio, 1.0)
+            self.assertEqual(rec.broadacre_area_ha, 500.0)
+            self.assertEqual(rec.break_doy, 160)        # 2026-06-09
+            self.assertEqual(rec.status, "on_time")
+            self.assertEqual(rec.season_year, 2026)
+
+    def test_missing_broadacre_weight_zero_and_warns_naming_sa2(self):
+        with tempfile.TemporaryDirectory() as d:
+            feat, conc, broad = self._fixtures(
+                d,
+                feature_rows=[dict(season_year="2026", state_name="Western Australia",
+                                   sa2_code="51285", sa2_code_9dig="511041285",
+                                   autumn_break_date="2026-05-20",
+                                   autumn_break_status="on_time")],
+                conc_rows=[dict(SA2_CODE21="511041285", SD_CODE11="535",
+                                SD_NAME11="Central", SD_STATE_CODE="5",
+                                allocation_ratio="1.0")],
+                broad_rows=[],  # no broadacre weight for this SA2
+            )
+            with self.assertLogs("src.sowing.crosswalk", level="WARNING") as cm:
+                (rec,) = load_sa2_breaks(feat, conc, broad)
+            self.assertEqual(rec.broadacre_area_ha, 0.0)
+            self.assertTrue(any("51285" in m for m in cm.output))
+
+    def test_unmatched_sa2_fails_loud(self):
+        with tempfile.TemporaryDirectory() as d:
+            feat, conc, broad = self._fixtures(
+                d,
+                feature_rows=[dict(season_year="2026", state_name="Western Australia",
+                                   sa2_code="99999", sa2_code_9dig="999999999",
+                                   autumn_break_date="2026-06-01",
+                                   autumn_break_status="on_time")],
+                conc_rows=[dict(SA2_CODE21="509021240", SD_CODE11="525",
+                                SD_NAME11="Midlands", SD_STATE_CODE="5",
+                                allocation_ratio="1.0")],
+                broad_rows=[dict(sa2_code="99999", broadacre_area_ha="10.0")],
+            )
+            with self.assertRaises(KeyError):
+                load_sa2_breaks(feat, conc, broad)
+
+    def test_absent_status_has_none_doy(self):
+        with tempfile.TemporaryDirectory() as d:
+            feat, conc, broad = self._fixtures(
+                d,
+                feature_rows=[dict(season_year="2026", state_name="Western Australia",
+                                   sa2_code="51240", sa2_code_9dig="509021240",
+                                   autumn_break_date="", autumn_break_status="absent")],
+                conc_rows=[dict(SA2_CODE21="509021240", SD_CODE11="525",
+                                SD_NAME11="Midlands", SD_STATE_CODE="5",
+                                allocation_ratio="1.0")],
+                broad_rows=[dict(sa2_code="51240", broadacre_area_ha="500.0")],
+            )
+            (rec,) = load_sa2_breaks(feat, conc, broad)
+            self.assertIsNone(rec.break_doy)
+            self.assertEqual(rec.status, "absent")
+
+    def test_splits_emit_one_record_per_sd_overlap(self):
+        with tempfile.TemporaryDirectory() as d:
+            feat, conc, broad = self._fixtures(
+                d,
+                feature_rows=[dict(season_year="2026", state_name="Western Australia",
+                                   sa2_code="51275", sa2_code_9dig="511011275",
+                                   autumn_break_date="2026-06-01",
+                                   autumn_break_status="on_time")],
+                conc_rows=[
+                    dict(SA2_CODE21="511011275", SD_CODE11="530", SD_NAME11="South Eastern",
+                         SD_STATE_CODE="5", allocation_ratio="0.981"),
+                    dict(SA2_CODE21="511011275", SD_CODE11="515",
+                         SD_NAME11="Lower Great Southern", SD_STATE_CODE="5",
+                         allocation_ratio="0.019"),
+                ],
+                broad_rows=[dict(sa2_code="51275", broadacre_area_ha="100.0")],
+            )
+            recs = load_sa2_breaks(feat, conc, broad)
+            self.assertEqual({r.sd_code11 for r in recs}, {"530", "515"})
+            self.assertEqual({round(r.allocation_ratio, 3) for r in recs}, {0.981, 0.019})
+
+    def test_non_wa_feature_rows_ignored(self):
+        with tempfile.TemporaryDirectory() as d:
+            feat, conc, broad = self._fixtures(
+                d,
+                feature_rows=[dict(season_year="2026", state_name="South Australia",
+                                   sa2_code="40001", sa2_code_9dig="400000001",
+                                   autumn_break_date="2026-06-01",
+                                   autumn_break_status="on_time")],
+                conc_rows=[],
+                broad_rows=[],
+            )
+            self.assertEqual(load_sa2_breaks(feat, conc, broad), [])
 
 
 if __name__ == "__main__":

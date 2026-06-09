@@ -19,8 +19,14 @@ The mapped region_codes are reconciled against crop-forecast's
 
 from __future__ import annotations
 
+import csv
+import logging
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from datetime import date
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Union
+
+logger = logging.getLogger(__name__)
 
 # ABS 2011 SD state code for Western Australia (column ``SD_STATE_CODE``).
 WA_SD_STATE_CODE = "5"
@@ -132,6 +138,100 @@ class SdBreak:
     coverage_ok: bool              # coverage >= threshold
     n_sa2_eligible: int
     n_sa2_total: int
+
+
+_BREAK_DATE_STATUSES = {"early", "on_time", "late"}
+
+
+def _break_date_to_doy(iso: str) -> Optional[int]:
+    iso = (iso or "").strip()
+    if not iso:
+        return None
+    return date.fromisoformat(iso).timetuple().tm_yday
+
+
+def load_sa2_breaks(
+    features_path: Union[str, Path],
+    concordance_path: Union[str, Path],
+    broadacre_path: Union[str, Path],
+    state_name: str = "Western Australia",
+) -> List[Sa2Break]:
+    """Assemble ``Sa2Break`` records from the three vendored/feature files (R6).
+
+    Joins per the approved keys: break features <-> concordance on the **9-digit**
+    code (``sa2_code_9dig`` == ``SA2_CODE21``); break features <-> broadacre weight
+    on the **5-digit** code (``sa2_code``). One record per feature-SA2 x
+    concordance-SD overlap (splits emit multiple). ``break_doy`` is the
+    ``autumn_break_date`` day-of-year, ``None`` for absent/not_assessed.
+
+    Failure behavior: **fail loud** (``KeyError``) if a feature SA2's 9-digit code
+    is absent from the concordance; **warn + weight 0** if a feature SA2 has no
+    broadacre weight (the missing SA2 is named, and its zero weight flows into the
+    SD coverage metric).
+    """
+    # concordance: SA2_CODE21 -> list of overlap rows
+    conc: Dict[str, List[dict]] = {}
+    with open(concordance_path, newline="") as fh:
+        for row in csv.DictReader(fh):
+            conc.setdefault(row["SA2_CODE21"].strip(), []).append(row)
+
+    # broadacre: 5-digit sa2_code -> broadacre_area_ha
+    broad: Dict[str, float] = {}
+    with open(broadacre_path, newline="") as fh:
+        for row in csv.DictReader(fh):
+            raw = (row.get("broadacre_area_ha") or "").strip()
+            broad[row["sa2_code"].strip()] = float(raw) if raw else 0.0
+
+    missing_broadacre: set = set()
+    out: List[Sa2Break] = []
+    with open(features_path, newline="") as fh:
+        for row in csv.DictReader(fh):
+            if (row.get("state_name") or "").strip() != state_name:
+                continue
+            code5 = (row.get("sa2_code") or "").strip()
+            code9 = (row.get("sa2_code_9dig") or "").strip()
+
+            overlaps = conc.get(code9)
+            if overlaps is None:
+                raise KeyError(
+                    f"feature SA2 sa2_code_9dig={code9!r} (sa2_code={code5!r}) "
+                    f"not found in concordance -- cannot map to an SD"
+                )
+
+            if code5 not in broad:
+                missing_broadacre.add(code5)
+            broadacre = broad.get(code5, 0.0)
+
+            status = (row.get("autumn_break_status") or "").strip()
+            break_doy = (
+                _break_date_to_doy(row.get("autumn_break_date"))
+                if status in _BREAK_DATE_STATUSES
+                else None
+            )
+            season_year = int((row.get("season_year") or "").strip())
+
+            for o in overlaps:
+                out.append(
+                    Sa2Break(
+                        sa2_key=code9,
+                        sd_code11=o["SD_CODE11"].strip(),
+                        sd_state_code=o["SD_STATE_CODE"].strip(),
+                        allocation_ratio=float(o["allocation_ratio"]),
+                        broadacre_area_ha=broadacre,
+                        break_doy=break_doy,
+                        status=status,
+                        season_year=season_year,
+                    )
+                )
+
+    if missing_broadacre:
+        logger.warning(
+            "no broadacre weight for %d feature SA2(s): %s -- assigned weight 0 "
+            "(they drop from SD valid-weight coverage)",
+            len(missing_broadacre),
+            ", ".join(sorted(missing_broadacre)),
+        )
+    return out
 
 
 def rollup_breaks_to_sd(
