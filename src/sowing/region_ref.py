@@ -54,6 +54,39 @@ def load_region_reference(
     return codes
 
 
+def sd_region_codes(
+    path: Optional[Union[str, Path]] = None,
+    state: Optional[str] = None,
+) -> Set[str]:
+    """Return ``region_code`` values at ``region_level == 'sd'``.
+
+    Optionally restricted to a single ``state`` (e.g. ``"WA"``). Used to reconcile
+    the analyser's hand-authored SD allowlist against crop-forecast's authority.
+    """
+    path = Path(path) if path is not None else DEFAULT_REGION_REFERENCE_PATH
+    if not path.exists():
+        raise FileNotFoundError(f"region_reference not found: {path}")
+
+    codes: Set[str] = set()
+    with open(path, newline="") as fh:
+        reader = csv.DictReader(fh)
+        fieldnames = reader.fieldnames or []
+        missing = [c for c in REQUIRED_COLUMNS if c not in fieldnames]
+        if missing:
+            raise ValueError(
+                f"region_reference {path} missing required columns: {missing}"
+            )
+        for row in reader:
+            if (row.get("region_level") or "").strip() != "sd":
+                continue
+            if state is not None and (row.get("state") or "").strip() != state:
+                continue
+            code = (row.get("region_code") or "").strip()
+            if code:
+                codes.add(code)
+    return codes
+
+
 def assert_sd_known(sd_region: str, ref: Iterable[str]) -> None:
     """Raise ``UnknownRegionError`` if ``sd_region`` is not in the reference set."""
     if sd_region not in set(ref):
