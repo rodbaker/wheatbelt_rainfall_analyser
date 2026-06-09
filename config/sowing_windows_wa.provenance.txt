@@ -1,0 +1,53 @@
+sowing_windows_wa.csv — transcription provenance & caveats
+===========================================================
+
+DRAFT for manual agronomic review. v1 covers WHEAT only. Transcribed from the
+in-repo guide markdown (the colour-coded table cells did not survive PDF->md
+extraction; see docs/sowing_windows_transcription_notes.md), so windows are
+derived from the table's calendar extent + Figure 2 narrative, NOT per-cell bands.
+
+source_document: DPIRD 2026 WA Crop Sowing Guide, Bulletin 4937 (published Nov 2025)
+source_file:     docs/DPIRD-2026-WA-Crop-Sowing-Guide.md
+source_year:     2026 (the guide is for the 2026 season; fresh for season_year 2026)
+
+METHOD (per review decision): collapse wheat Table 15 into a SINGLE wheat
+commodity window = the **full envelope (union)** of the Slow..Quick main-season
+maturity rows. The full envelope is deliberately the widest defensible window so
+it UNDER-emits at_risk rather than over-emits (directional, citation-only evidence;
+silence beats confident-but-wrong).
+
+DOY boundaries (2026, non-leap), each tied to quotable markdown content:
+  earliest_sow_doy  = 91  (Apr 1)  -- main-season left edge of Table 15's April
+                                       columns (winter-wheat March cell excluded)
+  optimal_start_doy = 111 (Apr 21) -- "peak yields ... from a late April to early
+                                       May sowing" (Figure 2 narrative, md l.752)
+  optimal_end_doy   = 134 (May 14) -- union upper bound of optimum: "early May"
+                                       peak + "main season germinated from mid-May
+                                       onwards" (md l.752)
+  latest_viable_doy = 166 (Jun 15) -- trial sowing axis ends ~13 June (md l.791);
+                                       aligns with the analyser's autumn-break late
+                                       cutoff (Jun 15)
+  penalty_pct_per_week_late = (blank) -- the guide does not state an extractable
+                                       numeric per-week penalty
+  confidence = low  -- maturity-collapsed, narrative-derived, colour cells unavailable
+
+CAVEATS (review decision):
+  1. wheat is a maturity-collapsed envelope across the Slow..Quick rows.
+  2. the southern-only winter-wheat special case (Table 15 "# Winter wheat (quick)"
+     row, applicable only to southern WA per md l.796) is EXCLUDED in v1.
+  3. this may UNDER-emit at_risk rows for quick/mid-maturity-dominant areas (their
+     true window closes earlier than the envelope's latest_viable).
+  4. a future schema/version should add a maturity class or SD-specific maturity
+     assumptions before TIGHTENING the window.
+
+REGION GRAIN: the guide's sowing-time tables are WA-wide ("AGZONES 1-6 combined"),
+not agzone-differentiated, so the single wheat window is replicated across all 7
+BEN Agri WA SDs (D2 grain). This is faithful -- the guide encodes no sub-state
+numeric differentiation.
+
+COMMODITY CODE: guide "Wheat" -> BEN Agri `wheat_incl_durum` (spec 7.2). Confirm
+against config/guide_commodity_map.yaml when that is authored.
+
+NOT YET COVERED (no faithful in-repo source): barley, canola, oats, lupin,
+chickpea, faba bean, field pea, lentil. These need the PDF tables or a supplied
+extract before transcription.

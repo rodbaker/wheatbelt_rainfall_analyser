@@ -1,7 +1,8 @@
 # Sowing-Windows Transcription — findings before drafting `sowing_windows_wa.csv`
 
-**Status:** blocked on a faithful source; no CSV drafted (would require fabricating
-agronomic numbers, which the review brief forbids). Decision input needed.
+**Status:** RESOLVED — Option B chosen (full-envelope wheat draft, no PDF install).
+`config/sowing_windows_wa.csv` drafted (wheat only, `confidence=low`) for manual
+agronomic review; see that file's provenance sidecar. Other crops still deferred.
 **Date:** 2026-06-09
 **Source examined:** `docs/DPIRD-2026-WA-Crop-Sowing-Guide.md` (8197 lines) and
 `docs/DPIRD-2026-WA-Crop-Sowing-Guide.pdf` (Bulletin 4937).
@@ -66,60 +67,13 @@ only the colour table — so a narrative-only pass would leave them empty or gue
 | **B** | I draft a **coarse, WA-wide, `confidence=low`** table from narrative text only — likely wheat (+ maybe barley/canola), pulses left out for lack of stated DOYs. Clearly provisional. | Low–medium; partial coverage | low |
 | **C** | You supply the structured window table (or a cleaner extract). | High | external |
 
-**Recommendation: A.** It's the only in-repo path to the conservative,
-source-grounded data the brief asks for. I'd transcribe one WA-wide window per
-commodity (collapsing maturity detail per spec §7.1), `rainfall_regime` per the
-region, exact page citations in a sidecar, and `window_confidence` no higher than
-the guide's own precision supports — then replicate across the 7 SDs for the
-SD-grain schema.
+## 5. Decision (2026-06-09): Option B, full-envelope wheat
 
----
-
-## 5. UPDATE — Option A executed (PDF read via pymupdf, no sudo)
-
-`poppler-utils` couldn't be installed (sudo needs a password), so the PDF was read
-with **pymupdf** (installed into `.venv` for transcription only — *not* a runtime
-dep, not in `requirements.txt`). Pages located by caption; wheat Table 15 (p31)
-cells extracted **programmatically** from the fill rectangles (exact, reproducible)
-and cross-checked against a rendered image.
-
-### 5.1 Wheat — Table 15, faithfully extracted (p31)
-
-Colour legend: light-blue = earlier than ideal · dark-green = **optimum** · orange =
-later than ideal but acceptable. Columns are weeks (Mar wk4 … Jun wk4).
-
-| maturity class | earlier | **optimum** | acceptable |
-|---|---|---|---|
-| Winter wheat (quick) †| — | Apr wk1–2 | Apr wk3 |
-| Very slow | — | Apr wk1–2 | Apr wk3 |
-| Slow | — | Apr wk3 – May wk1 | May wk2 |
-| Mid–slow | Apr wk3 | Apr wk4 – May wk2 | May wk3 |
-| Quick–mid to mid | May wk1 | May wk2 – wk4 | Jun wk1 |
-| Quick | May wk2 | May wk3 – Jun wk1 | Jun wk2 |
-
-† Winter wheat is footnoted as applicable **only in southern areas of WA** (Fig 2).
-
-DOY conversion (2026, non-leap; wk1=1–7, wk2=8–14, wk3=15–21, wk4=22–EOM):
-Apr1=DOY91, May1=121, Jun1=152.
-
-### 5.2 Other crops — prose only, no authoritative window table
-
-Barley, canola, oats, lupin, chickpea, faba bean, field pea, lentil have **no
-colour-coded suggested-sowing-times table** — only scattered, variety-specific or
-observational prose (e.g. oats p168 "target April sowing"; lentil p251 "mid to late
-April … good yields, also May albeit slower"; canola p136/140 NVT sown "24 Apr–11
-May" / "25 Apr–1 Jun"). Turning these into per-commodity DOY windows would be
-interpolation beyond what the guide states — out of bounds per the brief.
-
-### 5.3 Two decisions this raises (pending)
-
-1. **Wheat maturity collapse** (schema has no maturity column → one window per
-   commodity). Candidate representative windows (earliest / opt_start / opt_end /
-   latest_viable, DOY):
-   - **Main-season dominant** (Quick–mid to mid; the bulk of WA area): 121 / 128 / 151 / 158
-   - **Full envelope** (Slow→Quick, excl. southern-only winter): 105 / 105 / 158 / 165
-   - **Quick-dominant** (latest-sown / frost-managed): 128 / 135 / 158 / 165
-2. **Cross-crop scope:** wheat-only v1 (faithful) · draft others from prose at
-   `confidence=low` (some interpolation) · supplied externally.
-
-*Still no `sowing_windows_wa.csv` drafted — pending the two decisions above.*
+Chosen: draft now from narrative (no `poppler` install), **wheat only**, as a
+**maturity-collapsed full envelope** (union of the Slow..Quick rows), excluding
+the southern-only winter-wheat special case. The full envelope is the widest
+defensible window → under-emits `at_risk` rather than over-emits (directional,
+citation-only evidence; silence beats confident-but-wrong). DOY boundaries,
+citations, and the four review caveats are recorded in
+`config/sowing_windows_wa.provenance.txt`. The other 8 crops remain deferred until
+a faithful source (PDF tables or supplied extract) is available.
