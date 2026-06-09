@@ -327,6 +327,60 @@ class TestLoadSa2Breaks(unittest.TestCase):
             )
             self.assertEqual(load_sa2_breaks(feat, conc, broad), [])
 
+    def test_not_assessed_status_has_none_doy(self):
+        # ported: not_assessed (no daily data) also yields None break_doy
+        with tempfile.TemporaryDirectory() as d:
+            feat, conc, broad = self._fixtures(
+                d,
+                feature_rows=[dict(season_year="2012", state_name="Western Australia",
+                                   sa2_code="51240", sa2_code_9dig="509021240",
+                                   autumn_break_date="",
+                                   autumn_break_status="not_assessed")],
+                conc_rows=[dict(SA2_CODE21="509021240", SD_CODE11="525",
+                                SD_NAME11="Midlands", SD_STATE_CODE="5",
+                                allocation_ratio="1.0")],
+                broad_rows=[dict(sa2_code="51240", broadacre_area_ha="500.0")],
+            )
+            (rec,) = load_sa2_breaks(feat, conc, broad)
+            self.assertIsNone(rec.break_doy)
+            self.assertEqual(rec.status, "not_assessed")
+
+    def test_multiple_seasons_loaded(self):
+        # ported: the loader returns records across every season_year present
+        with tempfile.TemporaryDirectory() as d:
+            feat, conc, broad = self._fixtures(
+                d,
+                feature_rows=[
+                    dict(season_year="2024", state_name="Western Australia",
+                         sa2_code="51240", sa2_code_9dig="509021240",
+                         autumn_break_date="2024-05-20", autumn_break_status="on_time"),
+                    dict(season_year="2025", state_name="Western Australia",
+                         sa2_code="51240", sa2_code_9dig="509021240",
+                         autumn_break_date="2025-05-25", autumn_break_status="on_time"),
+                ],
+                conc_rows=[dict(SA2_CODE21="509021240", SD_CODE11="525",
+                                SD_NAME11="Midlands", SD_STATE_CODE="5",
+                                allocation_ratio="1.0")],
+                broad_rows=[dict(sa2_code="51240", broadacre_area_ha="500.0")],
+            )
+            recs = load_sa2_breaks(feat, conc, broad)
+            self.assertEqual({r.season_year for r in recs}, {2024, 2025})
+
+
+class TestLoadSa2BreaksRealFiles(unittest.TestCase):
+    """Ported integration test: the real vendored files load and Geraldton flags."""
+
+    def test_real_vendored_files_load_and_flag_geraldton(self):
+        feat = REPO_ROOT / "data" / "features" / "rainfall_features_sa2_season.csv"
+        conc = REPO_ROOT / "data" / "meta" / "sa2_2021_to_sd_2011_concordance_wa.csv"
+        broad = REPO_ROOT / "data" / "meta" / "sa2_coverage_report.csv"
+        with self.assertLogs("src.sowing.crosswalk", level="WARNING") as cm:
+            recs = load_sa2_breaks(feat, conc, broad)
+        self.assertTrue(recs)
+        warned = " ".join(cm.output)
+        self.assertIn("51285", warned)  # Geraldton
+        self.assertIn("51287", warned)  # Geraldton - North
+
 
 if __name__ == "__main__":
     unittest.main()
