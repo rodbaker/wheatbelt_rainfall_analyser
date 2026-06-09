@@ -1,0 +1,23 @@
+# Guide-crop -> BEN Agri commodity map (spec 7.2). Explicit table, never fuzzy.
+# Source: DPIRD 2026 WA Crop Sowing Guide (Bulletin 4937) crop sections.
+# v1: WA winter crops only. Used to transcribe guide windows into BEN Agri
+# commodity codes; the values are the `commodity` keys emitted in
+# sowing_window_area_pressure.csv.
+
+map:
+  Wheat: wheat_incl_durum        # durum shares wheat unless given separately
+  Barley: barley
+  Canola: canola
+  Oats: oats
+  Lupin: lupins
+  Chickpea: chickpeas
+  Faba bean: faba_beans
+  Field pea: field_peas
+  Lentil: lentils
+  Triticale: wheat_incl_durum    # inherits the cereal/wheat window (lower confidence)
+
+# Explicitly dropped / out of scope (documented, never silently fuzzy-matched):
+dropped:
+  Vetch: no BEN Agri code
+  Sorghum: summer crop, absent from WA winter guide (out of scope until a summer guide loads)
+  Cotton: summer crop, absent from WA winter guide (out of scope until a summer guide loads)

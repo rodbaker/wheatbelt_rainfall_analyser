@@ -1,0 +1,321 @@
+SA2_CODE21,SA2_NAME21,STE_CODE21,SD_CODE11,SD_NAME11,SD_STATE_CODE,allocation_ratio,is_split_sa2,n_sd_overlaps
+501011001,Augusta,5,510,South West,5,1.0,False,1
+501011003,Busselton Surrounds,5,510,South West,5,1.0,False,1
+501011004,Margaret River,5,510,South West,5,1.0,False,1
+501011293,Busselton - East,5,510,South West,5,1.0,False,1
+501011294,Busselton - West,5,510,South West,5,1.0,False,1
+501021005,Australind - Leschenault,5,510,South West,5,1.0,False,1
+501021007,Capel,5,510,South West,5,1.0,False,1
+501021008,College Grove - Carey Park,5,510,South West,5,1.0,False,1
+501021009,Collie,5,510,South West,5,0.9999389330229866,True,2
+501021009,Collie,5,520,Upper Great Southern,5,6.106697701333811e-05,True,2
+501021010,Dardanup,5,510,South West,5,1.0,False,1
+501021011,Davenport,5,510,South West,5,1.0,False,1
+501021012,Eaton - Pelican Point,5,510,South West,5,1.0,False,1
+501021014,Harvey,5,510,South West,5,1.0,False,1
+501021015,East Bunbury - Glen Iris,5,510,South West,5,1.0,False,1
+501021016,Waroona,5,510,South West,5,1.0,False,1
+501021251,Dalyellup,5,510,South West,5,1.0,False,1
+501021252,Gelorup - Stratham,5,510,South West,5,1.0,False,1
+501021253,South Bunbury - Bunbury,5,510,South West,5,1.0,False,1
+501021254,Withers - Usher,5,510,South West,5,1.0,False,1
+501031017,Bridgetown - Boyup Brook,5,510,South West,5,0.9997475798827662,True,3
+501031017,Bridgetown - Boyup Brook,5,515,Lower Great Southern,5,5.213236040307034e-05,True,3
+501031017,Bridgetown - Boyup Brook,5,520,Upper Great Southern,5,0.0002002877568308307,True,3
+501031018,Donnybrook - Balingup,5,510,South West,5,1.0,False,1
+501031019,Manjimup,5,510,South West,5,1.0,False,1
+501031020,Pemberton,5,510,South West,5,0.9998377984507528,True,2
+501031020,Pemberton,5,515,Lower Great Southern,5,0.00016220154924712638,True,2
+502011021,Dawesville - Bouvard,5,510,South West,5,1.0,False,1
+502011022,Falcon - Wannanup,5,510,South West,5,1.0,False,1
+502011023,Greenfields,5,510,South West,5,1.0,False,1
+502011024,Halls Head - Erskine,5,510,South West,5,1.0,False,1
+502011025,Mandurah,5,510,South West,5,1.0,False,1
+502011026,Mandurah - East,5,510,South West,5,1.0,False,1
+502011027,Mandurah - North,5,505,Perth,5,3.5754595586476237e-07,True,2
+502011027,Mandurah - North,5,510,South West,5,0.9999996424540442,True,2
+502011028,Mandurah - South,5,510,South West,5,1.0,False,1
+502011029,Pinjarra,5,510,South West,5,1.0,False,1
+503011030,City Beach,5,505,Perth,5,1.0,False,1
+503011031,Claremont (WA),5,505,Perth,5,1.0,False,1
+503011032,Cottesloe,5,505,Perth,5,1.0,False,1
+503011033,Floreat,5,505,Perth,5,1.0,False,1
+503011034,Mosman Park - Peppermint Grove,5,505,Perth,5,1.0,False,1
+503011035,Nedlands - Dalkeith - Crawley,5,505,Perth,5,1.0,False,1
+503011036,Swanbourne - Mount Claremont,5,505,Perth,5,1.0,False,1
+503021037,Kings Park (WA),5,505,Perth,5,1.0,False,1
+503021038,Mount Hawthorn - Leederville,5,505,Perth,5,1.0,False,1
+503021039,Mount Lawley - Inglewood,5,505,Perth,5,1.0,False,1
+503021040,North Perth,5,505,Perth,5,1.0,False,1
+503021042,Subiaco - Shenton Park,5,505,Perth,5,1.0,False,1
+503021043,Wembley - West Leederville - Glendalough,5,505,Perth,5,1.0,False,1
+503021295,East Perth,5,505,Perth,5,1.0,False,1
+503021296,Perth (North) - Highgate,5,505,Perth,5,1.0,False,1
+503021297,Perth (West) - Northbridge,5,505,Perth,5,1.0,False,1
+504011044,Bassendean - Eden Hill - Ashfield,5,505,Perth,5,1.0,False,1
+504011045,Bayswater - Embleton - Bedford,5,505,Perth,5,1.0,False,1
+504011046,Maylands,5,505,Perth,5,1.0,False,1
+504011047,Morley,5,505,Perth,5,1.0,False,1
+504011048,Noranda,5,505,Perth,5,1.0,False,1
+504021049,Chidlow,5,505,Perth,5,0.9999999554662277,True,2
+504021049,Chidlow,5,525,Midlands,5,4.453377228266148e-08,True,2
+504021050,Glen Forrest - Darlington,5,505,Perth,5,1.0,False,1
+504021051,Helena Valley - Koongamia,5,505,Perth,5,1.0,False,1
+504021052,Malmalling - Reservoir,5,505,Perth,5,0.9999999777172358,True,2
+504021052,Malmalling - Reservoir,5,525,Midlands,5,2.228276420822938e-08,True,2
+504021053,Mundaring,5,505,Perth,5,1.0,False,1
+504021054,Swan View - Greenmount - Midvale,5,505,Perth,5,1.0,False,1
+504031055,Avon Valley National Park,5,505,Perth,5,0.9999999534481625,True,2
+504031055,Avon Valley National Park,5,525,Midlands,5,4.6551837510867656e-08,True,2
+504031056,Ballajura,5,505,Perth,5,1.0,False,1
+504031057,Beechboro,5,505,Perth,5,1.0,False,1
+504031058,Bullsbrook,5,505,Perth,5,0.9999999888682712,True,2
+504031058,Bullsbrook,5,525,Midlands,5,1.1131728808547209e-08,True,2
+504031060,Gidgegannup,5,505,Perth,5,1.0,False,1
+504031061,Hazelmere - Guildford,5,505,Perth,5,1.0,False,1
+504031062,Lockridge - Kiara,5,505,Perth,5,1.0,False,1
+504031063,Malaga,5,505,Perth,5,1.0,False,1
+504031064,Melaleuca - Lexia,5,505,Perth,5,1.0,False,1
+504031065,Middle Swan - Herne Hill,5,505,Perth,5,1.0,False,1
+504031066,Midland - Guildford,5,505,Perth,5,1.0,False,1
+504031067,Stratton - Jane Brook,5,505,Perth,5,1.0,False,1
+504031068,The Vines,5,505,Perth,5,1.0,False,1
+504031069,Walyunga National Park,5,505,Perth,5,1.0,False,1
+504031298,Aveley,5,505,Perth,5,1.0,False,1
+504031299,Brabham - Henley Brook,5,505,Perth,5,1.0,False,1
+504031300,Ellenbrook,5,505,Perth,5,1.0,False,1
+505011070,Craigie - Beldon,5,505,Perth,5,1.0,False,1
+505011071,Currambine - Kinross,5,505,Perth,5,1.0,False,1
+505011072,Duncraig,5,505,Perth,5,1.0,False,1
+505011073,Greenwood - Warwick,5,505,Perth,5,1.0,False,1
+505011074,Heathridge - Connolly,5,505,Perth,5,1.0,False,1
+505011075,Hillarys,5,505,Perth,5,1.0,False,1
+505011076,Iluka - Burns Beach,5,505,Perth,5,1.0,False,1
+505011077,Joondalup - Edgewater,5,505,Perth,5,1.0,False,1
+505011078,Kingsley,5,505,Perth,5,1.0,False,1
+505011079,Mullaloo - Kallaroo,5,505,Perth,5,1.0,False,1
+505011080,Ocean Reef,5,505,Perth,5,1.0,False,1
+505011081,Padbury,5,505,Perth,5,1.0,False,1
+505011082,Sorrento - Marmion,5,505,Perth,5,1.0,False,1
+505011083,Woodvale,5,505,Perth,5,1.0,False,1
+505021084,Balcatta - Hamersley,5,505,Perth,5,1.0,False,1
+505021085,Balga - Mirrabooka,5,505,Perth,5,1.0,False,1
+505021087,Herdsman,5,505,Perth,5,1.0,False,1
+505021088,Innaloo - Doubleview,5,505,Perth,5,1.0,False,1
+505021089,Karrinyup - Gwelup - Carine,5,505,Perth,5,1.0,False,1
+505021090,Nollamara - Westminster,5,505,Perth,5,1.0,False,1
+505021091,Osborne Park Industrial,5,505,Perth,5,1.0,False,1
+505021092,Scarborough,5,505,Perth,5,1.0,False,1
+505021093,Stirling - Osborne Park,5,505,Perth,5,1.0,False,1
+505021094,Trigg - North Beach - Watermans Bay,5,505,Perth,5,1.0,False,1
+505021095,Tuart Hill - Joondanna,5,505,Perth,5,1.0,False,1
+505021096,Wembley Downs - Churchlands - Woodlands,5,505,Perth,5,1.0,False,1
+505021097,Yokine - Coolbinia - Menora,5,505,Perth,5,1.0,False,1
+505021301,Dianella - North,5,505,Perth,5,1.0,False,1
+505021302,Dianella - South,5,505,Perth,5,1.0,False,1
+505031098,Alexander Heights - Koondoola,5,505,Perth,5,1.0,False,1
+505031099,Butler - Merriwa - Ridgewood,5,505,Perth,5,1.0,False,1
+505031100,Carramar,5,505,Perth,5,1.0,False,1
+505031101,Clarkson,5,505,Perth,5,1.0,False,1
+505031102,Girrawheen,5,505,Perth,5,1.0,False,1
+505031104,Marangaroo,5,505,Perth,5,1.0,False,1
+505031105,Mindarie - Quinns Rocks - Jindalee,5,505,Perth,5,1.0,False,1
+505031106,Neerabup National Park,5,505,Perth,5,1.0,False,1
+505031107,Tapping - Ashby - Sinagra,5,505,Perth,5,1.0,False,1
+505031255,Alkimos - Eglinton,5,505,Perth,5,1.0,False,1
+505031256,Carabooda - Pinjar,5,505,Perth,5,0.9999999824422958,True,2
+505031256,Carabooda - Pinjar,5,525,Midlands,5,1.755770420538874e-08,True,2
+505031257,Two Rocks,5,505,Perth,5,0.999999987496103,True,2
+505031257,Two Rocks,5,525,Midlands,5,1.2503897078288047e-08,True,2
+505031258,Yanchep,5,505,Perth,5,1.0,False,1
+505031303,Hocking - Pearsall,5,505,Perth,5,1.0,False,1
+505031304,Landsdale,5,505,Perth,5,1.0,False,1
+505031305,Madeley - Darch,5,505,Perth,5,1.0,False,1
+505031306,Wanneroo - Sinagra,5,505,Perth,5,1.0,False,1
+506011110,Armadale - Wungong - Brookdale,5,505,Perth,5,1.0,False,1
+506011111,Ashendon - Lesley,5,505,Perth,5,0.9999999802316732,True,2
+506011111,Ashendon - Lesley,5,525,Midlands,5,1.9768326773237895e-08,True,2
+506011112,Camillo - Champion Lakes,5,505,Perth,5,1.0,False,1
+506011114,Kelmscott,5,505,Perth,5,1.0,False,1
+506011115,Mount Nasura - Mount Richon - Bedfordale,5,505,Perth,5,1.0,False,1
+506011116,Roleystone,5,505,Perth,5,1.0,False,1
+506011117,Seville Grove,5,505,Perth,5,1.0,False,1
+506011307,Harrisdale,5,505,Perth,5,1.0,False,1
+506011308,Piara Waters - Forrestdale,5,505,Perth,5,1.0,False,1
+506021118,Belmont - Ascot - Redcliffe,5,505,Perth,5,1.0,False,1
+506021119,East Victoria Park - Carlisle,5,505,Perth,5,1.0,False,1
+506021120,Kewdale Commercial,5,505,Perth,5,1.0,False,1
+506021121,Perth Airport,5,505,Perth,5,1.0,False,1
+506021123,Victoria Park - Lathlain - Burswood,5,505,Perth,5,1.0,False,1
+506021309,Cloverdale,5,505,Perth,5,1.0,False,1
+506021310,Kewdale,5,505,Perth,5,1.0,False,1
+506021311,Rivervale,5,505,Perth,5,1.0,False,1
+506031124,Bentley - Wilson - St James,5,505,Perth,5,1.0,False,1
+506031125,Canning Vale - West,5,505,Perth,5,1.0,False,1
+506031126,Canning Vale Commercial,5,505,Perth,5,1.0,False,1
+506031127,Cannington - Queens Park,5,505,Perth,5,1.0,False,1
+506031128,Parkwood - Ferndale - Lynwood,5,505,Perth,5,1.0,False,1
+506031129,Riverton - Shelley - Rossmoyne,5,505,Perth,5,1.0,False,1
+506031130,Welshpool,5,505,Perth,5,1.0,False,1
+506031131,Willetton,5,505,Perth,5,1.0,False,1
+506041132,Beckenham - Kenwick - Langford,5,505,Perth,5,1.0,False,1
+506041133,Canning Vale - East,5,505,Perth,5,1.0,False,1
+506041134,Gosnells,5,505,Perth,5,1.0,False,1
+506041135,Huntingdale - Southern River,5,505,Perth,5,1.0,False,1
+506041136,Maddington - Orange Grove - Martin,5,505,Perth,5,1.0,False,1
+506041137,Thornlie,5,505,Perth,5,1.0,False,1
+506051138,Forrestfield - Wattle Grove,5,505,Perth,5,1.0,False,1
+506051139,High Wycombe,5,505,Perth,5,1.0,False,1
+506051140,Kalamunda - Maida Vale - Gooseberry Hill,5,505,Perth,5,1.0,False,1
+506051141,Lesmurdie - Bickley - Carmel,5,505,Perth,5,1.0,False,1
+506061142,Byford,5,505,Perth,5,1.0,False,1
+506061143,Mundijong,5,505,Perth,5,1.0,False,1
+506061144,Serpentine - Jarrahdale,5,505,Perth,5,0.9939000861656563,True,2
+506061144,Serpentine - Jarrahdale,5,510,South West,5,0.006099913834343679,True,2
+506071145,Como,5,505,Perth,5,1.0,False,1
+506071146,Manning - Waterford,5,505,Perth,5,1.0,False,1
+506071147,South Perth - Kensington,5,505,Perth,5,1.0,False,1
+507011148,Banjup,5,505,Perth,5,1.0,False,1
+507011150,Bibra Industrial,5,505,Perth,5,1.0,False,1
+507011151,Bibra Lake,5,505,Perth,5,1.0,False,1
+507011152,Coogee,5,505,Perth,5,1.0,False,1
+507011153,Coolbellup,5,505,Perth,5,1.0,False,1
+507011154,Hamilton Hill,5,505,Perth,5,1.0,False,1
+507011155,Henderson,5,505,Perth,5,1.0,False,1
+507011158,North Coogee,5,505,Perth,5,1.0,False,1
+507011159,South Lake - Cockburn Central,5,505,Perth,5,1.0,False,1
+507011160,Spearwood,5,505,Perth,5,1.0,False,1
+507011161,Success - Hammond Park,5,505,Perth,5,1.0,False,1
+507011163,Yangebup,5,505,Perth,5,1.0,False,1
+507011259,Beeliar - Wattleup,5,505,Perth,5,1.0,False,1
+507011260,Jandakot,5,505,Perth,5,1.0,False,1
+507021164,East Fremantle,5,505,Perth,5,1.0,False,1
+507021165,Fremantle,5,505,Perth,5,1.0,False,1
+507021166,Fremantle - South,5,505,Perth,5,1.0,False,1
+507021167,O'Connor (WA),5,505,Perth,5,1.0,False,1
+507031169,Wellard (West) - Bertram,5,505,Perth,5,1.0,False,1
+507031170,Calista,5,505,Perth,5,1.0,False,1
+507031172,Hope Valley - Postans,5,505,Perth,5,1.0,False,1
+507031173,Kwinana Industrial,5,505,Perth,5,1.0,False,1
+507031174,Parmelia - Orelia,5,505,Perth,5,1.0,False,1
+507031261,Casuarina - Wandi,5,505,Perth,5,1.0,False,1
+507041175,Applecross - Ardross,5,505,Perth,5,1.0,False,1
+507041176,Bateman,5,505,Perth,5,1.0,False,1
+507041177,Bicton - Palmyra,5,505,Perth,5,1.0,False,1
+507041178,Booragoon,5,505,Perth,5,1.0,False,1
+507041179,Bull Creek,5,505,Perth,5,1.0,False,1
+507041180,Leeming,5,505,Perth,5,1.0,False,1
+507041181,Melville,5,505,Perth,5,1.0,False,1
+507041182,Murdoch - Kardinya,5,505,Perth,5,1.0,False,1
+507041183,Willagee,5,505,Perth,5,1.0,False,1
+507041184,Winthrop,5,505,Perth,5,1.0,False,1
+507051186,Cooloongup,5,505,Perth,5,1.0,False,1
+507051187,Port Kennedy,5,505,Perth,5,1.0,False,1
+507051188,Rockingham,5,505,Perth,5,1.0,False,1
+507051189,Rockingham Lakes,5,505,Perth,5,1.0,False,1
+507051190,Safety Bay - Shoalwater,5,505,Perth,5,1.0,False,1
+507051191,Singleton - Golden Bay - Secret Harbour,5,505,Perth,5,0.9999999886157981,True,2
+507051191,Singleton - Golden Bay - Secret Harbour,5,510,South West,5,1.1384201938969871e-08,True,2
+507051192,Waikiki,5,505,Perth,5,1.0,False,1
+507051193,Warnbro,5,505,Perth,5,1.0,False,1
+507051312,Baldivis - North,5,505,Perth,5,1.0,False,1
+507051313,Baldivis - South,5,505,Perth,5,1.0,False,1
+507051314,Karnup,5,505,Perth,5,0.9999997445635522,True,2
+507051314,Karnup,5,510,South West,5,2.5543644780251093e-07,True,2
+509011225,Albany,5,515,Lower Great Southern,5,1.0,False,1
+509011226,Albany Surrounds,5,515,Lower Great Southern,5,1.0,False,1
+509011227,Bayonet Head - Lower King,5,515,Lower Great Southern,5,1.0,False,1
+509011228,Denmark,5,510,South West,5,0.00016296135439904027,True,2
+509011228,Denmark,5,515,Lower Great Southern,5,0.9998370386456009,True,2
+509011229,Gnowangerup,5,515,Lower Great Southern,5,0.9997848054770989,True,3
+509011229,Gnowangerup,5,520,Upper Great Southern,5,0.0001615651349699246,True,3
+509011229,Gnowangerup,5,530,South Eastern,5,5.362938793120189e-05,True,3
+509011230,Katanning,5,515,Lower Great Southern,5,0.9998658471551558,True,2
+509011230,Katanning,5,520,Upper Great Southern,5,0.00013415284484418673,True,2
+509011231,Kojonup,5,510,South West,5,0.00010788558676855361,True,3
+509011231,Kojonup,5,515,Lower Great Southern,5,0.9998687902524511,True,3
+509011231,Kojonup,5,520,Upper Great Southern,5,2.3324160780348317e-05,True,3
+509011232,Little Grove - Elleker,5,515,Lower Great Southern,5,1.0,False,1
+509011233,McKail - Willyung,5,515,Lower Great Southern,5,1.0,False,1
+509011234,Plantagenet,5,515,Lower Great Southern,5,1.0,False,1
+509011235,Stirling Range National Park,5,515,Lower Great Southern,5,1.0,False,1
+509021236,Chittering,5,505,Perth,5,1.1308449738879837e-08,True,2
+509021236,Chittering,5,525,Midlands,5,0.9999999886915504,True,2
+509021237,Cunderdin,5,525,Midlands,5,1.0,False,1
+509021238,Dowerin,5,525,Midlands,5,1.0,False,1
+509021239,Gingin - Dandaragan,5,525,Midlands,5,1.0,False,1
+509021240,Merredin,5,520,Upper Great Southern,5,0.000353293225624061,True,2
+509021240,Merredin,5,525,Midlands,5,0.999646706774376,True,2
+509021241,Moora,5,525,Midlands,5,0.9999979880581571,True,2
+509021241,Moora,5,535,Central,5,2.0119418429972882e-06,True,2
+509021242,Mukinbudin,5,520,Upper Great Southern,5,9.043293686125633e-05,True,4
+509021242,Mukinbudin,5,525,Midlands,5,0.9987661228137631,True,4
+509021242,Mukinbudin,5,530,South Eastern,5,0.0009497259152644921,True,4
+509021242,Mukinbudin,5,535,Central,5,0.00019371833411116718,True,4
+509021243,Northam,5,525,Midlands,5,1.0,False,1
+509021244,Toodyay,5,525,Midlands,5,1.0,False,1
+509021245,York - Beverley,5,525,Midlands,5,1.0,False,1
+509031246,Brookton,5,505,Perth,5,0.00035014781772445546,True,4
+509031246,Brookton,5,510,South West,5,0.00021889805951664582,True,4
+509031246,Brookton,5,520,Upper Great Southern,5,0.999421212475691,True,4
+509031246,Brookton,5,525,Midlands,5,9.741647067911438e-06,True,4
+509031247,Kulin,5,515,Lower Great Southern,5,0.00024745845728209667,True,4
+509031247,Kulin,5,520,Upper Great Southern,5,0.9987139265530267,True,4
+509031247,Kulin,5,525,Midlands,5,0.0009583713694469002,True,4
+509031247,Kulin,5,530,South Eastern,5,8.024362024426766e-05,True,4
+509031248,Murray,5,510,South West,5,0.9999730700910328,True,2
+509031248,Murray,5,520,Upper Great Southern,5,2.692990896718419e-05,True,2
+509031249,Narrogin,5,520,Upper Great Southern,5,1.0,False,1
+509031250,Wagin,5,510,South West,5,0.00010503229801813047,True,3
+509031250,Wagin,5,515,Lower Great Southern,5,4.345982966337828e-05,True,3
+509031250,Wagin,5,520,Upper Great Southern,5,0.9998515078723184,True,3
+510011262,Broome,5,545,Kimberley,5,1.0,False,1
+510011263,Derby - West Kimberley,5,545,Kimberley,5,1.0,False,1
+510011264,Halls Creek,5,540,Pilbara,5,3.3239237325529304e-08,True,2
+510011264,Halls Creek,5,545,Kimberley,5,0.9999999667607626,True,2
+510011265,Kununurra,5,545,Kimberley,5,0.9999930163660262,True,2
+510011265,Kununurra,5,710,Northern Territory - Bal,7,6.98363397372562e-06,True,2
+510011266,Roebuck,5,540,Pilbara,5,0.0026860758163327904,True,2
+510011266,Roebuck,5,545,Kimberley,5,0.9973139241836672,True,2
+510021267,East Pilbara,5,530,South Eastern,5,0.001447884564485581,True,3
+510021267,East Pilbara,5,540,Pilbara,5,0.9972652583570487,True,3
+510021267,East Pilbara,5,545,Kimberley,5,0.00128685707846569,True,3
+510021268,Newman,5,540,Pilbara,5,1.0,False,1
+510021269,Port Hedland,5,540,Pilbara,5,1.0,False,1
+510021270,South Hedland,5,540,Pilbara,5,1.0,False,1
+510031271,Ashburton (WA),5,535,Central,5,0.0006359387489375427,True,2
+510031271,Ashburton (WA),5,540,Pilbara,5,0.9993640612510625,True,2
+510031272,Karratha,5,540,Pilbara,5,1.0,False,1
+510031273,Roebourne,5,540,Pilbara,5,1.0,False,1
+511011274,Esperance,5,530,South Eastern,5,1.0,False,1
+511011275,Esperance Surrounds,5,515,Lower Great Southern,5,0.01855222069871371,True,3
+511011275,Esperance Surrounds,5,520,Upper Great Southern,5,8.616428965651391e-05,True,3
+511011275,Esperance Surrounds,5,530,South Eastern,5,0.9813616150116298,True,3
+511021276,Carnarvon,5,535,Central,5,1.0,False,1
+511021277,Exmouth,5,535,Central,5,0.9997025701371203,True,2
+511021277,Exmouth,5,540,Pilbara,5,0.0002974298628797089,True,2
+511031278,Boulder,5,530,South Eastern,5,1.0,False,1
+511031279,Kalgoorlie,5,530,South Eastern,5,1.0,False,1
+511031280,Kalgoorlie - North,5,530,South Eastern,5,1.0,False,1
+511031281,Kalgoorlie Airport,5,530,South Eastern,5,1.0,False,1
+511031282,Kambalda - Coolgardie - Norseman,5,430,Eyre,4,4.657110390825903e-06,True,4
+511031282,Kambalda - Coolgardie - Norseman,5,435,Northern,4,2.7853925037556664e-05,True,4
+511031282,Kambalda - Coolgardie - Norseman,5,525,Midlands,5,2.9407802150295337e-06,True,4
+511031282,Kambalda - Coolgardie - Norseman,5,530,South Eastern,5,0.9999645481843566,True,4
+511031283,Leinster - Leonora,5,435,Northern,4,2.9114938747130814e-05,True,4
+511031283,Leinster - Leonora,5,525,Midlands,5,9.714642909471175e-08,True,4
+511031283,Leinster - Leonora,5,530,South Eastern,5,0.9998474665678619,True,4
+511031283,Leinster - Leonora,5,535,Central,5,0.00012332134696179853,True,4
+511031284,Trafalgar (WA),5,530,South Eastern,5,1.0,False,1
+511041285,Geraldton,5,535,Central,5,1.0,False,1
+511041286,Geraldton - East,5,535,Central,5,1.0,False,1
+511041287,Geraldton - North,5,535,Central,5,1.0,False,1
+511041288,Geraldton - South,5,535,Central,5,1.0,False,1
+511041289,Irwin,5,535,Central,5,1.0,False,1
+511041290,Meekatharra,5,525,Midlands,5,3.090049998918848e-05,True,4
+511041290,Meekatharra,5,530,South Eastern,5,1.9111197123478518e-05,True,4
+511041290,Meekatharra,5,535,Central,5,0.9998818448185324,True,4
+511041290,Meekatharra,5,540,Pilbara,5,6.814348435490028e-05,True,4
+511041291,Morawa,5,525,Midlands,5,1.2065529653553213e-05,True,2
+511041291,Morawa,5,535,Central,5,0.9999879344703464,True,2
+511041292,Northampton - Mullewa - Greenough,5,535,Central,5,1.0,False,1

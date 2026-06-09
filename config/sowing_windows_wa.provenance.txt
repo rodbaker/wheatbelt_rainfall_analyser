@@ -1,0 +1,87 @@
+sowing_windows_wa.csv — transcription provenance & caveats
+===========================================================
+
+DRAFT for manual agronomic review. v1 covers WHEAT only.
+
+** REVISION HISTORY **
+  v0 (narrative estimate, 91/111/134/166) -- superseded; markdown had dropped Table 15 cells.
+  v1 (faithful full envelope, 105/105/158/165) -- superseded; Table 15 extracted but
+     collapsed by widest-envelope (dominated by maturity extremes, over-wide).
+  v2 (THIS FILE, 120/127/150/157) -- 2025 AREA-WEIGHTED maturity mix. Same faithful
+     Table 15 cells, but collapsed by weighting each maturity class by its 2025 WA
+     planted-area share (Table 1), so the single window sits where the bulk of the
+     crop is actually sown rather than at the maturity extremes.
+
+source_document: DPIRD 2026 WA Crop Sowing Guide, Bulletin 4937 (published Nov 2025)
+source_tables:   Table 1  "Proportion (%) of total area sown to individual wheat
+                          varieties in WA (2021-25)", p11 (2025 column)
+                 Table 15 "Suggested sowing times of wheat varieties in WA", p31
+source_file:     docs/DPIRD-2026-WA-Crop-Sowing-Guide.pdf
+                 (Table 15 colour cells read via pymupdf + visual render cross-check;
+                  Table 1 numeric shares from the in-repo markdown, verified vs PDF)
+source_year:     2026 (guide is for the 2026 season; fresh for season_year 2026)
+
+--- METHOD -----------------------------------------------------------------
+1. Table 15 colour-coded cells -> per-maturity window (week bands), week->DOY with
+   wk1=1-7, wk2=8-14, wk3=15-21, wk4=22-EOM; 2026 non-leap (Apr1=91, May1=121, Jun1=152):
+     maturity      earliest  optimum         latest_viable  (DOY: earliest/opt_start/opt_end/latest)
+     slow          Apr wk2   Apr wk3-May wk1  May wk2        98 /105/127/134
+     mid_slow      Apr wk3   Apr wk4-May wk2  May wk3       105 /112/134/141
+     quick_mid     May wk1   May wk2-wk4      Jun wk1       121 /128/151/158
+     quick         May wk2   May wk3-Jun wk1  Jun wk2       128 /135/158/165
+   (very_slow and Winter-wheat rows exist but are excluded -- see assumptions.)
+2. Each 2025 variety (Table 1) mapped to its Table 15 maturity row (Table 15 variety lists).
+3. Window boundary DOYs area-weighted by 2025 maturity-class share, then rounded:
+     earliest_sow_doy=120 (Apr 30) · optimal_start_doy=127 (May 7) ·
+     optimal_end_doy=150 (May 30) · latest_viable_doy=157 (Jun 6)
+
+--- REPRESENTED-AREA COVERAGE ---------------------------------------------
+  Table 1 listed varieties total                : 98.7% of 2025 area (it omits <0.2%)
+  Mapped to a Table 15 maturity (drives window) : 91.3%
+  Maturity mix of the mapped area:
+     quick_mid 63.7% (69.8% of mapped) · quick 15.8% (17.3%) ·
+     mid_slow 10.0% (11.0%) · slow 1.8% (2.0%)
+  Winter wheat (excluded)                       :  0.3% (Mowhawk)
+  Unmapped (not in Table 15 variety lists)      :  7.1%
+     LRPB Havoc, Chief CL Plus, Machete, Mace, LRPB Avenger, Westonia, Arrino, Magenta
+     (older/minor varieties; no maturity row stated -> not assigned, not guessed)
+
+--- ASSUMPTIONS & THRESHOLDS ----------------------------------------------
+  - Single window per commodity: the swp-1 schema has no maturity column, so the
+    maturity distribution is collapsed to one window (area-weighted).
+  - Statewide weights: Table 1 shares are WA-wide; the same window is replicated
+    across all 7 BEN Agri WA SDs (the guide encodes no sub-state numeric windows -- D2).
+  - Winter wheat EXCLUDED (Table 15 footnote: applicable only to southern WA).
+  - very_slow excluded from the weighting (0% area in 2025).
+  - Unmapped 7.1% excluded from the weighting (not redistributed) -- conservative;
+    they are mostly quick/quick-mid older types, so including them would shift the
+    window little.
+  - FROST NOT MODELLED: Table 15 is explicitly "assumes low frost risk". Frost-driven
+    sowing delay is out of scope for v1 (and belongs in a future evidence layer, not here).
+
+--- CONFIDENCE -------------------------------------------------------------
+  confidence = medium (raised from low). Basis: faithful Table 15 extraction +
+  Table 1 area weighting covering 91.3% of 2025 area. NOT high because it is a
+  single-window maturity collapse, statewide (not per-SD), and frost-agnostic.
+
+--- CAVEATS (carry to merge) ----------------------------------------------
+  1. wheat is a maturity-collapsed, 2025-area-weighted single window.
+  2. southern-only winter wheat excluded.
+  3. statewide weights applied uniformly to all 7 SDs (no per-SD maturity mix).
+  4. frost timing not considered (Table 15 assumes low frost risk).
+  5. a future schema/version could carry maturity class or per-SD weights before
+     tightening further.
+
+COMMODITY CODE: guide "Wheat" -> BEN Agri `wheat_incl_durum`
+  (spec 7.2 / config/guide_commodity_map.yaml).
+
+--- OTHER CROPS (barley, canola, lupins, oats, + pulses) -------------------
+  Investigated (step 6): a full-PDF scan for a sowing-time calendar grid (the
+  wk1..wk4 colour-coded signature) finds it ONLY on the wheat page (p31). Barley,
+  canola, lupins and oats have NO equivalent suggested-sowing-times table -- only
+  scattered, observational/variety-specific prose (e.g. oats "target April sowing";
+  canola NVT sown "24 Apr-11 May"; barley "planting windows from late May to early
+  June"). Deriving per-commodity DOY windows from prose would be interpolation
+  beyond what the guide states, so per the review brief these crops are DEFERRED
+  (not drafted). They remain candidates if a future source provides an extractable
+  table or an externally-supplied window set.
