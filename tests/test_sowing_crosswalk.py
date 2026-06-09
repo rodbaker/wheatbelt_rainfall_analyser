@@ -10,12 +10,17 @@ import unittest
 from pathlib import Path
 
 from src.sowing.crosswalk import (
+    EARLY_CUTOFF_DOY,
     EXCLUDED_WA_SD_BY_CODE,
+    LATE_CUTOFF_DOY,
+    Sa2Break,
+    SdBreak,
     WA_BEN_AGRI_SD_BY_CODE,
     WA_SD_STATE_CODE,
     SdExcluded,
     UnknownSdError,
     resolve_sd_region,
+    rollup_breaks_to_sd,
 )
 from src.sowing.region_ref import sd_region_codes
 
@@ -84,6 +89,109 @@ class TestResolveSdRegion(unittest.TestCase):
     def test_unknown_is_valueerror_excluded_is_not(self):
         self.assertTrue(issubclass(UnknownSdError, ValueError))
         self.assertFalse(issubclass(SdExcluded, ValueError))
+
+
+def _sa2(sd_code, state, alloc, broadacre, doy, status, season_year=2026, sa2="X"):
+    return Sa2Break(
+        sa2_key=sa2,
+        sd_code11=sd_code,
+        sd_state_code=state,
+        allocation_ratio=alloc,
+        broadacre_area_ha=broadacre,
+        break_doy=doy,
+        status=status,
+        season_year=season_year,
+    )
+
+
+class TestRollupBreaksToSd(unittest.TestCase):
+    def test_area_weighted_mean_doy_and_derived_status(self):
+        # SD 525 (WA_MIDLANDS): two SA2, equal weight (1.0*100 each), doy 140 & 160.
+        recs = [
+            _sa2("525", "5", 1.0, 100.0, 140, "on_time", sa2="a"),
+            _sa2("525", "5", 1.0, 100.0, 160, "on_time", sa2="b"),
+        ]
+        (sd,) = rollup_breaks_to_sd(recs)
+        self.assertIsInstance(sd, SdBreak)
+        self.assertEqual(sd.sd_region, "WA_MIDLANDS")
+        self.assertEqual(sd.season_year, 2026)
+        self.assertAlmostEqual(sd.break_doy, 150.0)
+        self.assertEqual(sd.break_status, "on_time")  # 135 <= 150 <= 166
+        self.assertAlmostEqual(sd.coverage, 1.0)
+        self.assertTrue(sd.coverage_ok)
+
+    def test_weights_use_allocation_times_broadacre(self):
+        # doy 140 weight=0.5*200=100 ; doy 200 weight=1.0*100=100 -> mean 170 -> late
+        recs = [
+            _sa2("535", "5", 0.5, 200.0, 140, "on_time", sa2="a"),
+            _sa2("535", "5", 1.0, 100.0, 200, "late", sa2="b"),
+        ]
+        (sd,) = rollup_breaks_to_sd(recs)
+        self.assertAlmostEqual(sd.break_doy, 170.0)
+        self.assertEqual(sd.break_status, "late")
+
+    def test_status_thresholds(self):
+        (early,) = rollup_breaks_to_sd([_sa2("525", "5", 1.0, 10.0, EARLY_CUTOFF_DOY - 1, "early")])
+        self.assertEqual(early.break_status, "early")
+        (ontime,) = rollup_breaks_to_sd([_sa2("525", "5", 1.0, 10.0, LATE_CUTOFF_DOY, "late")])
+        self.assertEqual(ontime.break_status, "on_time")  # boundary inclusive
+        (late,) = rollup_breaks_to_sd([_sa2("525", "5", 1.0, 10.0, LATE_CUTOFF_DOY + 1, "late")])
+        self.assertEqual(late.break_status, "late")
+
+    def test_absent_and_not_assessed_excluded_from_date_mean_but_count_in_coverage(self):
+        recs = [
+            _sa2("525", "5", 1.0, 100.0, 150, "on_time", sa2="a"),
+            _sa2("525", "5", 1.0, 100.0, None, "absent", sa2="b"),
+            _sa2("525", "5", 1.0, 100.0, None, "not_assessed", sa2="c"),
+        ]
+        (sd,) = rollup_breaks_to_sd(recs)
+        self.assertAlmostEqual(sd.break_doy, 150.0)          # only the eligible SA2
+        self.assertAlmostEqual(sd.coverage, 100.0 / 300.0)   # 1 of 3 by weight
+        self.assertFalse(sd.coverage_ok)                     # 0.33 < 0.60
+
+    def test_coverage_threshold_boundary(self):
+        # eligible 120 of total 200 = 0.60 -> ok (>=)
+        recs = [
+            _sa2("525", "5", 1.0, 120.0, 150, "on_time", sa2="a"),
+            _sa2("525", "5", 1.0, 80.0, None, "absent", sa2="b"),
+        ]
+        (sd,) = rollup_breaks_to_sd(recs)
+        self.assertAlmostEqual(sd.coverage, 0.60)
+        self.assertTrue(sd.coverage_ok)
+
+    def test_non_grain_wa_sd_dropped_from_rollup(self):
+        recs = [
+            _sa2("540", "5", 1.0, 100.0, 150, "on_time"),  # Pilbara
+            _sa2("525", "5", 1.0, 100.0, 150, "on_time"),  # Midlands
+        ]
+        out = rollup_breaks_to_sd(recs)
+        self.assertEqual({s.sd_region for s in out}, {"WA_MIDLANDS"})
+
+    def test_interstate_edge_dropped_from_rollup(self):
+        recs = [
+            _sa2("430", "4", 1.0, 100.0, 150, "on_time"),  # Eyre (SA)
+            _sa2("525", "5", 1.0, 100.0, 150, "on_time"),
+        ]
+        out = rollup_breaks_to_sd(recs)
+        self.assertEqual({s.sd_region for s in out}, {"WA_MIDLANDS"})
+
+    def test_unknown_sd_code_fails_loud(self):
+        with self.assertRaises(UnknownSdError):
+            rollup_breaks_to_sd([_sa2("599", "5", 1.0, 100.0, 150, "on_time")])
+
+    def test_zero_total_weight_sd_is_skipped(self):
+        recs = [_sa2("525", "5", 1.0, 0.0, 150, "on_time")]
+        self.assertEqual(rollup_breaks_to_sd(recs), [])
+
+    def test_groups_by_sd_and_season_year(self):
+        recs = [
+            _sa2("525", "5", 1.0, 100.0, 150, "on_time", season_year=2025),
+            _sa2("525", "5", 1.0, 100.0, 160, "on_time", season_year=2026),
+        ]
+        out = {(s.sd_region, s.season_year): s for s in rollup_breaks_to_sd(recs)}
+        self.assertEqual(set(out), {("WA_MIDLANDS", 2025), ("WA_MIDLANDS", 2026)})
+        self.assertAlmostEqual(out[("WA_MIDLANDS", 2025)].break_doy, 150.0)
+        self.assertAlmostEqual(out[("WA_MIDLANDS", 2026)].break_doy, 160.0)
 
 
 if __name__ == "__main__":
