@@ -13,10 +13,13 @@ SA2-level percentiles are never rolled up.
 
 from __future__ import annotations
 
+import csv
+import dataclasses
 import math
 from dataclasses import dataclass
 from datetime import date, timedelta
-from typing import Dict, Iterable, List, Optional, Tuple
+from pathlib import Path
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 from src.rainfall.analytics import percentile_rank
 from src.sowing.crosswalk import SdBreak, classify_break_status
@@ -103,6 +106,21 @@ class PressureRow:
     guide_source_document: str
     guide_source_year: int
     window_confidence: str
+
+
+# swp-1 contract column order (matches PressureRow field order, which mirrors spec 9).
+SWP_COLUMNS = [f.name for f in dataclasses.fields(PressureRow)]
+
+
+def write_pressure_csv(rows: Iterable[PressureRow], path: Union[str, Path]) -> None:
+    """Write pressure rows to a swp-1 CSV (exact contract column order)."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=SWP_COLUMNS)
+        writer.writeheader()
+        for r in rows:
+            writer.writerow(dataclasses.asdict(r))
 
 
 def _doy_to_isodate(doy: int, year: int) -> str:
