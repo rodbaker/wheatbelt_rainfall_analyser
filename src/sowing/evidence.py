@@ -99,7 +99,7 @@ class PressureRow:
     break_percentile_vs_history: float
     window_overlap_days: int
     days_after_latest_viable: int
-    establishment_risk_flag: bool
+    establishment_risk_flag: bool  # v1: always False = "not assessed", NOT "risk absent"
     guide_source_document: str
     guide_source_year: int
     window_confidence: str
@@ -157,8 +157,12 @@ def generate_pressure_rows(
     ``counterparty_commodity='unknown'``; the ``favoured`` switch-pairing leg is
     deferred. No row is emitted for an in-time break (spec: no neutral rows), nor
     where no state-native guide is loaded for the SD/commodity (national-safety
-    gating, spec 7.5). ``establishment_risk_flag`` is not derived in v1 (the SD
-    rollup does not yet carry autumn_break_7d_mm) and is reported ``False``.
+    gating, spec 7.5).
+
+    ``establishment_risk_flag`` is **not assessed in v1** (the SD rollup does not
+    yet carry autumn_break_7d_mm / dry-spell features). The swp-1 contract types it
+    as bool, so it is emitted as ``False`` meaning "not assessed" -- NOT "risk
+    absent". Consumers must not read False as a cleared establishment risk.
     """
     # index windows by (sd_region, commodity) -> list (for guide-year selection)
     by_key: Dict[Tuple[str, str], List[SowingWindow]] = {}
@@ -221,7 +225,7 @@ def generate_pressure_rows(
                     break_percentile_vs_history=percentile,
                     window_overlap_days=window_overlap_days,
                     days_after_latest_viable=days_after,
-                    establishment_risk_flag=False,
+                    establishment_risk_flag=False,  # "not assessed" in v1 (see docstring)
                     guide_source_document=w.source_document,
                     guide_source_year=w.source_year,
                     window_confidence=window_confidence,
