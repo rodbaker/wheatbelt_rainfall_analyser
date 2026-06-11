@@ -19,16 +19,23 @@ baseline_years: [2005, 2025]
 > The status remains `frozen` (the body below is preserved as-published); this
 > notice records what is wrong and what still stands.
 >
-> **What is wrong — WA SD tables (§1, §2, §7) and the per-state WA commentary.**
-> The WA SD rollup used a broken SA2→SD mapping that **dropped ~956 kha of WA
+> **What is wrong — the WA SD breakdown (§7) and the per-state WA commentary (§8).**
+> The §7 SD rollup used a broken SA2→SD mapping that **dropped ~956 kha of WA
 > wheat area (≈22% of the state)** — chiefly **Morawa (561 kha)**, which belongs
 > in **Central**, and **Esperance Surrounds (389 kha)**, which belongs in **South
-> Eastern**. As a result this report carries WA at **3,434 kha** with **Central =
-> 469 kha** and **South Eastern = 32 kha**. The corrected canonical geography
+> Eastern**. As a result §7 carries WA at **3,434 kha** with **Central =
+> 469 kha** and **South Eastern = 32 kha** (and §8's WA note inherits this, e.g.
+> "Midlands + Central = 2.57 Mha"). The corrected canonical geography
 > (used by every build from 1 June onward) is **WA = 4,390 kha**, with **Central =
-> 1,029 kha** and **South Eastern = 414 kha**. The error is also internally
-> inconsistent here: the §7 SA2 callouts list Morawa under Central, yet the
-> Central SD total excludes its area.
+> 1,029 kha** and **South Eastern = 414 kha** (Midlands + Central = 3.13 Mha).
+> The error is also internally inconsistent in §7: the SA2 callouts list Morawa
+> under Central, yet the Central SD total excludes its area.
+>
+> **Not affected — the §1/§2 state-level tables.** Those are area-weighted over
+> the complete WA wheat universe (SA2→state directly, no SD step), so they are
+> correct as published — e.g. §1's WA Jan–Mar of 70.2 mm matches the
+> corrected-geography recomputation exactly. Only the SD-resolved layer (§7) and
+> the commentary built on it (§8) carried the error.
 >
 > **Consequence — the §3 claim that "the dry signal is uniform across the WA
 > wheatbelt" is overstated.** On the corrected geography WA is two-speed: the dry
@@ -64,9 +71,14 @@ National 2026 wheat production is tracking around **24 Mt** under BOM's publishe
 
 ---
 
-QLD-Commentary April Crop Report 26th April 2026
-Queensland enters the main planting window with the weakest moisture profile nationally. Southern QLD and Border regions remain dry, April rainfall has been limited, and near-term forecasts have not provided enough confidence for a broad planting push. Growers are protecting capital and current area estimates could come under further pressure through May if a meaningful break fails to arrive. The dry outlook is already being reflected in markets, with buyers stretching accumulation into Central NSW and drought premiums moving south.
+## 1. Subsoil moisture — Jan–Mar 2026 (area-weighted, by ABS wheat area)
 
+| State | Jan–Mar 2026 (mm) | Historical median | Δ vs median | Percentile rank | Read |
+|---|---|---|---|---|---|
+| **South Australia** | **93.9** | 46.8 | **+47.1** | **100th** | Wettest Jan–Mar in 22 years of SA2 records |
+| **Victoria** | **132.3** | 77.7 | **+54.6** | **100th** | Wettest Jan–Mar in 22 years of SA2 records |
+| Western Australia | 70.2 | 54.2 | +15.9 | 67th | Modestly wet; Feb–Mar specifically 86th percentile |
+| Queensland | 194.8 | 200.5 | −5.7 | 48th | Near median; high absolute volume |
 | New South Wales | 107.8 | 142.9 | −35.1 | 29th | **Spatially bimodal — see below** |
 
 ### NSW spatial picture (Jan–Mar 2026 SA2 deciles)
