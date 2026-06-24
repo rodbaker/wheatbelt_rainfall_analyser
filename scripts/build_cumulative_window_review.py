@@ -270,6 +270,49 @@ def main():
                       f"| {r['median_mm']:.0f} | {r['pct_of_median']:.0f}% "
                       f"| {r['decile_decimal']:.1f} {flag(r['decile_decimal'])} |")
 
+    # ---- SA2-level highlights for the March 1 -> June 8 window ----
+    meta = pd.read_csv(MAY_REVIEW)  # sa2_code, sa2_name, state, sd_name, wheat_kha
+    sa2_rows = []
+    for _, m in meta.iterrows():
+        sa2 = int(m["sa2_code"])
+        wk = float(m["wheat_kha"])
+        cur = window_2026(sa2, True)
+        if cur is None:
+            continue
+        series = [v for v in (window_hist(sa2, y, True) for y in HIST_YEARS)
+                  if v is not None]
+        if len(series) < 10:
+            continue
+        med = statistics.median(series)
+        sa2_rows.append({
+            "sa2": m["sa2_name"], "state": m["state"], "sd": m["sd_name"],
+            "wheat_kha": wk, "rain": cur, "median": med,
+            "pct": cur / med * 100 if med > 0 else float("nan"),
+            "dec": decile_score(series, cur),
+        })
+    sdf = pd.DataFrame(sa2_rows)
+    mat = sdf[sdf["wheat_kha"] >= 80].copy()  # material wheat-area SA2s only
+
+    def show(title, rows):
+        print(f"\n### {title}")
+        print("| SA2 | State | SD | Wheat (kha) | Rain (mm) | % median | Decile |")
+        print("|---|---|---|---:|---:|---:|---:|")
+        for _, r in rows.iterrows():
+            print(f"| {r['sa2']} | {r['state']} | {r['sd']} | {r['wheat_kha']:.0f} "
+                  f"| {r['rain']:.0f} | {r['pct']:.0f}% | {r['dec']:.1f} |")
+
+    print("\n\n========== SA2 HIGHLIGHTS (March 1 -> June 8, wheat >= 80 kha) ==========")
+    good = mat[mat["dec"] >= 7].sort_values("dec", ascending=False)
+    avg = mat[(mat["dec"] >= 4) & (mat["dec"] < 7)].copy()
+    avg["d5"] = (avg["dec"] - 5).abs()
+    avg = avg.sort_values("d5")
+    bad = mat[mat["dec"] < 4].sort_values("dec")
+    show("GOOD (decile >= 7) — top 8 by area-relevant wetness", good.head(8))
+    show("AVERAGE (decile 4-7) — 8 nearest to median", avg.head(8))
+    show("BAD (decile < 4) — driest 8", bad.head(8))
+    print(f"\n_Material SA2s: {len(mat)} (>=80 kha). "
+          f"good={len(good)} avg={len(avg)} bad={len(bad)}._")
+
 
 if __name__ == "__main__":
     main()

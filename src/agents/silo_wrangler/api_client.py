@@ -90,8 +90,10 @@ class SILOAPIClient:
                 
                 # Filter out metadata rows - keep only rows with valid dates in YYYY-MM-DD column
                 if 'YYYY-MM-DD' in df.columns:
-                    # Keep only rows where YYYY-MM-DD matches date format (YYYY-MM-DD)
-                    df = df[df['YYYY-MM-DD'].str.match(r'^\d{4}-\d{2}-\d{2}$', na=False)]
+                    # Cast to str first: a no-data response (e.g. requesting a date SILO
+                    # has not yet published) leaves YYYY-MM-DD as float NaN, which breaks
+                    # the .str accessor. Mirrors get_data_drill_data below.
+                    df = df[df['YYYY-MM-DD'].astype(str).str.match(r'^\d{4}-\d{2}-\d{2}$', na=False)]
                     df = df.reset_index(drop=True)
                 
                 logger.info(f"Successfully retrieved {len(df)} weather records for station {station_id}")

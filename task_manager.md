@@ -1,7 +1,7 @@
 
 # Task Manager
 **PRD:** ./prd.md  
-**Updated:** 2026-06-08 (WRA contract stabilisation: decile convention unified + decimal decile fix + stale-script cleanup + Vintage Pinning v1)  
+**Updated:** 2026-06-17 (ad-hoc: June data refresh → 06-16, WA dry-spot drill, SA season-to-date fact-check; conditions prose drafted ahead of 2026 outlook)  
 
 ---
 
