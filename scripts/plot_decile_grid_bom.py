@@ -176,6 +176,12 @@ def main():
         cropland_union = unary_union(
             [box(lons[x] - h, lats[y] - h, lons[x] + h, lats[y] + h)
              for y, x in zip(ys, xs)]).buffer(0)
+        # tidy the blocky cell mosaic: morphological open (drop isolated single-
+        # cell specks) then close (fill one-cell pinholes), then light simplify —
+        # otherwise the cut overlays show scattered little squares.
+        r = 0.03
+        cropland_union = (cropland_union.buffer(-r).buffer(2 * r).buffer(-r)
+                          .simplify(0.02))
         print(f"crop mask >= {args.crop_mask}: {len(xs)} cropland cells shown")
 
     # state SA2s — full set for the clip outline; cropping subset for the overlay
