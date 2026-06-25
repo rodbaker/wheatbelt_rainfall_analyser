@@ -14,6 +14,7 @@ Baseline defaults to 1911-2025 (the full local archive ≈ BOM's 1900-present).
 Usage: python scripts/plot_decile_grid_bom.py --year 2026 --month 5 --state "Western Australia"
 """
 import argparse
+import calendar
 import glob
 import os
 from pathlib import Path as FsPath
@@ -29,6 +30,7 @@ from matplotlib.path import Path as MplPath
 
 ROOT = FsPath(__file__).resolve().parents[1]
 GRID_DIR = ROOT / "data/meta/monthly_rain"
+DAILY_DIR = ROOT / "data/meta/daily_rain"
 CROPFRAC = ROOT / "data/meta/clum_cropfrac_005.nc"  # ABARES CLUM dryland-crop frac
 SHP = ("zip:///mnt/d/grains-data-store/wheatbelt_rainfall_analyser/data/meta/"
        "shapefiles/SA2_2021_AUST_SHP_GDA2020.zip")
@@ -91,6 +93,24 @@ def month_slice(ds, month, lon0, lon1, lat0, lat1):
     return da
 
 
+def daily_partial(year, month, lon0, lon1, lat0, lat1):
+    """Sum the daily grid over days 1..N of a month (N = latest day present).
+
+    Returns (summed DataArray, through_day) or (None, None). Used when the
+    monthly grid for the target month isn't published yet (mid-month)."""
+    f = DAILY_DIR / f"{year}.daily_rain.nc"
+    if not f.exists():
+        return None, None
+    with xr.open_dataset(f) as ds:
+        da = ds["daily_rain"]
+        da = da.sel(time=da["time"].dt.month == month)
+        if da["time"].size == 0:
+            return None, None
+        through = int(da["time"].dt.day.values.max())
+        sub = da.sel(lat=slice(lat0, lat1), lon=slice(lon0, lon1))
+        return sub.sum("time", skipna=False).load(), through
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--year", type=int, default=2026)
@@ -117,15 +137,30 @@ def main():
     cur_f = files.get(args.year)
     if not cur_f:
         raise SystemExit(f"no grid file for {args.year}")
+    dim = calendar.monthrange(args.year, args.month)[1]  # days in month
+
+    # current value: full month from the monthly grid if published, else a
+    # partial month-to-date sum from the daily grid (days 1..through).
     with xr.open_dataset(cur_f) as ds:
         cur = month_slice(ds, args.month, lon0, lon1, lat0, lat1)
+        cur = cur.load() if cur is not None else None
+    if cur is not None:
+        through, scale = dim, 1.0
+        print(f"{MONTHS[args.month]} {args.year}: full month (monthly grid)")
+    else:
+        cur, through = daily_partial(args.year, args.month,
+                                     lon0, lon1, lat0, lat1)
         if cur is None:
-            raise SystemExit(f"{MONTHS[args.month]} {args.year} not in grid "
-                             "(monthly grid publishes after month end)")
-        cur = cur.load()
+            raise SystemExit(f"{MONTHS[args.month]} {args.year} not in monthly "
+                             "grid and no daily grid to build a partial month")
+        scale = through / dim   # scale historical full months to the same window
+        print(f"{MONTHS[args.month]} {args.year}: partial 1–{through} from daily "
+              f"grid; historical scaled ×{scale:.3f}")
     lats, lons = cur["lat"].values, cur["lon"].values
     curv = cur.values
 
+    # baseline: historical full months from the monthly grid, scaled to the
+    # same partial window so the comparison is like-for-like.
     stack = []
     for y in range(args.base_start, args.year):
         f = files.get(y)
@@ -134,7 +169,7 @@ def main():
         with xr.open_dataset(f) as ds:
             sl = month_slice(ds, args.month, lon0, lon1, lat0, lat1)
             if sl is not None:
-                stack.append(sl.load().values)
+                stack.append(sl.load().values * scale)
     base = np.stack(stack)            # (nyears, lat, lon)
     n = base.shape[0]
     print(f"baseline years: {n} ({args.base_start}-{args.year-1})")
@@ -257,7 +292,7 @@ def main():
     ax.set_ylim(lat0, lat1)
     ax.set_title(f"Monthly rainfall deciles for {args.state}\n"
                  f"01/{args.month:02d}/{args.year} – "
-                 f"{_last(args):02d}/{args.month:02d}/{args.year}",
+                 f"{through:02d}/{args.month:02d}/{args.year}",
                  fontsize=14, weight="bold")
     ax.set_axis_off()
 
@@ -279,9 +314,13 @@ def main():
     else:
         note = (f". State-wide field; {ov} boundaries cut to ABARES CLUM cropland "
                 f"≥{args.crop_mask:.0%} per cell.")
+    partial = ("" if through == dim else
+               f" Partial month-to-date (days 1–{through} from the daily grid); "
+               f"historical full months scaled ×{scale:.2f} for like-for-like.")
     fig.text(0.02, 0.04, f"Base period: {args.base_start}–{args.year-1} "
-             f"({n} years). SILO/AGCD gridded monthly rainfall, 0.05° per-cell "
-             f"decile (no aggregation)" + note, fontsize=7.5, color="#333")
+             f"({n} years). SILO/AGCD gridded rainfall, 0.05° per-cell "
+             f"decile (no aggregation)" + note + partial,
+             fontsize=7.5, color="#333")
 
     tag = f"_{args.overlay}"
     if args.crop_mask is not None:
@@ -293,11 +332,6 @@ def main():
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, dpi=150, bbox_inches="tight")
     print(f"wrote {out}")
-
-
-def _last(args):
-    import calendar
-    return calendar.monthrange(args.year, args.month)[1]
 
 
 if __name__ == "__main__":
