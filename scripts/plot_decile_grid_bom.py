@@ -29,6 +29,7 @@ from matplotlib.path import Path as MplPath
 
 ROOT = FsPath(__file__).resolve().parents[1]
 GRID_DIR = ROOT / "data/meta/monthly_rain"
+CROPFRAC = ROOT / "data/meta/clum_cropfrac_005.nc"  # ABARES CLUM dryland-crop frac
 SHP = ("zip:///mnt/d/grains-data-store/wheatbelt_rainfall_analyser/data/meta/"
        "shapefiles/SA2_2021_AUST_SHP_GDA2020.zip")
 CONCORD = FsPath("/home/roddyb/projects/ABS Census Data/"
@@ -99,6 +100,10 @@ def main():
     ap.add_argument("--overlay", choices=["sd", "sa2", "none"], default="sd",
                     help="region boundaries to overlay (default: SD, the report's "
                          "geography)")
+    ap.add_argument("--crop-mask", type=float, default=None, metavar="FRAC",
+                    help="show deciles only where ABARES CLUM dryland-cropping "
+                         "fraction >= FRAC per cell (e.g. 0.05); masks to actual "
+                         "cropland instead of clipping to SD polygons")
     args = ap.parse_args()
 
     lon0, lon1, lat0, lat1 = BOX[args.state]
@@ -145,6 +150,16 @@ def main():
     cls[below_all] = 0              # lowest on record
     cls[above_all] = 6              # highest on record
 
+    # restrict the field to actual cropland (ABARES CLUM dryland-crop fraction)
+    if args.crop_mask is not None:
+        cf = xr.open_dataset(CROPFRAC)["Band1"]
+        cf = cf.sel(lat=xr.DataArray(lats, dims="lat"),
+                    lon=xr.DataArray(lons, dims="lon"), method="nearest")
+        frac = np.where(cf.values < 0, np.nan, cf.values)
+        cls = np.where(np.isfinite(frac) & (frac >= args.crop_mask), cls, np.nan)
+        print(f"crop mask >= {args.crop_mask}: "
+              f"{int(np.isfinite(cls).sum())} cropland cells shown")
+
     # state SA2s — full set for the clip outline; cropping subset for the overlay
     g = gpd.read_file(SHP)[["SA2_CODE21", "STE_NAME21", "geometry"]]
     g["SA2_CODE21"] = g["SA2_CODE21"].astype(str)
@@ -182,9 +197,12 @@ def main():
     ax.set_aspect(1.0 / np.cos(np.radians(mlat)))
     qm = ax.pcolormesh(lons, lats, np.ma.masked_invalid(cls),
                        cmap=cmap, norm=norm, shading="nearest")
-    # clip the gridded field to the cropping-SD footprint (so only the report's
-    # cropping regions are coloured); fall back to whole state for other overlays
-    if args.overlay == "sd" and sd_crop is not None and len(sd_crop):
+    # clip the gridded field. With a crop mask the cropland selection already
+    # restricts the field, so clip only to the state; otherwise clip to the
+    # cropping-SD footprint (the report's regions).
+    if args.crop_mask is not None:
+        clip_geom = state_geom
+    elif args.overlay == "sd" and sd_crop is not None and len(sd_crop):
         clip_geom = sd_crop.geometry.unary_union
     else:
         clip_geom = state_geom
@@ -224,14 +242,19 @@ def main():
 
     ov = {"sd": "Statistical Division (report geography)",
           "sa2": "ABS 2021 SA2", "none": "no"}[args.overlay]
+    mask_note = ("" if args.crop_mask is None else
+                 " Field masked to ABARES CLUM cropland (dryland + irrigated) "
+                 f"≥{args.crop_mask:.0%} per cell.")
     fig.text(0.02, 0.04, f"Base period: {args.base_start}–{args.year-1} "
              f"({n} years). SILO/AGCD gridded monthly rainfall, 0.05° per-cell "
-             f"decile (no aggregation); cropping {ov} boundaries overlaid.",
-             fontsize=7.5, color="#333")
+             f"decile (no aggregation); cropping {ov} boundaries overlaid."
+             + mask_note, fontsize=7.5, color="#333")
 
+    tag = f"_{args.overlay}" + ("" if args.crop_mask is None
+                                else f"_crop{int(args.crop_mask*100):02d}")
     out = (ROOT / f"reports/figures/decile_grid_bom_"
            f"{''.join(w[0] for w in args.state.split())}_"
-           f"{args.year}_{args.month:02d}_{args.overlay}.png")
+           f"{args.year}_{args.month:02d}{tag}.png")
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, dpi=150, bbox_inches="tight")
     print(f"wrote {out}")
