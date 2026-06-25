@@ -128,6 +128,10 @@ def main():
                     default="cropland", help="show deciles only on cropland "
                     "(default) or state-wide; overlays are still cut to cropland "
                     "when --crop-mask is set")
+    ap.add_argument("--smooth", type=float, default=0.25, metavar="DEG",
+                    help="close radius (degrees) for the cropping outline; bridges "
+                         "gaps between scattered patches into a broad region "
+                         "(default 0.25 ≈ 28 km)")
     args = ap.parse_args()
 
     lon0, lon1, lat0, lat1 = BOX[args.state]
@@ -211,12 +215,13 @@ def main():
         cropland_union = unary_union(
             [box(lons[x] - h, lats[y] - h, lons[x] + h, lats[y] + h)
              for y, x in zip(ys, xs)]).buffer(0)
-        # tidy the blocky cell mosaic: morphological open (drop isolated single-
-        # cell specks) then close (fill one-cell pinholes), then light simplify —
-        # otherwise the cut overlays show scattered little squares.
-        r = 0.03
-        cropland_union = (cropland_union.buffer(-r).buffer(2 * r).buffer(-r)
-                          .simplify(0.02))
+        # Build a BROAD cropping outline for the visual: morphological close with
+        # a wide radius bridges gaps between scattered patches so isolated cropping
+        # is absorbed into one region (dense belts like WA barely change; sparse
+        # ones like Qld read as a coherent zone instead of speckle). No erosion —
+        # nothing real is dropped. --smooth sets the bridging radius in degrees.
+        r = args.smooth
+        cropland_union = cropland_union.buffer(r).buffer(-r).simplify(0.03)
         print(f"crop mask >= {args.crop_mask}: {len(xs)} cropland cells shown")
 
     # state SA2s — full set for the clip outline; cropping subset for the overlay
