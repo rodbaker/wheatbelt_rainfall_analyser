@@ -97,13 +97,17 @@ def main():
     ap.add_argument("--month", type=int, default=5)
     ap.add_argument("--state", default="Western Australia")
     ap.add_argument("--base-start", type=int, default=1911)
-    ap.add_argument("--overlay", choices=["sd", "sa2", "none"], default="sd",
-                    help="region boundaries to overlay (default: SD, the report's "
-                         "geography)")
+    ap.add_argument("--overlay", choices=["sd", "sa2", "both", "none"],
+                    default="sd", help="region boundaries to overlay (default: SD; "
+                    "'both' draws SD + SA2)")
     ap.add_argument("--crop-mask", type=float, default=None, metavar="FRAC",
-                    help="show deciles only where ABARES CLUM dryland-cropping "
-                         "fraction >= FRAC per cell (e.g. 0.05); masks to actual "
-                         "cropland instead of clipping to SD polygons")
+                    help="cropland threshold: ABARES CLUM cropland fraction >= FRAC "
+                         "per cell (e.g. 0.25). Drives the cropland footprint used "
+                         "to mask the field and/or cut the overlays")
+    ap.add_argument("--field", choices=["cropland", "statewide"],
+                    default="cropland", help="show deciles only on cropland "
+                    "(default) or state-wide; overlays are still cut to cropland "
+                    "when --crop-mask is set")
     args = ap.parse_args()
 
     lon0, lon1, lat0, lat1 = BOX[args.state]
@@ -150,15 +154,29 @@ def main():
     cls[below_all] = 0              # lowest on record
     cls[above_all] = 6              # highest on record
 
-    # restrict the field to actual cropland (ABARES CLUM dryland-crop fraction)
+    # restrict the field to actual cropland (ABARES CLUM cropland fraction) and
+    # build a cropland polygon (union of qualifying 0.05° cells) used to "cut"
+    # the region overlays so their outlines follow the cropping footprint.
+    cropland_union = None
     if args.crop_mask is not None:
         cf = xr.open_dataset(CROPFRAC)["Band1"]
         cf = cf.sel(lat=xr.DataArray(lats, dims="lat"),
                     lon=xr.DataArray(lons, dims="lon"), method="nearest")
         frac = np.where(cf.values < 0, np.nan, cf.values)
-        cls = np.where(np.isfinite(frac) & (frac >= args.crop_mask), cls, np.nan)
-        print(f"crop mask >= {args.crop_mask}: "
-              f"{int(np.isfinite(cls).sum())} cropland cells shown")
+        keep = np.isfinite(frac) & (frac >= args.crop_mask)
+        if args.field == "cropland":
+            cls = np.where(keep, cls, np.nan)
+        from shapely.geometry import box
+        from shapely.ops import unary_union
+        # half a 0.05° cell, plus a tiny overlap so neighbouring cell boxes share
+        # interiors and unary_union fully dissolves internal grid edges (otherwise
+        # float mismatch on shared edges leaves spurious horizontal/vertical lines)
+        h = 0.025 + 1e-4
+        ys, xs = np.where(keep)
+        cropland_union = unary_union(
+            [box(lons[x] - h, lats[y] - h, lons[x] + h, lats[y] + h)
+             for y, x in zip(ys, xs)]).buffer(0)
+        print(f"crop mask >= {args.crop_mask}: {len(xs)} cropland cells shown")
 
     # state SA2s — full set for the clip outline; cropping subset for the overlay
     g = gpd.read_file(SHP)[["SA2_CODE21", "STE_NAME21", "geometry"]]
@@ -174,7 +192,7 @@ def main():
     # SD polygons: assign each SA2 to its dominant SD, dissolve, keep the
     # cropping SDs the report covers (those in the SD rainfall review)
     sd_crop = None
-    if args.overlay == "sd":
+    if args.overlay in ("sd", "both"):
         conc = pd.read_csv(CONCORD)
         conc = conc[conc["STE_NAME21"] == args.state].copy()
         conc["SA2_CODE21"] = conc["SA2_CODE21"].astype(str)
@@ -197,12 +215,13 @@ def main():
     ax.set_aspect(1.0 / np.cos(np.radians(mlat)))
     qm = ax.pcolormesh(lons, lats, np.ma.masked_invalid(cls),
                        cmap=cmap, norm=norm, shading="nearest")
-    # clip the gridded field. With a crop mask the cropland selection already
-    # restricts the field, so clip only to the state; otherwise clip to the
-    # cropping-SD footprint (the report's regions).
-    if args.crop_mask is not None:
-        clip_geom = state_geom
-    elif args.overlay == "sd" and sd_crop is not None and len(sd_crop):
+    # clip the gridded field: to the cropland polygon when the field is restricted
+    # to cropland; to the cropping-SD footprint when overlaying SD without a crop
+    # mask; otherwise the whole state (state-wide field).
+    if cropland_union is not None and args.field == "cropland":
+        clip_geom = cropland_union
+    elif args.crop_mask is None and args.overlay == "sd" \
+            and sd_crop is not None and len(sd_crop):
         clip_geom = sd_crop.geometry.unary_union
     else:
         clip_geom = state_geom
@@ -210,11 +229,15 @@ def main():
                       facecolor="none", edgecolor="none")
     ax.add_patch(patch)
     qm.set_clip_path(patch)
-    # region boundaries overlaid on the gridded field
-    if args.overlay == "sa2":
-        sa2_crop.boundary.plot(ax=ax, color="#1a1a1a", linewidth=0.5, alpha=0.7)
-    elif args.overlay == "sd" and sd_crop is not None:
-        sd_crop.boundary.plot(ax=ax, color="#000000", linewidth=1.0)
+    # region boundaries overlaid — cut to the cropland footprint when masking
+    def cut(gs):
+        return gs.intersection(cropland_union) if cropland_union is not None else gs
+
+    if args.overlay in ("sa2", "both"):
+        cut(sa2_crop.geometry).boundary.plot(ax=ax, color="#1a1a1a",
+                                             linewidth=0.4, alpha=0.6)
+    if args.overlay in ("sd", "both") and sd_crop is not None:
+        cut(sd_crop.geometry).boundary.plot(ax=ax, color="#000000", linewidth=1.1)
         for _, r in sd_crop.iterrows():
             c = r.geometry.representative_point()
             ax.annotate(r["SD_NAME11"], (c.x, c.y), fontsize=7.5, ha="center",
@@ -240,18 +263,24 @@ def main():
                     handleheight=1.4, labelspacing=0.8)
     leg.get_title().set_fontweight("bold")
 
-    ov = {"sd": "Statistical Division (report geography)",
-          "sa2": "ABS 2021 SA2", "none": "no"}[args.overlay]
-    mask_note = ("" if args.crop_mask is None else
-                 " Field masked to ABARES CLUM cropland (dryland + irrigated) "
-                 f"≥{args.crop_mask:.0%} per cell.")
+    ov = {"sd": "Statistical Division (report geography)", "sa2": "ABS 2021 SA2",
+          "both": "SD + SA2", "none": "no"}[args.overlay]
+    if args.crop_mask is None:
+        note = f"; cropping {ov} boundaries overlaid."
+    elif args.field == "cropland":
+        note = (f". Field masked to ABARES CLUM cropland (dryland + irrigated) "
+                f"≥{args.crop_mask:.0%} per cell; {ov} boundaries cut to it.")
+    else:
+        note = (f". State-wide field; {ov} boundaries cut to ABARES CLUM cropland "
+                f"≥{args.crop_mask:.0%} per cell.")
     fig.text(0.02, 0.04, f"Base period: {args.base_start}–{args.year-1} "
              f"({n} years). SILO/AGCD gridded monthly rainfall, 0.05° per-cell "
-             f"decile (no aggregation); cropping {ov} boundaries overlaid."
-             + mask_note, fontsize=7.5, color="#333")
+             f"decile (no aggregation)" + note, fontsize=7.5, color="#333")
 
-    tag = f"_{args.overlay}" + ("" if args.crop_mask is None
-                                else f"_crop{int(args.crop_mask*100):02d}")
+    tag = f"_{args.overlay}"
+    if args.crop_mask is not None:
+        tag += ("statewide" if args.field == "statewide" else "") \
+            + f"_crop{int(args.crop_mask*100):02d}"
     out = (ROOT / f"reports/figures/decile_grid_bom_"
            f"{''.join(w[0] for w in args.state.split())}_"
            f"{args.year}_{args.month:02d}{tag}.png")
