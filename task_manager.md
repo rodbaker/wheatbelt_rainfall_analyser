@@ -1,7 +1,7 @@
 
 # Task Manager
 **PRD:** ./prd.md  
-**Updated:** 2026-06-17 (ad-hoc: June data refresh → 06-16, WA dry-spot drill, SA season-to-date fact-check; conditions prose drafted ahead of 2026 outlook)  
+**Updated:** 2026-06-25 (ad-hoc: June refresh → obs 06-24 / grid 06-23, dual-window JS fix, SA YoY, full decile-map suite incl. CLUM cropland mask + partial month-to-date gridded)  
 
 ---
 
@@ -999,6 +999,21 @@ Claude prints: `OK TO CLOSE: Save is complete. Please close this chat to reset c
 - **Deliverable:** `reports/monthly/2026-06_mtd_vs_fullmonth.md` — national + per-state/SD MTD (d1–8) vs **unscaled** full-June 2005–2025 median ("% of full June banked"; pace vs 27% month-elapsed). Carries a **frozen** vintage block (through_day 8, no decile quoted → no `decile_method`); passes `tests/test_vintage_consistency.py` (12). National 38% / 1.42× pace; SA 64%/Vic 62% ahead, WA 22% (Midlands 19%) & Qld 1% behind.
 - **Tests:** `pytest tests/test_extract_sa2_partial_month_rainfall.py -q` → 9 passed; vintage suite 12 passed; `py_compile` clean.
 - **Commit:** pending (user to commit; new data file + generated feature CSVs untracked/ignored; the report .md is the one tracked artifact).
+
+### 2026-06-25 — rainfall-analytics (June refresh, decile maps + CLUM cropland mask)
+- **Task:** Ad-hoc — verify June data freshness, run state decile analysis, and build a decile-map suite for the June 2026 crop forecast writeup. Branch `feat/june-house-round`.
+- **What changed:**
+  - **Data refresh:** station obs → 2026-06-24 (full network via `--use-bom-dataset --hybrid`, default 40-day window); gridded `daily_rain` → 2026-06-23. Confirmed the 5 no_data WA SA2s are structural (no broadacre stations in polygon), not staleness.
+  - **dual_window_concern.py bug fix:** hardcoded `JS = 8/30` inflated all deciles to ~10; now reads `partial_month_through_day` dynamically (23/30). Corrected result surfaces the WA Lower/Upper Great Southern dry corridor (Gnowangerup 213 kha, Brookton) as the real persistent-dry pocket; NSW/Qld north "recovered" (dry season profile, wet May establishment).
+  - **api_client.py fix:** cast `YYYY-MM-DD` to str before `.str.match` — SILO no-data responses left it float NaN and failed all stations. Pinned by `tests/test_silo_api_client.py`.
+  - **SA 2025-vs-2026 YoY** (`sa_yoy_2025_2026.py`): Apr–May + Apr→Jun-23 windows, decile 1.0→9.5 (record-dry → near-wettest). Write-ups in `reports/adhoc/`.
+  - **Decile map suite** (`plot_sa2_decile_map.py`, `plot_decile_map_bom.py`, `plot_decile_grid_bom.py`): SA2 choropleth → BOM-format polygon → true per-cell gridded (1911–2025 baseline ≈ BOM). Gridded supports `--field {cropland,statewide}`, `--overlay {sd,sa2,both,none}`, `--crop-mask`, `--smooth`, and a **partial month-to-date** path (June from daily grid 1–23 vs historical full-June ×23/30).
+  - **CLUM cropland mask** (`build_clum_cropfrac.py`): downloaded ABARES CLUM 50m raster (151 MB), built `data/meta/clum_cropfrac_005.nc` (cropland fraction per 0.05° cell; ALUM 3.3 dryland + 4.3 irrigated). NOTE: the local `clum_commodities_2023.zip` does NOT contain the wheatbelt — only the full CLUM raster does. See memory `clum-cropland-mask`.
+  - **Report-visual standard:** state-wide decile field + broad cropping outline (`--crop-mask 0.05 --smooth 0.25`, close-only) cut into SD/SA2 overlays (kept separate). Full state set: WA/SA/Vic/NSW/Qld × May+June × SD/SA2 in `reports/figures/`. Analysis stays on raw cropland cells ≥5%.
+- **Key files:** `scripts/{dual_window_concern,sa_yoy_2025_2026,plot_sa2_decile_map,plot_decile_map_bom,plot_decile_grid_bom,build_clum_cropfrac}.py`, `src/agents/silo_wrangler/api_client.py`, `tests/test_silo_api_client.py`, `reports/adhoc/*.md`, `reports/figures/decile_*`.
+- **Next steps:** decision-grade gate still FAIL (structural WA SA2 gaps); optional — extend cropland-masked maps to other report months; consider wiring `--use-bom-dataset --hybrid` into the daily cron so the full network stays current.
+- **Blockers:** None.
+- **Commits:** `ef918a8` (JS+NaN fix), `a254286` (decile maps + SA YoY), `5992ce8` (CLUM cropland mask), `e38ccc3` (field/overlay modes + cut), `d62a794` (square-artifact cleanup), `6c87cbe` (partial month-to-date), `b456617` (state set), `739db5f` (broad-outline set). Branch pushed.
 
 ---
 
