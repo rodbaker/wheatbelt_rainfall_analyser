@@ -53,6 +53,21 @@ def test_no_valid_rows_returns_empty_not_crash():
     assert df.empty
 
 
+def test_request_sends_username_and_password():
+    """SILO's public API requires both username and the 'apirequest' password
+    constant; omitting the password yields 401. Pin both onto the request params."""
+    csv = "YYYY-MM-DD,daily_rain,max_temp,min_temp\n2026-06-13,1.2,18.0,5.0\n"
+    client = _client()  # fixture config has no password → must default to 'apirequest'
+    with patch(
+        "src.agents.silo_wrangler.api_client.requests.get",
+        return_value=_FakeResponse(csv),
+    ) as mock_get:
+        client.get_daily_data("012320", "20260613", "20260613")
+    params = mock_get.call_args.kwargs["params"]
+    assert params["username"] == "test@example.com"
+    assert params["password"] == "apirequest"
+
+
 def test_valid_rows_are_kept_and_metadata_filtered():
     """Valid YYYY-MM-DD rows are retained; trailing non-date metadata rows dropped."""
     csv = (

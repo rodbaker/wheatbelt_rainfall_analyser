@@ -30,6 +30,10 @@ class SILOAPIClient:
         """
         self.base_url = config['api']['base_url']
         self.username = config['api']['username']
+        # SILO's public API requires a password parameter alongside the username
+        # (email). For the public www endpoint this is the literal constant
+        # 'apirequest' — NOT an account password. Omitting it now yields 401s.
+        self.password = config['api'].get('password', 'apirequest')
         self.rate_limit_seconds = config['api']['rate_limit_seconds']
         self.timeout_seconds = config['api']['timeout_seconds']
         self.max_retries = config['api']['max_retries']
@@ -63,14 +67,15 @@ class SILOAPIClient:
             'finish': end_date,
             'format': 'csv',
             'comment': self.variable_codes,
-            'username': self.username
+            'username': self.username,
+            'password': self.password
         }
-        
+
         for attempt in range(self.max_retries):
             try:
                 # Rate limiting
                 time.sleep(self.rate_limit_seconds)
-                
+
                 logger.info(f"Requesting SILO data: station={station_id}, dates={start_date}-{end_date}, attempt={attempt+1}")
                 
                 response = requests.get(
@@ -161,7 +166,8 @@ class SILOAPIClient:
             'finish': end_date,
             'format': 'csv',
             'comment': self.variable_codes,
-            'username': self.username
+            'username': self.username,
+            'password': self.password
         }
 
         for attempt in range(self.max_retries):

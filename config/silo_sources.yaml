@@ -4,7 +4,11 @@
 # API Configuration
 api:
   base_url: "https://www.longpaddock.qld.gov.au/cgi-bin/silo/PatchedPointDataset.php"
-  username: "${SILO_EMAIL}"  # Required by SILO for usage tracking
+  username: "${SILO_EMAIL}"  # Required by SILO for usage tracking (your email)
+  # SILO's public API requires BOTH username (email) and a password parameter.
+  # For the public www endpoint the password is the literal constant 'apirequest'
+  # (per SILO API docs) — it is NOT your account password. Requests without it 401.
+  password: "apirequest"
   rate_limit_seconds: 0.2     # 5 req/sec — reduced from 0.6 after confirming SILO docs specify no limit
   timeout_seconds: 30
   max_retries: 3
