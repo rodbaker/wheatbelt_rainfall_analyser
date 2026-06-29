@@ -132,6 +132,16 @@ def main():
                     help="close radius (degrees) for the cropping outline; bridges "
                          "gaps between scattered patches into a broad region "
                          "(default 0.25 ≈ 28 km)")
+    ap.add_argument("--label-below", type=float, default=None, metavar="DECILE",
+                    help="annotate each cropping SA2 whose decile is below this "
+                         "threshold with its name (e.g. 4 labels below-average "
+                         "SA2s). Requires --overlay sa2 or both")
+    ap.add_argument("--review-tag", default="", metavar="SUFFIX",
+                    help="suffix inserted before .csv in the SA2/SD rainfall "
+                         "review filenames read for SA2 deciles, labels and SD "
+                         "selection (e.g. '_cropwtd' drives the map from the "
+                         "crop-weighted review). Also appended to the output PNG "
+                         "name so it doesn't clobber the centroid figure")
     args = ap.parse_args()
 
     lon0, lon1, lat0, lat1 = BOX[args.state]
@@ -231,8 +241,11 @@ def main():
           & ~g.geometry.is_empty].to_crs(4326)
     state_geom = g.dissolve("STE_NAME21").geometry.iloc[0]
     review = (ROOT / f"data/features/"
-              f"sa2_{args.year}_{args.month:02d}_rainfall_review.csv")
-    crop_codes = set(pd.read_csv(review)["sa2_code"].astype(str))
+              f"sa2_{args.year}_{args.month:02d}_rainfall_review"
+              f"{args.review_tag}.csv")
+    review_df = pd.read_csv(review)
+    review_df["sa2_code"] = review_df["sa2_code"].astype(str)
+    crop_codes = set(review_df["sa2_code"])
     sa2_crop = g[g["SA2_CODE21"].isin(crop_codes)]
 
     # SD polygons: assign each SA2 to its dominant SD, dissolve, keep the
@@ -247,7 +260,8 @@ def main():
                          on="SA2_CODE21")
         sd_all = merged.dissolve("SD_CODE11", aggfunc={"SD_NAME11": "first"})
         sdr = pd.read_csv(ROOT / f"data/features/"
-                          f"sd_{args.year}_{args.month:02d}_rainfall_review.csv")
+                          f"sd_{args.year}_{args.month:02d}_rainfall_review"
+                          f"{args.review_tag}.csv")
         crop_sd = set(sdr[sdr["state"] == ABBR[args.state]]["sd_code"].astype(int))
         sd_crop = sd_all[sd_all.index.isin(crop_sd)]
 
@@ -282,6 +296,35 @@ def main():
     if args.overlay in ("sa2", "both"):
         cut(sa2_crop.geometry).boundary.plot(ax=ax, color="#1a1a1a",
                                              linewidth=0.4, alpha=0.6)
+        if args.label_below is not None:
+            dec_by_code = dict(zip(review_df["sa2_code"],
+                                   review_df["decile_decimal"]))
+            name_by_code = dict(zip(review_df["sa2_code"],
+                                    review_df["sa2_name"]))
+            below = []
+            for _, r in sa2_crop.iterrows():
+                code = r["SA2_CODE21"]
+                if dec_by_code.get(code, 99) < args.label_below:
+                    p = r.geometry.representative_point()
+                    below.append((name_by_code.get(code, code),
+                                  dec_by_code.get(code), p.y, p.x))
+            # Callout style: stack labels down the left margin (over ocean),
+            # ordered north→south so leader arrows don't cross, each arrow
+            # pointing to its SA2 centroid.
+            below.sort(key=lambda t: t[2], reverse=True)
+            y0, dy = 0.30, 0.06
+            for i, (name, dec, plat, plon) in enumerate(below):
+                ax.annotate(
+                    f"{name} (d{dec:.1f})",
+                    xy=(plon, plat), xycoords="data",
+                    xytext=(0.02, y0 - i * dy), textcoords="axes fraction",
+                    fontsize=7.5, ha="left", va="center", weight="bold",
+                    color="#7a0000",
+                    bbox=dict(boxstyle="round,pad=0.2", fc="white",
+                              ec="#c0392b", alpha=0.95),
+                    arrowprops=dict(arrowstyle="->", color="#7a0000", lw=0.9,
+                                    shrinkB=3,
+                                    connectionstyle="arc3,rad=0.15"))
     if args.overlay in ("sd", "both") and sd_crop is not None:
         cut(sd_crop.geometry).boundary.plot(ax=ax, color="#000000", linewidth=1.1)
         for _, r in sd_crop.iterrows():
@@ -331,6 +374,7 @@ def main():
     if args.crop_mask is not None:
         tag += ("statewide" if args.field == "statewide" else "") \
             + f"_crop{int(args.crop_mask*100):02d}"
+    tag += args.review_tag
     out = (ROOT / f"reports/figures/decile_grid_bom_"
            f"{''.join(w[0] for w in args.state.split())}_"
            f"{args.year}_{args.month:02d}{tag}.png")
