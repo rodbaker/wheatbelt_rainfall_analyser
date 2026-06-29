@@ -121,6 +121,70 @@ Build state-filtered history (alternative — extracts only the requested states
 - The extraction method is `centroid_nearest_grid_cell`; values are not
   polygon-area averages.
 
+## Crop-Weighted SA2 Basis (2026-06-29)
+
+The legacy `centroid_nearest_grid_cell` method samples a **single** SILO grid
+cell at each SA2's centroid. For large or non-convex grain SA2s the centroid can
+fall on country that is not representative of where the crop actually sits, so the
+reported figure is an artefact of centroid placement rather than a crop-relevant
+rainfall. Three aggregation bases are now distinguishable:
+
+- **centroid** — one grid cell at the polygon centroid (legacy default).
+- **whole-polygon mean** — unweighted mean of every grid cell inside the polygon
+  (dilutes the answer with non-cropping country: ranges, towns, native veg).
+- **crop-weighted polygon mean** (`cropfrac_weighted_polygon_mean`) — mean of the
+  in-polygon cells **weighted by ABARES CLUM cropland fraction**
+  (`data/meta/clum_cropfrac_005.nc`, `Band1`, ≥5% floor), falling back to the
+  centroid cell only where an SA2 has no cropland. This is the grain-relevant
+  basis and the recommended one for the banker audience.
+
+**Worked example — Gnowangerup, June 2026 (through day 28):** centroid reads
+**28.8 mm → decile 2.9** ("very dry"); on a crop-weighted basis it is
+**38.1 mm → decile 6.7** (mid-pack). The "very dry" flag was largely a
+centroid-placement artefact. For comparison, Wagin moves d3.8 → d5.2 (its centroid
+already sat in cropland, so the *rainfall* is unchanged at 47.9 mm — the decile
+rises because the **historical climatology baseline is also crop-weighted**), and
+Katanning stays below average (39.0 mm d3.8 → 35.7 mm d3.3), i.e. a genuine
+crop-basis dry signal rather than an artefact.
+
+### How to produce it
+
+Both extractors take `--method {centroid,crop_weighted}` (CLI default
+`crop_weighted`). Crop-weighted outputs are written to `_cropwtd`-suffixed paths so
+they never clobber the centroid products:
+
+```bash
+# Month-to-date (partial month)
+python scripts/extract_sa2_partial_month_rainfall.py --year 2026 --month 6 \
+  --method crop_weighted                       # → sa2_2026_06_mtd_cropwtd.csv
+
+# Monthly history / climatology (WA)
+python scripts/extract_sa2_monthly_rainfall.py --states "Western Australia" \
+  --method crop_weighted \
+  --output data/features/sa2_monthly_rainfall_history_wa_cropwtd.csv
+
+# Deciles/review off the crop-weighted history + MTD
+python scripts/build_sd_monthly_rainfall_review.py --year 2026 --month 6 \
+  --hist data/features/sa2_monthly_rainfall_history_wa_cropwtd.csv \
+  --mtd  data/features/sa2_2026_06_mtd_cropwtd.csv
+```
+
+`build_sd_monthly_rainfall_review.py` gained a `--hist` override (sibling of the
+existing `--mtd`) so the crop-weighted history can drive the deciles; with both
+omitted it falls back to the centroid national history unchanged. The shared
+aggregation logic lives in `scripts/sa2_aggregation.py`. Crop-weighted data
+products land under the gitignored `data/features/` (generated artefacts, not
+versioned — only the code is).
+
+### Scope: WA delivered, national deferred
+
+Crop-weighting is **delivered for Western Australia only**. The crop-weighted MTD
+and history join on the **2021** SA2 shapefile (`SA2_CODE21`); WA rows already use
+2021 codes, but the non-WA universe is keyed to **2016** GeoJSON codes that do not
+all match the 2021 boundaries. National rollout requires a 2016→2021 polygon
+reconciliation (see Phase 2). Until then, non-WA SA2s in a crop-weighted review
+carry a null decile and centroid remains the canonical/default basis.
+
 ## Climatology Key
 
 National deciles use **`state_name + sa2_code + month`** as the climatology key.
