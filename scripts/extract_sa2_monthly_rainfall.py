@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """Extract monthly rainfall for wheatbelt SA2s from SILO NetCDF files.
 
-Method: centroid_nearest_grid_cell — each SA2 is represented by its polygon
-centroid (average of exterior ring vertices), and we snap to the nearest
-NetCDF grid cell. This is NOT polygon-area-averaged.
+Methods (--method, CLI default crop_weighted):
+    crop_weighted (default) — cropfrac_weighted_polygon_mean: mean of every
+        grid cell whose centre falls inside the SA2 polygon, weighted by the
+        ABARES CLUM cropland fraction (rainfall where the wheat is). This is
+        the grain-relevant figure.
+    centroid (legacy) — centroid_nearest_grid_cell: each SA2 is represented by
+        its polygon centroid (average of exterior ring vertices), and we snap
+        to the nearest NetCDF grid cell. This is NOT polygon-area-averaged.
 
 Inputs:
     data/meta/monthly_rain/*.monthly_rain.nc
@@ -18,6 +23,7 @@ Usage:
     python scripts/extract_sa2_monthly_rainfall.py --universe-source geojson
     python scripts/extract_sa2_monthly_rainfall.py --states "Western Australia,South Australia"
     python scripts/extract_sa2_monthly_rainfall.py --dry-run
+    python scripts/extract_sa2_monthly_rainfall.py --method centroid
 """
 
 import argparse
@@ -34,6 +40,9 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
 from src.common.file_utils import atomic_csv_write  # noqa: E402
+from scripts.sa2_aggregation import (  # noqa: E402
+    load_cropfrac, load_sa2_polygons, build_cell_weights, crop_weighted_mean,
+)
 
 MONTHLY_RAIN_DIR = REPO_ROOT / "data" / "meta" / "monthly_rain"
 SA2_UNIVERSE_CSV = REPO_ROOT / "data" / "meta" / "wa_wheatbelt_sa2_universe_2021.csv"
@@ -41,6 +50,7 @@ GEOJSON_PATH = REPO_ROOT / "data" / "meta" / "SA2_ABS_Regions.geojson"
 OUTPUT_CSV = REPO_ROOT / "data" / "features" / "sa2_monthly_rainfall_history.csv"
 
 EXTRACTION_METHOD = "centroid_nearest_grid_cell"
+CROP_WEIGHTED_METHOD = "cropfrac_weighted_polygon_mean"
 SOURCE_VARIABLE = "monthly_rain"
 NODATA_THRESHOLD = -32000.0
 DEFAULT_UNIVERSE_SOURCE = "combined"
@@ -184,42 +194,102 @@ def nearest_grid_value(
     return float(point.values)
 
 
-def extract_one_file(
+def _monthly_row(
+    dt: pd.Timestamp,
+    row: dict,
+    mm: float,
+    method: str,
+    source_file: str,
+    flag: str,
+) -> dict:
+    """Build the canonical per-row dict shared by centroid and crop-weighted paths."""
+    return {
+        "year": dt.year,
+        "month": dt.month,
+        "sa2_code": row["sa2_code"],
+        "sa2_name": row["sa2_name"],
+        "state_name": row.get("state_name"),
+        "rainfall_mm": mm,
+        "extraction_method": method,
+        "universe_source": row.get("universe_source"),
+        "source_file": source_file,
+        "source_variable": SOURCE_VARIABLE,
+        "quality_flag": flag,
+        "is_partial_month": False,
+        "partial_month_through_day": None,
+    }
+
+
+def _extract_centroid(
     nc_path: Path,
     sa2_rows: list[dict],
 ) -> list[dict]:
-    """Extract monthly rainfall for all SA2s from a single NetCDF file."""
+    """Centroid extraction — behaviourally identical to the original extract_one_file."""
     records = []
     with xr.open_dataset(nc_path) as ds:
         da = ds[SOURCE_VARIABLE]
         for time_step in da.time:
             dt = pd.Timestamp(time_step.values)
-            year, month = dt.year, dt.month
             da_slice = da.sel(time=time_step)
             for row in sa2_rows:
                 raw = nearest_grid_value(da_slice, row["lat"], row["lon"])
                 if raw < NODATA_THRESHOLD:
-                    rainfall_mm = float("nan")
-                    quality_flag = "nodata"
+                    mm = float("nan")
+                    flag = "nodata"
                 else:
-                    rainfall_mm = raw
-                    quality_flag = "ok"
+                    mm = raw
+                    flag = "ok"
                 records.append(
-                    {
-                        "year": year,
-                        "month": month,
-                        "sa2_code": row["sa2_code"],
-                        "sa2_name": row["sa2_name"],
-                        "state_name": row.get("state_name"),
-                        "rainfall_mm": rainfall_mm,
-                        "extraction_method": EXTRACTION_METHOD,
-                        "universe_source": row.get("universe_source"),
-                        "source_file": nc_path.name,
-                        "source_variable": SOURCE_VARIABLE,
-                        "quality_flag": quality_flag,
-                        "is_partial_month": False,
-                        "partial_month_through_day": None,
-                    }
+                    _monthly_row(dt, row, mm, EXTRACTION_METHOD, nc_path.name, flag)
+                )
+    return records
+
+
+def extract_one_file(
+    nc_path: Path,
+    sa2_rows: list[dict],
+    method: str = "centroid",
+) -> list[dict]:
+    """Extract monthly rainfall for all SA2s from a single NetCDF file.
+
+    method="centroid"      — nearest-grid-cell at the SA2 centroid (legacy,
+                             default; preserves backward compat for direct
+                             Python callers).
+    method="crop_weighted" — cropland-fraction weighted mean over polygon cells
+                             (recommended; default via the CLI --method flag).
+    """
+    if method == "centroid":
+        return _extract_centroid(nc_path, sa2_rows)
+
+    # crop_weighted branch
+    polys = load_sa2_polygons({r["sa2_code"] for r in sa2_rows})
+    cropfrac = load_cropfrac()
+    records = []
+    with xr.open_dataset(nc_path) as ds:
+        da = ds[SOURCE_VARIABLE]
+        lat, lon = da["lat"].values, da["lon"].values
+        # Precompute CellWeights once per SA2 — the grid is constant within a file.
+        weights = {
+            r["sa2_code"]: (
+                build_cell_weights(polys[r["sa2_code"]], lat, lon, cropfrac)
+                if r["sa2_code"] in polys
+                else None
+            )
+            for r in sa2_rows
+        }
+        for time_step in da.time:
+            dt = pd.Timestamp(time_step.values)
+            grid = da.sel(time=time_step).values
+            grid = np.where(grid < NODATA_THRESHOLD, np.nan, grid)
+            for row in sa2_rows:
+                w = weights[row["sa2_code"]]
+                if w is None:
+                    mm, flag = float("nan"), "no_2021_polygon"
+                else:
+                    mm = crop_weighted_mean(grid, w)
+                    flag = "cropfrac_centroid_fallback" if w.fallback else "ok"
+                records.append(
+                    _monthly_row(dt, row, mm, CROP_WEIGHTED_METHOD, nc_path.name, flag)
                 )
     return records
 
@@ -229,6 +299,7 @@ def run(
     universe_source: str = DEFAULT_UNIVERSE_SOURCE,
     states: str | None = None,
     output: Path | None = None,
+    method: str = "centroid",
 ) -> pd.DataFrame:
     nc_files = sorted(MONTHLY_RAIN_DIR.glob("*.monthly_rain.nc"))
     if not nc_files:
@@ -251,7 +322,7 @@ def run(
     all_records = []
     for nc_path in nc_files:
         print(f"  {nc_path.name}")
-        all_records.extend(extract_one_file(nc_path, sa2_rows))
+        all_records.extend(extract_one_file(nc_path, sa2_rows, method=method))
 
     df = pd.DataFrame(all_records)
 
@@ -306,6 +377,15 @@ def main() -> None:
         ),
     )
     parser.add_argument("--dry-run", action="store_true", help="Skip writing output CSV")
+    parser.add_argument(
+        "--method",
+        choices=["centroid", "crop_weighted"],
+        default="crop_weighted",
+        help=(
+            "centroid grid cell (legacy) or crop-fraction weighted polygon mean "
+            "(default, grain-relevant)"
+        ),
+    )
     args = parser.parse_args()
     output = Path(args.output) if args.output else None
     run(
@@ -313,6 +393,7 @@ def main() -> None:
         universe_source=args.universe_source,
         states=args.states,
         output=output,
+        method=args.method,
     )
 
 
