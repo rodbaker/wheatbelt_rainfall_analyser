@@ -50,11 +50,15 @@ from scripts.extract_sa2_monthly_rainfall import (  # noqa: E402
     load_sa2_rows,
     nearest_grid_value,
 )
+from scripts.sa2_aggregation import (  # noqa: E402
+    load_cropfrac, load_sa2_polygons, build_cell_weights, crop_weighted_mean,
+)
 
 DAILY_RAIN_DIR = REPO_ROOT / "data" / "meta" / "daily_rain"
 OUTPUT_DIR = REPO_ROOT / "data" / "features"
 
 EXTRACTION_METHOD = "centroid_nearest_grid_cell_daily_sum"
+CROP_WEIGHTED_METHOD = "cropfrac_weighted_polygon_mean"
 SOURCE_VARIABLE = "daily_rain"
 PARTIAL_QUALITY_FLAG = "partial_month_no_decile"
 
@@ -118,11 +122,62 @@ def extract_partial_month(
     year: int,
     month: int,
     sa2_rows: list[dict],
+    method: str = "centroid",
 ) -> tuple[pd.DataFrame, int]:
-    """Sum daily rainfall at each SA2 centroid for days 1..N of the month.
+    """Sum daily rainfall for days 1..N of the month, per SA2.
+
+    method="centroid"      — nearest-grid-cell at the SA2 centroid (legacy,
+                             default; preserves backward compat for direct
+                             Python callers).
+    method="crop_weighted" — cropland-fraction weighted mean over polygon cells
+                             (recommended; default via the CLI --method flag).
 
     Returns (DataFrame, through_day).
     """
+    def _partial_row(row: dict, mm: float, through_day: int,
+                     meth: str, flag: str) -> dict:
+        return {
+            "year": year,
+            "month": month,
+            "sa2_code": row["sa2_code"],
+            "sa2_name": row["sa2_name"],
+            "state_name": row.get("state_name"),
+            "rainfall_mm": mm,
+            "extraction_method": meth,
+            "universe_source": row.get("universe_source"),
+            "source_file": nc_path.name,
+            "source_variable": SOURCE_VARIABLE,
+            "quality_flag": flag,
+            "is_partial_month": True,
+            "partial_month_through_day": through_day,
+        }
+
+    if method == "crop_weighted":
+        codes = {r["sa2_code"] for r in sa2_rows}
+        polys = load_sa2_polygons(codes)
+        cropfrac = load_cropfrac()
+        with xr.open_dataset(nc_path) as ds:
+            da = ds["daily_rain"]
+            jun = da.sel(time=da["time"].dt.month == month)
+            through_day = int(jun["time"].dt.day.max())
+            grid2d = jun.sum("time", skipna=False).values
+            lat = jun["lat"].values
+            lon = jun["lon"].values
+        records = []
+        for row in sa2_rows:
+            geom = polys.get(row["sa2_code"])
+            if geom is None:
+                records.append(_partial_row(row, float("nan"), through_day,
+                                            CROP_WEIGHTED_METHOD, "no_2021_polygon"))
+                continue
+            w = build_cell_weights(geom, lat, lon, cropfrac)
+            val = crop_weighted_mean(grid2d, w)
+            flag = "cropfrac_centroid_fallback" if w.fallback else "ok"
+            records.append(_partial_row(row, val, through_day,
+                                        CROP_WEIGHTED_METHOD, flag))
+        return pd.DataFrame(records, columns=OUTPUT_COLS), through_day
+
+    # centroid path (legacy default preserved)
     with xr.open_dataset(nc_path) as ds:
         month_slice = _select_month_slice(ds, year, month)
         through_day = _last_complete_day(month_slice)
@@ -143,24 +198,9 @@ def extract_partial_month(
             else:
                 rainfall_mm = float(cell_valid.fillna(0).sum().values)
                 quality_flag = PARTIAL_QUALITY_FLAG
-            records.append(
-                {
-                    "year": year,
-                    "month": month,
-                    "sa2_code": row["sa2_code"],
-                    "sa2_name": row["sa2_name"],
-                    "state_name": row.get("state_name"),
-                    "rainfall_mm": rainfall_mm,
-                    "extraction_method": EXTRACTION_METHOD,
-                    "universe_source": row.get("universe_source"),
-                    "source_file": nc_path.name,
-                    "source_variable": SOURCE_VARIABLE,
-                    "quality_flag": quality_flag,
-                    "is_partial_month": True,
-                    "partial_month_through_day": through_day,
-                }
-            )
-        return pd.DataFrame(records, columns=OUTPUT_COLS), through_day
+            records.append(_partial_row(row, rainfall_mm, through_day,
+                                        EXTRACTION_METHOD, quality_flag))
+    return pd.DataFrame(records, columns=OUTPUT_COLS), through_day
 
 
 def run(
@@ -170,6 +210,7 @@ def run(
     states: str | None = None,
     output: Path | None = None,
     dry_run: bool = False,
+    method: str = "crop_weighted",
 ) -> pd.DataFrame:
     nc_path = DAILY_RAIN_DIR / f"{year}.daily_rain.nc"
     if not nc_path.exists():
@@ -198,7 +239,7 @@ def run(
     for state_name, count in state_counts.items():
         print(f"  {state_name}: {count} SA2s")
 
-    df, through_day = extract_partial_month(nc_path, year, month, sa2_rows)
+    df, through_day = extract_partial_month(nc_path, year, month, sa2_rows, method=method)
     print(
         f"Extracted {len(df)} rows for {year}-{month:02d} days 1..{through_day} "
         f"({df['quality_flag'].value_counts().to_dict()})"
@@ -208,8 +249,9 @@ def run(
         print("[dry-run] skipping write")
         return df
 
+    suffix = "_cropwtd" if method == "crop_weighted" else ""
     out_path = output if output is not None else (
-        OUTPUT_DIR / f"sa2_{year}_{month:02d}_mtd.csv"
+        OUTPUT_DIR / f"sa2_{year}_{month:02d}_mtd{suffix}.csv"
     )
     out_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(out_path, index=False)
@@ -229,6 +271,10 @@ def main() -> None:
     parser.add_argument("--states", default=None)
     parser.add_argument("--output", default=None)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--method", choices=["centroid", "crop_weighted"],
+                        default="crop_weighted",
+                        help="centroid grid cell (legacy) or crop-fraction "
+                             "weighted polygon mean (default, grain-relevant)")
     args = parser.parse_args()
 
     output = Path(args.output) if args.output else None
@@ -239,6 +285,7 @@ def main() -> None:
         states=args.states,
         output=output,
         dry_run=args.dry_run,
+        method=args.method,
     )
 
 
