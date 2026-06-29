@@ -11,9 +11,17 @@ sa2_monthly_rainfall_history file plus two new columns:
     is_partial_month          (bool)   True for these rows
     partial_month_through_day (int)    Last day included in the sum
 
-Method: centroid_nearest_grid_cell_daily_sum — uses the same SA2 centroid
-and nearest-grid-cell selection as scripts/extract_sa2_monthly_rainfall.py,
-just summed over a daily time dimension instead of read from a monthly NC.
+Methods (--method, CLI default crop_weighted):
+    crop_weighted (default) — cropfrac_weighted_polygon_mean: mean of every
+        grid cell whose centre falls inside the SA2 polygon, weighted by the
+        ABARES CLUM cropland fraction (rainfall where the wheat is). This is
+        the grain-relevant figure.
+    centroid (legacy) — centroid_nearest_grid_cell_daily_sum: the single
+        nearest grid cell at the SA2 centroid, same selection as
+        scripts/extract_sa2_monthly_rainfall.py, summed over the daily axis.
+
+Both methods derive through_day and restrict the sum to days 1..through_day
+via the same _select_month_slice / _last_complete_day helpers.
 
 Decile/anomaly fields are deliberately left null (climatology_quality_flag
 = 'partial_month_no_decile') because we do not currently have historical
@@ -24,12 +32,14 @@ Inputs:
     data/meta/daily_rain/{year}.daily_rain.nc
     SA2 universe via load_sa2_rows() from extract_sa2_monthly_rainfall.py
 
-Output:
-    data/features/sa2_{year}_{month:02d}_mtd.csv (sidecar, all matching SA2s)
+Output (chosen by method so neither clobbers the other):
+    crop_weighted: data/features/sa2_{year}_{month:02d}_mtd_cropwtd.csv
+    centroid:      data/features/sa2_{year}_{month:02d}_mtd.csv
 
 Usage:
     python scripts/extract_sa2_partial_month_rainfall.py --year 2026 --month 5
-    python scripts/extract_sa2_partial_month_rainfall.py --year 2026 --month 5 --dry-run
+    python scripts/extract_sa2_partial_month_rainfall.py --year 2026 --month 5 \
+        --method centroid --dry-run
 """
 
 import argparse
@@ -157,12 +167,21 @@ def extract_partial_month(
         polys = load_sa2_polygons(codes)
         cropfrac = load_cropfrac()
         with xr.open_dataset(nc_path) as ds:
-            da = ds["daily_rain"]
-            jun = da.sel(time=da["time"].dt.month == month)
-            through_day = int(jun["time"].dt.day.max())
-            grid2d = jun.sum("time", skipna=False).values
-            lat = jun["lat"].values
-            lon = jun["lon"].values
+            # Use the SAME temporal-window helpers as the centroid path so both
+            # derive through_day identically and sum only days 1..through_day.
+            month_slice = _select_month_slice(ds, year, month)
+            through_day = _last_complete_day(month_slice)
+            upper = f"{year}-{month:02d}-{through_day:02d}"
+            partial = month_slice.sel(time=slice(None, upper))
+            # NaN handling differs from the centroid path on purpose: skipna=False
+            # makes any cell that is missing a day NaN in the summed grid, and
+            # crop_weighted_mean's np.isfinite filter then drops that cell from
+            # the polygon mean. Excluding a patchy cell from a spatial mean is the
+            # right behaviour; the centroid path instead fillna(0)s its one cell.
+            month_da = partial.sum("time", skipna=False)
+            grid2d = month_da.values
+            lat = month_da["lat"].values
+            lon = month_da["lon"].values
         records = []
         for row in sa2_rows:
             geom = polys.get(row["sa2_code"])
@@ -176,6 +195,9 @@ def extract_partial_month(
             records.append(_partial_row(row, val, through_day,
                                         CROP_WEIGHTED_METHOD, flag))
         return pd.DataFrame(records, columns=OUTPUT_COLS), through_day
+
+    if method != "centroid":
+        raise ValueError(f"Unknown method {method!r}")
 
     # centroid path (legacy default preserved)
     with xr.open_dataset(nc_path) as ds:

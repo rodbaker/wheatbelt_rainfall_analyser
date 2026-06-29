@@ -4,7 +4,6 @@ pd = pytest.importorskip("pandas")
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-MTD = ROOT / "data/features/sa2_2026_06_mtd_cropwtd.csv"
 
 ANCHORS = {"Gnowangerup": 38.1, "Wagin": 47.9, "Katanning": 35.7}
 
