@@ -261,6 +261,9 @@ def extract_one_file(
     if method == "centroid":
         return _extract_centroid(nc_path, sa2_rows)
 
+    if method != "crop_weighted":
+        raise ValueError(f"Unknown extraction method: {method!r}")
+
     # crop_weighted branch
     polys = load_sa2_polygons({r["sa2_code"] for r in sa2_rows})
     cropfrac = load_cropfrac()
