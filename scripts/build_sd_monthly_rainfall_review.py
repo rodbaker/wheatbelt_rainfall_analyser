@@ -161,6 +161,13 @@ def main():
         "(default: data/features/sa2_{year}_{month:02d}_mtd.csv).",
     )
     parser.add_argument(
+        "--hist",
+        default=None,
+        help="SA2 monthly history CSV (default: "
+             "data/features/sa2_monthly_rainfall_history_national.csv). "
+             "Pass the _cropwtd history to produce crop-weighted deciles.",
+    )
+    parser.add_argument(
         "--baseline-start",
         type=int,
         default=BASELINE_START,
@@ -180,6 +187,7 @@ def main():
         if args.mtd
         else ROOT / f"data/features/sa2_{year}_{month:02d}_mtd.csv"
     )
+    hist_path = Path(args.hist) if args.hist else SA2_HIST
     if not mtd_path.exists():
         parser.error(
             f"month-sum CSV not found: {mtd_path}\n"
@@ -213,7 +221,7 @@ def main():
         target_rain[code] = val
 
     # ---- historical full-month SA2 values (not partial)
-    hist = pd.read_csv(SA2_HIST, low_memory=False)
+    hist = pd.read_csv(hist_path, low_memory=False)
     month_hist = hist[
         (hist["month"] == month)
         & (hist["year"].isin(hist_years))
