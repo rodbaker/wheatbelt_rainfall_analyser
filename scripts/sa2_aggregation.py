@@ -69,7 +69,13 @@ def build_cell_weights(geom, lat: np.ndarray, lon: np.ndarray,
         return _centroid_fallback(geom, lat, lon)
     sub_ji = np.repeat(ji, ii.size).reshape(ji.size, ii.size)[inside]
     sub_ii = np.tile(ii, ji.size).reshape(ji.size, ii.size)[inside]
-    cf = cropfrac.sel(lat=lat[sub_ji], lon=lon[sub_ii], method="nearest").values
+    # Pointwise (vectorized) lookup: index lat/lon along a shared "points" dim
+    # so .sel returns one cropfrac value per selected cell. Plain numpy arrays
+    # would trigger orthogonal (outer-product) indexing → a (k_lat x m_lon)
+    # grid instead of the (N,) vector, mis-weighting any multi-row SA2.
+    lat_pts = xr.DataArray(lat[sub_ji], dims="points")
+    lon_pts = xr.DataArray(lon[sub_ii], dims="points")
+    cf = cropfrac.sel(lat=lat_pts, lon=lon_pts, method="nearest").values
     cf = np.nan_to_num(np.asarray(cf, dtype="float64"), nan=0.0)
     cf[cf < crop_floor] = 0.0
     if cf.sum() <= 0:
@@ -78,6 +84,8 @@ def build_cell_weights(geom, lat: np.ndarray, lon: np.ndarray,
 
 
 def _centroid_fallback(geom, lat: np.ndarray, lon: np.ndarray) -> CellWeights:
+    """Return a single-cell CellWeights at the cell nearest the polygon's
+    representative point (used when an SA2 has no cropland coverage)."""
     c = geom.representative_point()
     cj = int(np.abs(lat - c.y).argmin())
     ci = int(np.abs(lon - c.x).argmin())
