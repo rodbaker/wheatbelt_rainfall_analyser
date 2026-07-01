@@ -1,7 +1,7 @@
 
 # Task Manager
 **PRD:** ./prd.md  
-**Updated:** 2026-06-08 (WRA contract stabilisation: decile convention unified + decimal decile fix + stale-script cleanup + Vintage Pinning v1)  
+**Updated:** 2026-06-25 (ad-hoc: June refresh → obs 06-24 / grid 06-23, dual-window JS fix, SA YoY, full decile-map suite incl. CLUM cropland mask + partial month-to-date gridded)  
 
 ---
 
@@ -958,9 +958,96 @@ Claude prints: `OK TO CLOSE: Save is complete. Please close this chat to reset c
 - **Blockers:** None. All briefs Codex-reviewed and signed off.
 - **Commit:** pending (no reports/data regenerated; canonical decile producer untouched).
 
+### 2026-06-08 — wheatbelt_rainfall_analyser (SA2-broadacre station coverage + concurrent ingest)
+- **Task:** Replace the 16-station `active`-tier daily ingest with a station universe derived from broadacre-cropping SA2s, made fast via concurrency. Full brainstorm → spec → plan → subagent-driven execution (each task spec+quality reviewed). PR opened, not merged.
+- **What changed:**
+  - **Coverage derivation** (`src/common/sa2_coverage.py`, new): broadacre area aggregation (NaN-skipping; null-area→0.0 retained), target selection (`area_ha >= 5000`, configurable), station-universe derivation (dedup'd against the `station_regions.csv` merge fan-out, 1,333→1,293), coverage report (`gap_status` internal_bom/data_drill_gapfill/unresolved_gap), deterministic polygon index + gap-point resolution, conservative uniqueness-checked name fallback for the 2016/2021 SA2-code mismatch.
+  - **Concurrency** (`src/agents/silo_wrangler/concurrent_ingest.py`, new): bounded thread-pool, parallel fetch / main-thread serialized writes, worker+writer failure isolation, run summary.
+  - **Wiring** (`run_ingest.py`): `--coverage-mode` (sa2_broadacre|active_tier fallback) + config; sequential loop → orchestrator; per-SA2 Data Drill gap injection (config-driven via `enable_data_drill_gaps`, reuses `_writer` for CSV+DuckDB parity); `coverage_summary` in run_metadata; JSONL run-log newline bug fixed.
+  - **Config/docs**: `coverage:` block + `api.concurrency` (default 10; 1 = legacy sequential mechanics); cron daily → `sa2_broadacre`; CLAUDE.md documents scope + known gaps; `.gitignore` for the generated coverage report.
+- **Operational change:** daily cron scope **16 → ~1,293 stations** (159 SA2s at 5,000 ha). Real coverage: 153 `internal_bom` / 4 `data_drill_gapfill` / 2 `unresolved_gap` (Esperance 51274, Capel 51007 — urban-town SA2s, cropland already covered by neighbours; surfaced at WARNING + documented).
+- **Files touched:** `src/common/sa2_coverage.py` (new), `src/agents/silo_wrangler/concurrent_ingest.py` (new), `src/agents/silo_wrangler/run_ingest.py`, `config/silo_sources.yaml`, `scripts/cron_schedule.sh`, `CLAUDE.md`, `.gitignore`, `tests/test_sa2_coverage.py`, `tests/test_concurrent_ingest.py` (new), `tests/test_run_ingest_coverage.py` (new); spec + plan under `docs/superpowers/`.
+- **Tests:** full suite **436 passed** (1 pre-existing unrelated failure: `test_run_yield_analogue::test_2026_nsw_analogues`, confirmed failing at base); 37 new feature tests; `flake8 --select=F,E9` clean. All TDD (red→green).
+- **Next steps:** **Merged.** Post-merge op check: inspect the first `logs/ingest_runs.jsonl` entry + cron log for `summary.requested` (≈1293), `elapsed_s`, failure count, and `coverage_summary`. Deferred: ABS SA2 2016↔2021 correspondence file to resolve the 2 urban-SA2 gaps properly (see Parking Lot).
+- **Blockers:** None.
+- **Commit:** 21 commits on `feat/sa2-broadacre-coverage`; **PR #2 merged to master** (merge commit, 2026-06-08). W21 outlook edit + unrelated untracked files deliberately left untouched throughout.
+
+### 2026-06-08 — rainfall-analytics (NetCDF rainfall pipeline review + full-month blocker fixes)
+- **Task:** Multi-pass blocking code review of the NetCDF rainfall pipeline (MTD path, then full-month path + downstream consumers), then implement only the two approved full-month blockers. Review-first; fixes scoped tightly.
+- **Reviews delivered (review-only, no code):**
+  - **MTD path** (`extract_sa2_partial_month_rainfall.py`): found the day-31 month-slice bug is **broader than reported** — `end = f"{year}-{month:02d}-31"` breaks every non-31-day month (Apr/Jun/Sep/Nov **and Feb**), not just 30-day. Flagged the test gap (all tests used May) that let it ship. Handled separately.
+  - **Full-month path**: identified 2 blockers (below) + follow-ups (F1 `--skip-validate` no month-coverage/dup check; F2 nodata NaN mislabel as `ok`; F3 threshold-boundary `<` vs `>` asymmetry vs MTD; F4 derived-builder non-atomic writes; F5 two history files no consistency guard; F6 downloader leftover `.tmp`).
+- **What changed (the two approved blockers):**
+  - **B1 — partial rows contaminated weighted baselines.** `build_wa_wheat_weighted_monthly_rainfall_deciles.py` historical loop only excluded the target year, not `is_partial_month=True` rows; a current-year partial month appended via `--current-year-csv` leaked its sub-month total into every other year's same-month baseline (median/mean/count/decile). The per-SA2 builder already guarded this; weighted did not. Fixed with an explicit `hist_mask` that AND-excludes partial rows (column-presence guarded).
+  - **B2 — canonical history CSV written non-atomically.** `extract_sa2_monthly_rainfall.py` used direct `df.to_csv()` on the single artifact feeding the entire decile/features/report chain; an interrupted write silently corrupts all consumers. Switched to `atomic_csv_write(df, str(out_path), backup=False)`, fails loudly (`sys.exit(1)`) on `False`; dry-run unchanged.
+  - **Regression test** (`tests/test_build_wa_wheat_weighted_monthly_rainfall_deciles.py::TestPartialMonthExcludedFromBaseline`): ≥10 full years + a low 2026 partial row; asserts a prior year's `historical_year_count/median/mean` are unchanged with vs without the partial row, and the partial target row still flags `partial_month`. Verified red→green (fails `12 == 11` on reverted code).
+- **Files touched:** `scripts/build_wa_wheat_weighted_monthly_rainfall_deciles.py`, `scripts/extract_sa2_monthly_rainfall.py`, `tests/test_build_wa_wheat_weighted_monthly_rainfall_deciles.py`.
+- **Tests:** weighted deciles **35 passed** (34+1 new); monthly extractor **13 passed** (write path via `test_custom_output_path_writes_there`); `py_compile` clean. Residual: benign pandas `FutureWarning` on the partial mask (matches existing `build_sa2_rainfall_deciles.py:108` pattern).
+- **Next steps:** MTD day-31 blocker handled separately. Review follow-ups F1–F6 remain open (see Parking Lot).
+- **Blockers:** None. User-approved patch; scope kept clean (no follow-ups mixed in).
+- **Commit:** pending (user to commit; no reports/data regenerated).
+
+### 2026-06-08 — rainfall-analytics (MTD day-31 fix + June 2026 MTD run)
+- **Task:** User asked to run MTD rainfall for June. Confirmed the day-31 blocker still in code (crashed with `TypeError: ... slice indexing ... [2026-06-31]`), applied the minimal fix, refreshed data, generated June MTD.
+- **What changed:**
+  - **Day-31 fix** (`scripts/extract_sa2_partial_month_rainfall.py`): `_select_month_slice` now derives the real month end via `calendar.monthrange(year, month)[1]` instead of hardcoding `-31`; the mixed-month guard is retained. Fixes June/Apr/Sep/Nov **and February** (incl. leap).
+  - **Regression tests** (`tests/test_extract_sa2_partial_month_rainfall.py`): added 30-day June, Feb leap (2024, day 29), and Feb non-leap (2026, 28 days) cases. Suite **9 passed** (6→9).
+  - **Data refresh:** re-downloaded `data/meta/daily_rain/2026.daily_rain.nc` (`--replace --skip-validate`, 182.2 MB); coverage now 2026-01-01 → **2026-06-08** (was → 06-02).
+  - **Output generated:** `data/features/sa2_2026_06_mtd.csv` — 192 SA2 rows, June **days 1..8**, 190 `partial_month_no_decile` / 2 `nodata` (Le Hunte–Elliston, West Coast (SA) — coastal centroids on nodata cells, same pattern as May).
+- **Scope note / risk:** the day-31 fix was previously flagged as "handled separately" — if a parallel branch/PR already fixes it, **dedupe to avoid a conflicting double-fix** before committing. Fix written to be mergeable (calendar.monthrange + tests), not a hack.
+- **Downstream June run:** `build_sd_monthly_rainfall_review.py --year 2026 --month 6` (already parameterised) → `data/features/{sd,state,sa2}_2026_06_rainfall_review.csv`; correctly month-aware (through_day=8/**30**, scale=0.267, not /31).
+- **Deliverable:** `reports/monthly/2026-06_mtd_vs_fullmonth.md` — national + per-state/SD MTD (d1–8) vs **unscaled** full-June 2005–2025 median ("% of full June banked"; pace vs 27% month-elapsed). Carries a **frozen** vintage block (through_day 8, no decile quoted → no `decile_method`); passes `tests/test_vintage_consistency.py` (12). National 38% / 1.42× pace; SA 64%/Vic 62% ahead, WA 22% (Midlands 19%) & Qld 1% behind.
+- **Tests:** `pytest tests/test_extract_sa2_partial_month_rainfall.py -q` → 9 passed; vintage suite 12 passed; `py_compile` clean.
+- **Commit:** pending (user to commit; new data file + generated feature CSVs untracked/ignored; the report .md is the one tracked artifact).
+
+### 2026-06-25 — rainfall-analytics (June refresh, decile maps + CLUM cropland mask)
+- **Task:** Ad-hoc — verify June data freshness, run state decile analysis, and build a decile-map suite for the June 2026 crop forecast writeup. Branch `feat/june-house-round`.
+- **What changed:**
+  - **Data refresh:** station obs → 2026-06-24 (full network via `--use-bom-dataset --hybrid`, default 40-day window); gridded `daily_rain` → 2026-06-23. Confirmed the 5 no_data WA SA2s are structural (no broadacre stations in polygon), not staleness.
+  - **dual_window_concern.py bug fix:** hardcoded `JS = 8/30` inflated all deciles to ~10; now reads `partial_month_through_day` dynamically (23/30). Corrected result surfaces the WA Lower/Upper Great Southern dry corridor (Gnowangerup 213 kha, Brookton) as the real persistent-dry pocket; NSW/Qld north "recovered" (dry season profile, wet May establishment).
+  - **api_client.py fix:** cast `YYYY-MM-DD` to str before `.str.match` — SILO no-data responses left it float NaN and failed all stations. Pinned by `tests/test_silo_api_client.py`.
+  - **SA 2025-vs-2026 YoY** (`sa_yoy_2025_2026.py`): Apr–May + Apr→Jun-23 windows, decile 1.0→9.5 (record-dry → near-wettest). Write-ups in `reports/adhoc/`.
+  - **Decile map suite** (`plot_sa2_decile_map.py`, `plot_decile_map_bom.py`, `plot_decile_grid_bom.py`): SA2 choropleth → BOM-format polygon → true per-cell gridded (1911–2025 baseline ≈ BOM). Gridded supports `--field {cropland,statewide}`, `--overlay {sd,sa2,both,none}`, `--crop-mask`, `--smooth`, and a **partial month-to-date** path (June from daily grid 1–23 vs historical full-June ×23/30).
+  - **CLUM cropland mask** (`build_clum_cropfrac.py`): downloaded ABARES CLUM 50m raster (151 MB), built `data/meta/clum_cropfrac_005.nc` (cropland fraction per 0.05° cell; ALUM 3.3 dryland + 4.3 irrigated). NOTE: the local `clum_commodities_2023.zip` does NOT contain the wheatbelt — only the full CLUM raster does. See memory `clum-cropland-mask`.
+  - **Report-visual standard:** state-wide decile field + broad cropping outline (`--crop-mask 0.05 --smooth 0.25`, close-only) cut into SD/SA2 overlays (kept separate). Full state set: WA/SA/Vic/NSW/Qld × May+June × SD/SA2 in `reports/figures/`. Analysis stays on raw cropland cells ≥5%.
+- **Key files:** `scripts/{dual_window_concern,sa_yoy_2025_2026,plot_sa2_decile_map,plot_decile_map_bom,plot_decile_grid_bom,build_clum_cropfrac}.py`, `src/agents/silo_wrangler/api_client.py`, `tests/test_silo_api_client.py`, `reports/adhoc/*.md`, `reports/figures/decile_*`.
+- **Next steps:** decision-grade gate still FAIL (structural WA SA2 gaps); optional — extend cropland-masked maps to other report months; consider wiring `--use-bom-dataset --hybrid` into the daily cron so the full network stays current.
+- **Blockers:** None.
+- **Commits:** `ef918a8` (JS+NaN fix), `a254286` (decile maps + SA YoY), `5992ce8` (CLUM cropland mask), `e38ccc3` (field/overlay modes + cut), `d62a794` (square-artifact cleanup), `6c87cbe` (partial month-to-date), `b456617` (state set), `739db5f` (broad-outline set). Branch pushed.
+
+### 2026-07-01 — rainfall-analytics (July Crop Monitor commentary — full-June + real YTD)
+- **Task:** Produce the July Crop Monitor commentary (June 2026 as completed month + Jul–Sep outlook), mirroring the May monitor's structure (In short / 5 state sections / Three Month Outlook). Branch `feat/june-house-round`.
+- **What changed:**
+  - **Regenerated June as a completed month.** Prior extraction was MTD through day 28; the daily grid (`2026.daily_rain.nc`) and monthly grid were refreshed this morning (Jul 1). Re-ran `extract_sa2_partial_month_rainfall.py --year 2026 --month 6 --method centroid` (now through_day=**30**, scale=1.000) → `sa2_2026_06_mtd.csv`, then `build_sd_monthly_rainfall_review.py --year 2026 --month 6` → `{state,sd,sa2}_2026_06_rainfall_review.csv`. Full-June state deciles: WA 10 (215%), SA 10 (183%), Vic 9.5 (179%), NSW 6.7 (115%), Qld 3.3 (73%).
+  - **Fixed empty YTD.** Jan–June YTD came out blank for all states because **May 2026 was flagged `is_partial_month=True`** in `sa2_monthly_rainfall_history_national.csv` (built while May was live) and the review's YTD path excludes partial months → Jan–May sum returned null. Rebuilt the national monthly history from the now-complete monthly grid: `extract_sa2_monthly_rainfall.py --method centroid --universe-source combined --output data/features/sa2_monthly_rainfall_history_national.csv` (266,112 rows, ~3 min; backup saved `.bak_pre_june_20260701`). All 2026 months now full-month. Re-ran the review → real YTD deciles: WA 130%/8.6, SA 145%/10, Vic 152%/10, NSW 90%/4.3, Qld 96%/4.3.
+  - **Upgraded the draft** `reports/monthly/2026-07_crop_monitor_commentary.md`: replaced the "YTD carried qualitatively / May not in archive" hedging (header + all 5 state para-2s) with the actual Jan–June deciles. Verified cited WA SA2 figures against the regenerated full-June review (Morawa 373%, Mukinbudin 301%, Merredin 235%, Moora 222%, Esperance Surrounds 276%). Note: at full month the WA Great Southern is no longer a deficit — Gnowangerup rose to 93% (decile 3.8), softest material spot Brookton 86%.
+  - **Climate outlook** anchored in the BOM ENSO update Rod supplied (data to wk ending 27–28 Jun): El Niño **underway** (rel. Niño3.4 +1.24 °C, SOI −25.2, coupling), IOD neutral (−0.02) but +IOD likely winter–spring, SAM strongly positive (+5.03). Jul–Sep: below-avg rain 60–80% S/E Aus, above-avg temps.
+- **Checks:** In short **267 words** (target 260–270 ✓); Three Month Outlook body **397 words** (<400 ✓); no June-vs-YTD contradictions (Qld June-dry + YTD 96% sub-median consistent; WA June-wet + YTD lift 4.3→8.6 consistent); all totals/deciles/% cross-checked vs feature CSVs.
+- **Key files:** `reports/monthly/2026-07_crop_monitor_commentary.md` (deliverable); regenerated `data/features/{sa2_2026_06_mtd,state_2026_06_rainfall_review,sd_2026_06_rainfall_review,sa2_2026_06_rainfall_review}.csv` and rebuilt `sa2_monthly_rainfall_history_national.csv` (backup alongside).
+- **Next steps:** none pending; report ready for review. Optional: bake June into history for future months is already done via the rebuild.
+- **Blockers:** None.
+- **Commit:** pending (user to commit; the tracked artifact is the report .md — feature CSVs are gitignored/untracked).
+
+### 2026-07-01 — rainfall-analytics (code-review correctness patch: SA2/state drill scripts)
+- **Task:** High-effort workflow code review of the ad-hoc 2026 SA2/state rainfall scripts; narrow correctness-only patch. Branch `feat/june-house-round`.
+- **Findings addressed:**
+  - `wa_dry_sd_eastwest.py`: hardcoded June scale `JS=8/30` made dry WA SDs read wet — now reads `partial_month_through_day` at runtime (30/30=1.0); `dec()` returns a 3-tuple on the guard path (fixes an unpack crash).
+  - `sa2_state_drill_2026.py`: partial-May was ranked against an unscaled full-May baseline — now scales historical May ×`mtd_day/31` when May is absent from history, preserves full-vs-full when present, skips (not 0-fills) missing MTD SA2s, and requires all window months present so incomplete historical years no longer leak in via `fill_value=0.0`.
+  - Canonical `decile_rank()` replaces percentile-floor `pd.cut` in `sa2_state_drill_2026.py` + `vic_sa2_seeding_conditions_2026.py`, and drives Dry/Mid/Wet bands in `state_sa2_area_weighted_drill.py`.
+  - Missing-data guards: `state_moisture_trajectory_2026.py` requires complete Jan–Apr 2026; `vic_sa2_seeding_conditions_2026.py` inner-merges instead of outer + `fillna(0)`.
+- **Files patched:** `scripts/{wa_dry_sd_eastwest,sa2_state_drill_2026,state_moisture_trajectory_2026,vic_sa2_seeding_conditions_2026,state_sa2_area_weighted_drill}.py`, `tests/test_sa2_state_drill_2026.py` (rewrote the contamination test; added scaled-baseline, incomplete-year-exclusion, and full-May-preserve tests).
+- **Tests:** `poetry run pytest tests/test_sa2_state_drill_2026.py tests/test_rainfall_analytics.py` → **14 passed**.
+- **Generated outputs:** `sa2_state_drill_2026.csv` regenerated with canonical `decile`/`decile_bucket` columns (all `n_hist_years=21`; May 2026 now complete so the full-vs-full path ran — MTD scaling not exercised this cycle, changed values come from the canonical deciles). `state_sa2_area_weighted_2026.csv` **not refreshed** — `state_sa2_area_weighted_drill.py` exits at a pre-existing wheat-weight guard on cross-state SA2 Albury-East (109011172, in VIC universe, no VIC wheat weight); unrelated to this patch.
+- **Next steps:** resolve the Albury-East wheat-weight gap to unblock the area-weighted drill; if these scripts graduate to pipeline code, make the 2026 Jan–Apr completeness a fail-loud guard (see memory `sa2-drill-mtd-followups`).
+- **Update:** narrowed `state_sa2_area_weighted_drill.py`'s weight guard — a drill row with *no* wheat record still fails loud, but a record whose area is suppressed/non-positive (Albury-East, NaN) is now **excluded with a warning**, not fatal (no imputation). Reran → `state_sa2_area_weighted_2026.csv` + `state_sa3_area_weighted_2026.csv` refreshed (excluded 1 SA2). Per-state Dry/Mid/Wet area shares: NSW 21.6/62.7/15.8, Qld 43.3/28.8/27.9, SA 20.0/26.7/53.3, Vic 1.5/32.7/65.8, WA 17.6/50.8/31.6.
+- **Blockers:** None.
+- **Commit:** pending (user to commit; patched scripts + tests are tracked; feature CSVs gitignored/untracked).
+
 ---
 
 ## Parking Lot (defer but don’t forget)
+- NetCDF full-month review follow-ups (deferred, not in the B1/B2 patch): `--skip-validate` should still assert unique+contiguous months (F1); nodata NaN should be relabelled `nodata` not `ok` (F2); unify nodata threshold boundary across monthly/MTD extractors (F3); atomic writes for derived builders — deciles, weighted deciles, monthly-from-daily (F4); consolidate `sa2_monthly_rainfall_history.csv` vs `_national.csv` or guard their consistency (F5); downloader stale-`.tmp` sweep (F6).
+- ABS SA2 **2016↔2021 correspondence file** — resolve the 2 documented urban-SA2 coverage gaps (Esperance 51274, Capel 51007): the GeoJSON uses 2016 codes, `crop_context_sa2.csv` uses 2021, and the conservative name fallback correctly refuses to borrow a neighbour's polygon. A correspondence table is the robust fix.
 - Add ADRs in `docs/decisions/` for major design choices.
 - Performance pass on large station loops (vectorize / multiprocessing).
 - v1.2 rainfall contract: like-for-like to-date decile baseline using historical daily NetCDFs (~8 GB one-time download).

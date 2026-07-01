@@ -30,6 +30,10 @@ class SILOAPIClient:
         """
         self.base_url = config['api']['base_url']
         self.username = config['api']['username']
+        # SILO's public API requires a password parameter alongside the username
+        # (email). For the public www endpoint this is the literal constant
+        # 'apirequest' — NOT an account password. Omitting it now yields 401s.
+        self.password = config['api'].get('password', 'apirequest')
         self.rate_limit_seconds = config['api']['rate_limit_seconds']
         self.timeout_seconds = config['api']['timeout_seconds']
         self.max_retries = config['api']['max_retries']
@@ -63,14 +67,15 @@ class SILOAPIClient:
             'finish': end_date,
             'format': 'csv',
             'comment': self.variable_codes,
-            'username': self.username
+            'username': self.username,
+            'password': self.password
         }
-        
+
         for attempt in range(self.max_retries):
             try:
                 # Rate limiting
                 time.sleep(self.rate_limit_seconds)
-                
+
                 logger.info(f"Requesting SILO data: station={station_id}, dates={start_date}-{end_date}, attempt={attempt+1}")
                 
                 response = requests.get(
@@ -90,8 +95,10 @@ class SILOAPIClient:
                 
                 # Filter out metadata rows - keep only rows with valid dates in YYYY-MM-DD column
                 if 'YYYY-MM-DD' in df.columns:
-                    # Keep only rows where YYYY-MM-DD matches date format (YYYY-MM-DD)
-                    df = df[df['YYYY-MM-DD'].str.match(r'^\d{4}-\d{2}-\d{2}$', na=False)]
+                    # Cast to str first: a no-data response (e.g. requesting a date SILO
+                    # has not yet published) leaves YYYY-MM-DD as float NaN, which breaks
+                    # the .str accessor. Mirrors get_data_drill_data below.
+                    df = df[df['YYYY-MM-DD'].astype(str).str.match(r'^\d{4}-\d{2}-\d{2}$', na=False)]
                     df = df.reset_index(drop=True)
                 
                 logger.info(f"Successfully retrieved {len(df)} weather records for station {station_id}")
@@ -159,7 +166,8 @@ class SILOAPIClient:
             'finish': end_date,
             'format': 'csv',
             'comment': self.variable_codes,
-            'username': self.username
+            'username': self.username,
+            'password': self.password
         }
 
         for attempt in range(self.max_retries):
