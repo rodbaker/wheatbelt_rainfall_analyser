@@ -1015,6 +1015,34 @@ Claude prints: `OK TO CLOSE: Save is complete. Please close this chat to reset c
 - **Blockers:** None.
 - **Commits:** `ef918a8` (JS+NaN fix), `a254286` (decile maps + SA YoY), `5992ce8` (CLUM cropland mask), `e38ccc3` (field/overlay modes + cut), `d62a794` (square-artifact cleanup), `6c87cbe` (partial month-to-date), `b456617` (state set), `739db5f` (broad-outline set). Branch pushed.
 
+### 2026-07-01 — rainfall-analytics (July Crop Monitor commentary — full-June + real YTD)
+- **Task:** Produce the July Crop Monitor commentary (June 2026 as completed month + Jul–Sep outlook), mirroring the May monitor's structure (In short / 5 state sections / Three Month Outlook). Branch `feat/june-house-round`.
+- **What changed:**
+  - **Regenerated June as a completed month.** Prior extraction was MTD through day 28; the daily grid (`2026.daily_rain.nc`) and monthly grid were refreshed this morning (Jul 1). Re-ran `extract_sa2_partial_month_rainfall.py --year 2026 --month 6 --method centroid` (now through_day=**30**, scale=1.000) → `sa2_2026_06_mtd.csv`, then `build_sd_monthly_rainfall_review.py --year 2026 --month 6` → `{state,sd,sa2}_2026_06_rainfall_review.csv`. Full-June state deciles: WA 10 (215%), SA 10 (183%), Vic 9.5 (179%), NSW 6.7 (115%), Qld 3.3 (73%).
+  - **Fixed empty YTD.** Jan–June YTD came out blank for all states because **May 2026 was flagged `is_partial_month=True`** in `sa2_monthly_rainfall_history_national.csv` (built while May was live) and the review's YTD path excludes partial months → Jan–May sum returned null. Rebuilt the national monthly history from the now-complete monthly grid: `extract_sa2_monthly_rainfall.py --method centroid --universe-source combined --output data/features/sa2_monthly_rainfall_history_national.csv` (266,112 rows, ~3 min; backup saved `.bak_pre_june_20260701`). All 2026 months now full-month. Re-ran the review → real YTD deciles: WA 130%/8.6, SA 145%/10, Vic 152%/10, NSW 90%/4.3, Qld 96%/4.3.
+  - **Upgraded the draft** `reports/monthly/2026-07_crop_monitor_commentary.md`: replaced the "YTD carried qualitatively / May not in archive" hedging (header + all 5 state para-2s) with the actual Jan–June deciles. Verified cited WA SA2 figures against the regenerated full-June review (Morawa 373%, Mukinbudin 301%, Merredin 235%, Moora 222%, Esperance Surrounds 276%). Note: at full month the WA Great Southern is no longer a deficit — Gnowangerup rose to 93% (decile 3.8), softest material spot Brookton 86%.
+  - **Climate outlook** anchored in the BOM ENSO update Rod supplied (data to wk ending 27–28 Jun): El Niño **underway** (rel. Niño3.4 +1.24 °C, SOI −25.2, coupling), IOD neutral (−0.02) but +IOD likely winter–spring, SAM strongly positive (+5.03). Jul–Sep: below-avg rain 60–80% S/E Aus, above-avg temps.
+- **Checks:** In short **267 words** (target 260–270 ✓); Three Month Outlook body **397 words** (<400 ✓); no June-vs-YTD contradictions (Qld June-dry + YTD 96% sub-median consistent; WA June-wet + YTD lift 4.3→8.6 consistent); all totals/deciles/% cross-checked vs feature CSVs.
+- **Key files:** `reports/monthly/2026-07_crop_monitor_commentary.md` (deliverable); regenerated `data/features/{sa2_2026_06_mtd,state_2026_06_rainfall_review,sd_2026_06_rainfall_review,sa2_2026_06_rainfall_review}.csv` and rebuilt `sa2_monthly_rainfall_history_national.csv` (backup alongside).
+- **Next steps:** none pending; report ready for review. Optional: bake June into history for future months is already done via the rebuild.
+- **Blockers:** None.
+- **Commit:** pending (user to commit; the tracked artifact is the report .md — feature CSVs are gitignored/untracked).
+
+### 2026-07-01 — rainfall-analytics (code-review correctness patch: SA2/state drill scripts)
+- **Task:** High-effort workflow code review of the ad-hoc 2026 SA2/state rainfall scripts; narrow correctness-only patch. Branch `feat/june-house-round`.
+- **Findings addressed:**
+  - `wa_dry_sd_eastwest.py`: hardcoded June scale `JS=8/30` made dry WA SDs read wet — now reads `partial_month_through_day` at runtime (30/30=1.0); `dec()` returns a 3-tuple on the guard path (fixes an unpack crash).
+  - `sa2_state_drill_2026.py`: partial-May was ranked against an unscaled full-May baseline — now scales historical May ×`mtd_day/31` when May is absent from history, preserves full-vs-full when present, skips (not 0-fills) missing MTD SA2s, and requires all window months present so incomplete historical years no longer leak in via `fill_value=0.0`.
+  - Canonical `decile_rank()` replaces percentile-floor `pd.cut` in `sa2_state_drill_2026.py` + `vic_sa2_seeding_conditions_2026.py`, and drives Dry/Mid/Wet bands in `state_sa2_area_weighted_drill.py`.
+  - Missing-data guards: `state_moisture_trajectory_2026.py` requires complete Jan–Apr 2026; `vic_sa2_seeding_conditions_2026.py` inner-merges instead of outer + `fillna(0)`.
+- **Files patched:** `scripts/{wa_dry_sd_eastwest,sa2_state_drill_2026,state_moisture_trajectory_2026,vic_sa2_seeding_conditions_2026,state_sa2_area_weighted_drill}.py`, `tests/test_sa2_state_drill_2026.py` (rewrote the contamination test; added scaled-baseline, incomplete-year-exclusion, and full-May-preserve tests).
+- **Tests:** `poetry run pytest tests/test_sa2_state_drill_2026.py tests/test_rainfall_analytics.py` → **14 passed**.
+- **Generated outputs:** `sa2_state_drill_2026.csv` regenerated with canonical `decile`/`decile_bucket` columns (all `n_hist_years=21`; May 2026 now complete so the full-vs-full path ran — MTD scaling not exercised this cycle, changed values come from the canonical deciles). `state_sa2_area_weighted_2026.csv` **not refreshed** — `state_sa2_area_weighted_drill.py` exits at a pre-existing wheat-weight guard on cross-state SA2 Albury-East (109011172, in VIC universe, no VIC wheat weight); unrelated to this patch.
+- **Next steps:** resolve the Albury-East wheat-weight gap to unblock the area-weighted drill; if these scripts graduate to pipeline code, make the 2026 Jan–Apr completeness a fail-loud guard (see memory `sa2-drill-mtd-followups`).
+- **Update:** narrowed `state_sa2_area_weighted_drill.py`'s weight guard — a drill row with *no* wheat record still fails loud, but a record whose area is suppressed/non-positive (Albury-East, NaN) is now **excluded with a warning**, not fatal (no imputation). Reran → `state_sa2_area_weighted_2026.csv` + `state_sa3_area_weighted_2026.csv` refreshed (excluded 1 SA2). Per-state Dry/Mid/Wet area shares: NSW 21.6/62.7/15.8, Qld 43.3/28.8/27.9, SA 20.0/26.7/53.3, Vic 1.5/32.7/65.8, WA 17.6/50.8/31.6.
+- **Blockers:** None.
+- **Commit:** pending (user to commit; patched scripts + tests are tracked; feature CSVs gitignored/untracked).
+
 ---
 
 ## Parking Lot (defer but don’t forget)
